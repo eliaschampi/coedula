@@ -80,6 +80,7 @@
 	const canReadUsers = $derived(can('users:read'));
 	const canReadCycles = $derived(can('cycles:read'));
 	const canReadCourses = $derived(can('courses:read'));
+	const canReadEvaluations = $derived(can('evaluations:read'));
 	const canReadStudents = $derived(can('students:read'));
 	const canReadEnrollments = $derived(can('enrollments:read'));
 	const canReadAttendance = $derived(can('attendance:read'));
@@ -179,6 +180,19 @@
 					<Icon icon="bookOpenCheck" size="20px" />
 				{/snippet}
 				Cursos
+			</SidebarItem>
+		{/if}
+
+		{#if canReadEvaluations}
+			<SidebarItem
+				href="/evaluations"
+				active={page.url.pathname.startsWith('/evaluations')}
+				collapsed={sidebarCollapsed}
+			>
+				{#snippet icon()}
+					<Icon icon="clipboardPenLine" size="20px" />
+				{/snippet}
+				Evaluaciones
 			</SidebarItem>
 		{/if}
 

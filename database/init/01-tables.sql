@@ -236,6 +236,94 @@ CREATE TABLE public.enrollments (
   )
 );
 
+-- Evaluations
+CREATE TABLE public.evals (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  name VARCHAR(150) NOT NULL,
+  cycle_degree_code UUID NOT NULL,
+  group_code VARCHAR(1) NOT NULL,
+  eval_date DATE NOT NULL,
+  user_code UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT evals_pk PRIMARY KEY (code),
+  CONSTRAINT evals_cycle_degree_fk FOREIGN KEY (cycle_degree_code) REFERENCES public.cycle_degrees (code) ON DELETE RESTRICT,
+  CONSTRAINT evals_user_fk FOREIGN KEY (user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT evals_name_check CHECK (char_length(trim(name)) > 0),
+  CONSTRAINT evals_group_code_check CHECK (group_code IN ('A', 'B', 'C', 'D'))
+);
+
+-- Evaluation sections
+CREATE TABLE public.eval_sections (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  eval_code UUID NOT NULL,
+  course_code UUID NOT NULL,
+  order_in_eval INTEGER NOT NULL,
+  question_count INTEGER NOT NULL,
+  CONSTRAINT eval_sections_pk PRIMARY KEY (code),
+  CONSTRAINT eval_sections_eval_fk FOREIGN KEY (eval_code) REFERENCES public.evals (code) ON DELETE CASCADE,
+  CONSTRAINT eval_sections_course_fk FOREIGN KEY (course_code) REFERENCES public.courses (code) ON DELETE RESTRICT,
+  CONSTRAINT eval_sections_eval_course_uq UNIQUE (eval_code, course_code),
+  CONSTRAINT eval_sections_eval_order_uq UNIQUE (eval_code, order_in_eval),
+  CONSTRAINT eval_sections_order_in_eval_check CHECK (order_in_eval > 0),
+  CONSTRAINT eval_sections_question_count_check CHECK (question_count > 0)
+);
+
+-- Evaluation questions
+CREATE TABLE public.eval_questions (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  eval_code UUID NOT NULL,
+  section_code UUID NOT NULL,
+  order_in_eval INTEGER NOT NULL,
+  correct_key CHAR(1) NOT NULL,
+  omitable BOOLEAN NOT NULL DEFAULT FALSE,
+  score_percent NUMERIC(3,2) NOT NULL DEFAULT 1.00,
+  CONSTRAINT eval_questions_pk PRIMARY KEY (code),
+  CONSTRAINT eval_questions_eval_fk FOREIGN KEY (eval_code) REFERENCES public.evals (code) ON DELETE CASCADE,
+  CONSTRAINT eval_questions_section_fk FOREIGN KEY (section_code) REFERENCES public.eval_sections (code) ON DELETE CASCADE,
+  CONSTRAINT eval_questions_order_uq UNIQUE (eval_code, order_in_eval),
+  CONSTRAINT eval_questions_order_in_eval_check CHECK (order_in_eval > 0),
+  CONSTRAINT eval_questions_correct_key_ck CHECK (correct_key IN ('A', 'B', 'C', 'D', 'E')),
+  CONSTRAINT eval_questions_score_ck CHECK (score_percent BETWEEN 0 AND 1)
+);
+
+-- Evaluation answers
+CREATE TABLE public.eval_answers (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  enrollment_code UUID NOT NULL,
+  question_code UUID NOT NULL,
+  student_answer TEXT NULL,
+  CONSTRAINT eval_answers_pk PRIMARY KEY (code),
+  CONSTRAINT eval_answers_enrollment_fk FOREIGN KEY (enrollment_code) REFERENCES public.enrollments (code) ON DELETE CASCADE,
+  CONSTRAINT eval_answers_question_fk FOREIGN KEY (question_code) REFERENCES public.eval_questions (code) ON DELETE CASCADE,
+  CONSTRAINT eval_answers_unique_uq UNIQUE (enrollment_code, question_code),
+  CONSTRAINT eval_answers_answer_ck CHECK (
+    student_answer IN ('A', 'B', 'C', 'D', 'E', 'error_multiple')
+    OR student_answer IS NULL
+  )
+);
+
+-- Evaluation results
+CREATE TABLE public.eval_results (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  enrollment_code UUID NOT NULL,
+  eval_code UUID NOT NULL,
+  section_code UUID NULL,
+  correct_count INTEGER NOT NULL DEFAULT 0,
+  blank_count INTEGER NOT NULL DEFAULT 0,
+  incorrect_count INTEGER NOT NULL DEFAULT 0,
+  score NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+  calculated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT eval_results_pk PRIMARY KEY (code),
+  CONSTRAINT eval_results_enrollment_fk FOREIGN KEY (enrollment_code) REFERENCES public.enrollments (code) ON DELETE CASCADE,
+  CONSTRAINT eval_results_eval_fk FOREIGN KEY (eval_code) REFERENCES public.evals (code) ON DELETE CASCADE,
+  CONSTRAINT eval_results_section_fk FOREIGN KEY (section_code) REFERENCES public.eval_sections (code) ON DELETE CASCADE,
+  CONSTRAINT eval_results_correct_count_check CHECK (correct_count >= 0),
+  CONSTRAINT eval_results_blank_count_check CHECK (blank_count >= 0),
+  CONSTRAINT eval_results_incorrect_count_check CHECK (incorrect_count >= 0),
+  CONSTRAINT eval_results_score_check CHECK (score >= 0)
+);
+
 -- Attendance
 CREATE TABLE public.attendances (
   code UUID NOT NULL DEFAULT gen_random_uuid(),

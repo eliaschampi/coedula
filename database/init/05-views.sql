@@ -100,6 +100,62 @@ FROM public.enrollments e
 INNER JOIN public.students s ON s.code = e.student_code
 INNER JOIN public.cycle_degree_overview cdo ON cdo.code = e.cycle_degree_code;
 
+CREATE OR REPLACE VIEW public.eval_overview AS
+SELECT
+  e.code,
+  e.name,
+  e.cycle_degree_code,
+  cdo.cycle_code,
+  cdo.branch_code,
+  cdo.branch_name,
+  cdo.cycle_title,
+  cdo.modality,
+  cdo.degree_code,
+  cdo.degree_name,
+  cdo.degree_short_name,
+  cdo.degree_sort_order,
+  e.group_code,
+  e.eval_date,
+  e.user_code,
+  e.created_at,
+  e.updated_at,
+  COALESCE(section_summary.section_count, 0) AS section_count,
+  COALESCE(section_summary.planned_question_count, 0) AS planned_question_count,
+  COALESCE(question_summary.configured_question_count, 0) AS configured_question_count,
+  COALESCE(question_summary.has_questions, FALSE) AS has_questions,
+  COALESCE(section_summary.eval_sections, '[]'::json) AS eval_sections
+FROM public.evals e
+INNER JOIN public.cycle_degree_overview cdo ON cdo.code = e.cycle_degree_code
+LEFT JOIN LATERAL (
+  SELECT
+    COUNT(*)::INTEGER AS section_count,
+    COALESCE(SUM(es.question_count), 0)::INTEGER AS planned_question_count,
+    COALESCE(
+      JSON_AGG(
+        JSON_BUILD_OBJECT(
+          'code', es.code,
+          'eval_code', es.eval_code,
+          'course_code', es.course_code,
+          'order_in_eval', es.order_in_eval,
+          'question_count', es.question_count,
+          'course_name', c.name
+        )
+        ORDER BY es.order_in_eval
+      ),
+      '[]'::json
+    ) AS eval_sections
+  FROM public.eval_sections es
+  INNER JOIN public.courses c ON c.code = es.course_code
+  WHERE es.eval_code = e.code
+) AS section_summary ON TRUE
+LEFT JOIN LATERAL (
+  SELECT
+    COUNT(*)::INTEGER AS configured_question_count,
+    (COUNT(*)::INTEGER > 0) AS has_questions
+  FROM public.eval_questions eq
+  WHERE eq.eval_code = e.code
+) AS question_summary ON TRUE;
+
 CREATE OR REPLACE VIEW public.attendance_overview AS
 SELECT
   a.code AS attendance_code,

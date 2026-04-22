@@ -426,7 +426,6 @@
 					<div class="enrollments-sidebar__hero">
 						<p class="lumi-page-sidebar__label">Vista actual</p>
 						<h2 class="enrollments-sidebar__title">{selectedCycleLabel}</h2>
-						<p class="enrollments-sidebar__subtitle">{currentCohortCaption}</p>
 						<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
 							<Chip color="secondary" size="sm">{selectedDegreeChipLabel}</Chip>
 							<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
@@ -938,7 +937,6 @@
 		font-size: var(--lumi-font-size-xl);
 	}
 
-	.enrollments-sidebar__subtitle,
 	.enrollments-page__spotlight-subtitle {
 		margin: 0;
 		font-size: var(--lumi-font-size-sm);

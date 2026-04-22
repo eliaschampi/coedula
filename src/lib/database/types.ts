@@ -12,6 +12,18 @@ export type Generated<T> =
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
+export type Json = JsonValue;
+
+export type JsonArray = JsonValue[];
+
+export type JsonObject = {
+	[x: string]: JsonValue | undefined;
+};
+
+export type JsonPrimitive = boolean | number | string | null;
+
+export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+
 export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
@@ -235,6 +247,79 @@ export interface Enrollments {
 	updated_at: Generated<Timestamp>;
 }
 
+export interface EvalAnswers {
+	code: Generated<string>;
+	enrollment_code: string;
+	question_code: string;
+	student_answer: string | null;
+}
+
+export interface EvalOverview {
+	branch_code: string | null;
+	branch_name: string | null;
+	code: string | null;
+	configured_question_count: number | null;
+	created_at: Timestamp | null;
+	cycle_code: string | null;
+	cycle_degree_code: string | null;
+	cycle_title: string | null;
+	degree_code: string | null;
+	degree_name: string | null;
+	degree_short_name: string | null;
+	degree_sort_order: number | null;
+	eval_date: Timestamp | null;
+	eval_sections: Json | null;
+	group_code: string | null;
+	has_questions: boolean | null;
+	modality: string | null;
+	name: string | null;
+	planned_question_count: number | null;
+	section_count: number | null;
+	updated_at: Timestamp | null;
+	user_code: string | null;
+}
+
+export interface EvalQuestions {
+	code: Generated<string>;
+	correct_key: string;
+	eval_code: string;
+	omitable: Generated<boolean>;
+	order_in_eval: number;
+	score_percent: Generated<Numeric>;
+	section_code: string;
+}
+
+export interface EvalResults {
+	blank_count: Generated<number>;
+	calculated_at: Generated<Timestamp>;
+	code: Generated<string>;
+	correct_count: Generated<number>;
+	enrollment_code: string;
+	eval_code: string;
+	incorrect_count: Generated<number>;
+	score: Generated<Numeric>;
+	section_code: string | null;
+}
+
+export interface Evals {
+	code: Generated<string>;
+	created_at: Generated<Timestamp>;
+	cycle_degree_code: string;
+	eval_date: Timestamp;
+	group_code: string;
+	name: string;
+	updated_at: Generated<Timestamp>;
+	user_code: string;
+}
+
+export interface EvalSections {
+	code: Generated<string>;
+	course_code: string;
+	eval_code: string;
+	order_in_eval: number;
+	question_count: number;
+}
+
 export interface Migrations {
 	batch: number;
 	executed_at: Generated<Timestamp>;
@@ -361,6 +446,12 @@ export interface DB {
 	drive_files: DriveFiles;
 	enrollment_overview: EnrollmentOverview;
 	enrollments: Enrollments;
+	eval_answers: EvalAnswers;
+	eval_overview: EvalOverview;
+	eval_questions: EvalQuestions;
+	eval_results: EvalResults;
+	eval_sections: EvalSections;
+	evals: Evals;
 	migrations: Migrations;
 	permissions: Permissions;
 	student_drive_links: StudentDriveLinks;

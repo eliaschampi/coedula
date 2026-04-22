@@ -57,6 +57,25 @@ CREATE INDEX enrollments_student_idx ON public.enrollments (student_code, create
 CREATE UNIQUE INDEX enrollments_roll_code_cycle_group_uq
   ON public.enrollments (cycle_degree_code, group_code, roll_code);
 
+-- Evaluations
+CREATE INDEX evals_cycle_degree_group_date_idx
+  ON public.evals (cycle_degree_code, group_code, eval_date DESC, created_at DESC);
+CREATE INDEX evals_user_code_idx ON public.evals (user_code, created_at DESC);
+CREATE INDEX eval_sections_eval_order_idx ON public.eval_sections (eval_code, order_in_eval);
+CREATE INDEX eval_sections_course_idx ON public.eval_sections (course_code);
+CREATE INDEX eval_questions_eval_order_idx ON public.eval_questions (eval_code, order_in_eval);
+CREATE INDEX eval_questions_section_idx ON public.eval_questions (section_code, order_in_eval);
+CREATE INDEX eval_answers_enrollment_idx ON public.eval_answers (enrollment_code);
+CREATE INDEX eval_answers_question_idx ON public.eval_answers (question_code);
+CREATE INDEX eval_results_eval_idx ON public.eval_results (eval_code, calculated_at DESC);
+CREATE INDEX eval_results_enrollment_idx ON public.eval_results (enrollment_code, calculated_at DESC);
+CREATE UNIQUE INDEX eval_results_overall_uq
+  ON public.eval_results (enrollment_code, eval_code)
+  WHERE section_code IS NULL;
+CREATE UNIQUE INDEX eval_results_section_uq
+  ON public.eval_results (enrollment_code, eval_code, section_code)
+  WHERE section_code IS NOT NULL;
+
 -- Attendance
 CREATE INDEX attendances_date_idx ON public.attendances (attendance_date DESC, state);
 CREATE INDEX attendances_enrollment_idx ON public.attendances (enrollment_code, attendance_date DESC);

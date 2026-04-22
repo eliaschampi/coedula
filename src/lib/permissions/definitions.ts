@@ -113,6 +113,30 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 		description: 'Eliminar cursos sin dependencias académicas'
 	},
 	{
+		key: 'evaluations:read',
+		label: 'Ver evaluaciones',
+		category: 'Académico',
+		description: 'Consultar evaluaciones por nivel, secciones y claves'
+	},
+	{
+		key: 'evaluations:create',
+		label: 'Crear evaluaciones',
+		category: 'Académico',
+		description: 'Registrar nuevas evaluaciones con su estructura de cursos'
+	},
+	{
+		key: 'evaluations:update',
+		label: 'Editar evaluaciones',
+		category: 'Académico',
+		description: 'Actualizar datos generales y claves de evaluaciones'
+	},
+	{
+		key: 'evaluations:delete',
+		label: 'Eliminar evaluaciones',
+		category: 'Académico',
+		description: 'Eliminar evaluaciones con sus secciones y claves asociadas'
+	},
+	{
 		key: 'students:read',
 		label: 'Ver alumnos',
 		category: 'Estudiantes',

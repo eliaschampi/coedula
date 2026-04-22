@@ -361,9 +361,6 @@
 					<div class="attendance-sidebar__hero">
 						<p class="lumi-page-sidebar__label">Resumen del día</p>
 						<h2 class="attendance-sidebar__title">{selectedCycleLabel}</h2>
-						<p class="attendance-sidebar__subtitle">
-							{selectedDegreeLabel} · {formatGroupCode(filterGroupCode)}
-						</p>
 						<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
 							<Chip color="primary" size="sm" icon="calendar">{selectedDateLabel}</Chip>
 							<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
@@ -780,7 +777,6 @@
 		font-size: var(--lumi-font-size-xl);
 	}
 
-	.attendance-sidebar__subtitle,
 	.attendance-page__spotlight-subtitle {
 		margin: 0;
 		font-size: var(--lumi-font-size-sm);

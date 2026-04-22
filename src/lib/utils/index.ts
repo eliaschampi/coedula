@@ -16,6 +16,19 @@ export {
 	formatGroupCode
 } from './education';
 export {
+	DEFAULT_EVALUATION_SECTION_QUESTION_COUNT,
+	EVALUATION_ANSWER_KEYS,
+	EVALUATION_ANSWER_KEY_OPTIONS,
+	MAX_EVALUATION_QUESTIONS,
+	applyEvaluationKeyString,
+	buildEvaluationKeyString,
+	buildEvaluationSectionStarts,
+	calculateEvaluationQuestionTotal,
+	getLocalEvaluationQuestionIndex,
+	isEvaluationAnswerKey,
+	normalizeEvaluationSections
+} from './evaluation';
+export {
 	ATTENDANCE_STATE_OPTIONS,
 	formatAttendanceState,
 	formatAttendanceTime,
