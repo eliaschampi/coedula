@@ -3,12 +3,11 @@
  * Please do not edit it manually.
  */
 
-import type { ColumnType } from 'kysely';
+import type { ColumnType } from "kysely";
 
-export type Generated<T> =
-	T extends ColumnType<infer S, infer I, infer U>
-		? ColumnType<S, I | undefined, U>
-		: ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
@@ -17,347 +16,356 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface AcademicCycles {
-	base_cost: Generated<Numeric>;
-	branch_code: string;
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	end_date: Timestamp;
-	is_active: Generated<boolean>;
-	modality: string;
-	notes: string | null;
-	start_date: Timestamp;
-	title: string;
-	turn_1_attendance_time: string | null;
-	turn_1_tolerance_minutes: Generated<number>;
-	turn_2_attendance_time: string | null;
-	turn_2_tolerance_minutes: Generated<number>;
-	updated_at: Generated<Timestamp>;
+  base_cost: Generated<Numeric>;
+  branch_code: string;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  end_date: Timestamp;
+  is_active: Generated<boolean>;
+  modality: string;
+  notes: string | null;
+  start_date: Timestamp;
+  title: string;
+  turn_1_attendance_time: string | null;
+  turn_1_tolerance_minutes: Generated<number>;
+  turn_2_attendance_time: string | null;
+  turn_2_tolerance_minutes: Generated<number>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface AcademicDegrees {
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	is_active: Generated<boolean>;
-	name: string;
-	short_name: string | null;
-	sort_order: Generated<number>;
-	updated_at: Generated<Timestamp>;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  is_active: Generated<boolean>;
+  name: string;
+  short_name: string | null;
+  sort_order: Generated<number>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface AttendanceOverview {
-	attendance_code: string | null;
-	attendance_created_at: Timestamp | null;
-	attendance_date: Timestamp | null;
-	attendance_entry_time: string | null;
-	attendance_observation: string | null;
-	attendance_state: string | null;
-	attendance_updated_at: Timestamp | null;
-	branch_code: string | null;
-	branch_name: string | null;
-	cycle_code: string | null;
-	cycle_degree_code: string | null;
-	cycle_title: string | null;
-	degree_code: string | null;
-	degree_name: string | null;
-	enrollment_code: string | null;
-	enrollment_number: string | null;
-	group_code: string | null;
-	modality: string | null;
-	roll_code: string | null;
-	student_code: string | null;
-	student_dni: string | null;
-	student_full_name: string | null;
-	student_number: string | null;
-	student_phone: string | null;
-	student_photo_url: string | null;
-	turn: string | null;
+  attendance_code: string | null;
+  attendance_created_at: Timestamp | null;
+  attendance_date: Timestamp | null;
+  attendance_entry_time: string | null;
+  attendance_observation: string | null;
+  attendance_state: string | null;
+  attendance_updated_at: Timestamp | null;
+  branch_code: string | null;
+  branch_name: string | null;
+  cycle_code: string | null;
+  cycle_degree_code: string | null;
+  cycle_title: string | null;
+  degree_code: string | null;
+  degree_name: string | null;
+  enrollment_code: string | null;
+  enrollment_number: string | null;
+  group_code: string | null;
+  modality: string | null;
+  roll_code: string | null;
+  student_code: string | null;
+  student_dni: string | null;
+  student_full_name: string | null;
+  student_number: string | null;
+  student_phone: string | null;
+  student_photo_url: string | null;
+  turn: string | null;
 }
 
 export interface Attendances {
-	attendance_date: Generated<Timestamp>;
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	enrollment_code: string;
-	entry_time: string | null;
-	observation: string | null;
-	state: Generated<string>;
-	updated_at: Generated<Timestamp>;
+  attendance_date: Generated<Timestamp>;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  enrollment_code: string;
+  entry_time: string | null;
+  observation: string | null;
+  state: Generated<string>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface AuthLoginRateLimits {
-	blocked_until: Timestamp;
-	failed_count: Generated<number>;
-	first_attempt_at: Timestamp;
-	rate_key: string;
-	updated_at: Generated<Timestamp>;
+  blocked_until: Timestamp;
+  failed_count: Generated<number>;
+  first_attempt_at: Timestamp;
+  rate_key: string;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface Branches {
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	name: string;
-	state: boolean;
-	users: string[];
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  name: string;
+  state: boolean;
+  users: string[];
+}
+
+export interface Courses {
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  name: string;
+  sort_order: Generated<number>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface CycleDegreeOverview {
-	base_cost: Numeric | null;
-	branch_code: string | null;
-	branch_name: string | null;
-	code: string | null;
-	created_at: Timestamp | null;
-	cycle_code: string | null;
-	cycle_is_active: boolean | null;
-	cycle_title: string | null;
-	degree_code: string | null;
-	degree_name: string | null;
-	degree_short_name: string | null;
-	degree_sort_order: number | null;
-	end_date: Timestamp | null;
-	label: string | null;
-	modality: string | null;
-	start_date: Timestamp | null;
-	updated_at: Timestamp | null;
+  base_cost: Numeric | null;
+  branch_code: string | null;
+  branch_name: string | null;
+  code: string | null;
+  created_at: Timestamp | null;
+  cycle_code: string | null;
+  cycle_is_active: boolean | null;
+  cycle_title: string | null;
+  degree_code: string | null;
+  degree_name: string | null;
+  degree_short_name: string | null;
+  degree_sort_order: number | null;
+  end_date: Timestamp | null;
+  label: string | null;
+  modality: string | null;
+  start_date: Timestamp | null;
+  updated_at: Timestamp | null;
 }
 
 export interface CycleDegrees {
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	cycle_code: string;
-	degree_code: string;
-	updated_at: Generated<Timestamp>;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  cycle_code: string;
+  degree_code: string;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface CycleOverview {
-	active_enrollment_count: number | null;
-	base_cost: Numeric | null;
-	branch_code: string | null;
-	branch_name: string | null;
-	code: string | null;
-	created_at: Timestamp | null;
-	degree_count: number | null;
-	degrees_summary: string | null;
-	end_date: Timestamp | null;
-	enrollment_count: number | null;
-	is_active: boolean | null;
-	modality: string | null;
-	notes: string | null;
-	start_date: Timestamp | null;
-	title: string | null;
-	turn_1_attendance_time: string | null;
-	turn_1_tolerance_minutes: number | null;
-	turn_2_attendance_time: string | null;
-	turn_2_tolerance_minutes: number | null;
-	updated_at: Timestamp | null;
+  active_enrollment_count: number | null;
+  base_cost: Numeric | null;
+  branch_code: string | null;
+  branch_name: string | null;
+  code: string | null;
+  created_at: Timestamp | null;
+  degree_count: number | null;
+  degrees_summary: string | null;
+  end_date: Timestamp | null;
+  enrollment_count: number | null;
+  is_active: boolean | null;
+  modality: string | null;
+  notes: string | null;
+  start_date: Timestamp | null;
+  title: string | null;
+  turn_1_attendance_time: string | null;
+  turn_1_tolerance_minutes: number | null;
+  turn_2_attendance_time: string | null;
+  turn_2_tolerance_minutes: number | null;
+  updated_at: Timestamp | null;
 }
 
 export interface DashboardEducationSummary {
-	active_branches: number | null;
-	active_cycles: number | null;
-	active_enrollments: number | null;
-	active_students: number | null;
-	active_teachers: number | null;
+  active_branches: number | null;
+  active_cycles: number | null;
+  active_enrollments: number | null;
+  active_students: number | null;
+  active_teachers: number | null;
 }
 
 export interface DashboardEnrollmentStatusSummary {
-	status: string | null;
-	total: number | null;
+  status: string | null;
+  total: number | null;
 }
 
 export interface DriveFiles {
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	deleted_at: Timestamp | null;
-	mime_type: string | null;
-	name: string;
-	parent_code: string | null;
-	scope: Generated<string>;
-	size: Generated<Int8>;
-	storage_path: string | null;
-	tag: string | null;
-	type: Generated<string>;
-	updated_at: Generated<Timestamp>;
-	user_code: string;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  deleted_at: Timestamp | null;
+  mime_type: string | null;
+  name: string;
+  parent_code: string | null;
+  scope: Generated<string>;
+  size: Generated<Int8>;
+  storage_path: string | null;
+  tag: string | null;
+  type: Generated<string>;
+  updated_at: Generated<Timestamp>;
+  user_code: string;
 }
 
 export interface EnrollmentOverview {
-	branch_code: string | null;
-	branch_name: string | null;
-	code: string | null;
-	created_at: Timestamp | null;
-	cycle_code: string | null;
-	cycle_degree_code: string | null;
-	cycle_title: string | null;
-	degree_code: string | null;
-	degree_name: string | null;
-	end_date: Timestamp | null;
-	enrollment_number: string | null;
-	finalized_at: Timestamp | null;
-	first_name: string | null;
-	group_code: string | null;
-	last_name: string | null;
-	modality: string | null;
-	observation: string | null;
-	pay_cost: Numeric | null;
-	roll_code: string | null;
-	start_date: Timestamp | null;
-	status: string | null;
-	student_code: string | null;
-	student_dni: string | null;
-	student_full_name: string | null;
-	student_number: string | null;
-	student_phone: string | null;
-	turn: string | null;
-	updated_at: Timestamp | null;
+  branch_code: string | null;
+  branch_name: string | null;
+  code: string | null;
+  created_at: Timestamp | null;
+  cycle_code: string | null;
+  cycle_degree_code: string | null;
+  cycle_title: string | null;
+  degree_code: string | null;
+  degree_name: string | null;
+  end_date: Timestamp | null;
+  enrollment_number: string | null;
+  finalized_at: Timestamp | null;
+  first_name: string | null;
+  group_code: string | null;
+  last_name: string | null;
+  modality: string | null;
+  observation: string | null;
+  pay_cost: Numeric | null;
+  roll_code: string | null;
+  start_date: Timestamp | null;
+  status: string | null;
+  student_code: string | null;
+  student_dni: string | null;
+  student_full_name: string | null;
+  student_number: string | null;
+  student_phone: string | null;
+  turn: string | null;
+  updated_at: Timestamp | null;
 }
 
 export interface Enrollments {
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	cycle_degree_code: string;
-	enrollment_number: Generated<string>;
-	finalized_at: Timestamp | null;
-	group_code: Generated<string>;
-	observation: string | null;
-	pay_cost: Generated<Numeric>;
-	roll_code: string;
-	status: Generated<string>;
-	student_code: string;
-	turn: Generated<string>;
-	updated_at: Generated<Timestamp>;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  cycle_degree_code: string;
+  enrollment_number: Generated<string>;
+  finalized_at: Timestamp | null;
+  group_code: Generated<string>;
+  observation: string | null;
+  pay_cost: Generated<Numeric>;
+  roll_code: string;
+  status: Generated<string>;
+  student_code: string;
+  turn: Generated<string>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface Migrations {
-	batch: number;
-	executed_at: Generated<Timestamp>;
-	id: string;
-	name: string;
+  batch: number;
+  executed_at: Generated<Timestamp>;
+  id: string;
+  name: string;
 }
 
 export interface Permissions {
-	action: string;
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	entity: string;
-	user_code: string;
+  action: string;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  entity: string;
+  user_code: string;
 }
 
 export interface StudentDriveLinks {
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	file_code: string;
-	linked_by_user_code: string;
-	student_code: string;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  file_code: string;
+  linked_by_user_code: string;
+  student_code: string;
 }
 
 export interface StudentOverview {
-	address: string | null;
-	birth_date: Timestamp | null;
-	code: string | null;
-	created_at: Timestamp | null;
-	current_branch_name: string | null;
-	current_cycle_title: string | null;
-	current_degree_name: string | null;
-	current_enrollment_number: string | null;
-	current_enrollment_status: string | null;
-	dni: string | null;
-	enrollments_count: number | null;
-	first_name: string | null;
-	full_name: string | null;
-	is_active: boolean | null;
-	last_name: string | null;
-	observation: string | null;
-	phone: string | null;
-	photo_url: string | null;
-	student_number: string | null;
-	updated_at: Timestamp | null;
+  address: string | null;
+  birth_date: Timestamp | null;
+  code: string | null;
+  created_at: Timestamp | null;
+  current_branch_name: string | null;
+  current_cycle_title: string | null;
+  current_degree_name: string | null;
+  current_enrollment_number: string | null;
+  current_enrollment_status: string | null;
+  dni: string | null;
+  enrollments_count: number | null;
+  first_name: string | null;
+  full_name: string | null;
+  is_active: boolean | null;
+  last_name: string | null;
+  observation: string | null;
+  phone: string | null;
+  photo_url: string | null;
+  student_number: string | null;
+  updated_at: Timestamp | null;
 }
 
 export interface Students {
-	address: string | null;
-	birth_date: Timestamp | null;
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	dni: string | null;
-	first_name: string;
-	is_active: Generated<boolean>;
-	last_name: string;
-	observation: string | null;
-	password_hash: string;
-	phone: string | null;
-	photo_url: string | null;
-	student_number: Generated<string>;
-	updated_at: Generated<Timestamp>;
+  address: string | null;
+  birth_date: Timestamp | null;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  dni: string | null;
+  first_name: string;
+  is_active: Generated<boolean>;
+  last_name: string;
+  observation: string | null;
+  password_hash: string;
+  phone: string | null;
+  photo_url: string | null;
+  student_number: Generated<string>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface TeacherOverview {
-	address: string | null;
-	birth_date: Timestamp | null;
-	code: string | null;
-	created_at: Timestamp | null;
-	dni: string | null;
-	first_name: string | null;
-	full_name: string | null;
-	is_active: boolean | null;
-	last_name: string | null;
-	observation: string | null;
-	phone: string | null;
-	photo_url: string | null;
-	teacher_number: string | null;
-	updated_at: Timestamp | null;
+  address: string | null;
+  birth_date: Timestamp | null;
+  code: string | null;
+  created_at: Timestamp | null;
+  dni: string | null;
+  first_name: string | null;
+  full_name: string | null;
+  is_active: boolean | null;
+  last_name: string | null;
+  observation: string | null;
+  phone: string | null;
+  photo_url: string | null;
+  teacher_number: string | null;
+  updated_at: Timestamp | null;
 }
 
 export interface Teachers {
-	address: string | null;
-	birth_date: Timestamp | null;
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	dni: string | null;
-	first_name: string;
-	is_active: Generated<boolean>;
-	last_name: string;
-	observation: string | null;
-	password_hash: string;
-	phone: string | null;
-	photo_url: string | null;
-	teacher_number: Generated<string>;
-	updated_at: Generated<Timestamp>;
+  address: string | null;
+  birth_date: Timestamp | null;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  dni: string | null;
+  first_name: string;
+  is_active: Generated<boolean>;
+  last_name: string;
+  observation: string | null;
+  password_hash: string;
+  phone: string | null;
+  photo_url: string | null;
+  teacher_number: Generated<string>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface Users {
-	code: Generated<string>;
-	created_at: Generated<Timestamp>;
-	email: string;
-	is_super_admin: Generated<boolean>;
-	last_login: Timestamp | null;
-	last_name: string | null;
-	name: string | null;
-	password_hash: string;
-	photo_url: string | null;
-	updated_at: Generated<Timestamp>;
+  code: Generated<string>;
+  created_at: Generated<Timestamp>;
+  email: string;
+  is_super_admin: Generated<boolean>;
+  last_login: Timestamp | null;
+  last_name: string | null;
+  name: string | null;
+  password_hash: string;
+  photo_url: string | null;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface DB {
-	academic_cycles: AcademicCycles;
-	academic_degrees: AcademicDegrees;
-	attendance_overview: AttendanceOverview;
-	attendances: Attendances;
-	auth_login_rate_limits: AuthLoginRateLimits;
-	branches: Branches;
-	cycle_degree_overview: CycleDegreeOverview;
-	cycle_degrees: CycleDegrees;
-	cycle_overview: CycleOverview;
-	dashboard_education_summary: DashboardEducationSummary;
-	dashboard_enrollment_status_summary: DashboardEnrollmentStatusSummary;
-	drive_files: DriveFiles;
-	enrollment_overview: EnrollmentOverview;
-	enrollments: Enrollments;
-	migrations: Migrations;
-	permissions: Permissions;
-	student_drive_links: StudentDriveLinks;
-	student_overview: StudentOverview;
-	students: Students;
-	teacher_overview: TeacherOverview;
-	teachers: Teachers;
-	users: Users;
+  academic_cycles: AcademicCycles;
+  academic_degrees: AcademicDegrees;
+  attendance_overview: AttendanceOverview;
+  attendances: Attendances;
+  auth_login_rate_limits: AuthLoginRateLimits;
+  branches: Branches;
+  courses: Courses;
+  cycle_degree_overview: CycleDegreeOverview;
+  cycle_degrees: CycleDegrees;
+  cycle_overview: CycleOverview;
+  dashboard_education_summary: DashboardEducationSummary;
+  dashboard_enrollment_status_summary: DashboardEnrollmentStatusSummary;
+  drive_files: DriveFiles;
+  enrollment_overview: EnrollmentOverview;
+  enrollments: Enrollments;
+  migrations: Migrations;
+  permissions: Permissions;
+  student_drive_links: StudentDriveLinks;
+  student_overview: StudentOverview;
+  students: Students;
+  teacher_overview: TeacherOverview;
+  teachers: Teachers;
+  users: Users;
 }

@@ -56,8 +56,22 @@
 		return `/students/${data.student.code}/attendance${entries.length > 0 ? `?${entries.join('&')}` : ''}`;
 	}
 
+	function buildPdfReportUrl(): string {
+		const entries = [
+			filterFromDate ? `from=${encodeURIComponent(filterFromDate)}` : '',
+			filterToDate ? `to=${encodeURIComponent(filterToDate)}` : '',
+			`turn=${encodeURIComponent(filterTurn)}`
+		].filter(Boolean);
+
+		return `/api/students/${data.student.code}/attendance-report${entries.length > 0 ? `?${entries.join('&')}` : ''}`;
+	}
+
 	function applyFilters(): void {
 		void goto(resolve(buildFilterUrl() as '/'));
+	}
+
+	function exportPdfReport(): void {
+		window.open(buildPdfReportUrl(), '_blank', 'noopener,noreferrer');
 	}
 
 	$effect(() => {
@@ -74,6 +88,9 @@
 		icon="clipboard"
 	>
 		{#snippet actions()}
+			<Button type="filled" color="primary" icon="download" onclick={exportPdfReport}>
+				Exportar PDF
+			</Button>
 			<Button
 				type="border"
 				icon="arrowLeft"

@@ -89,6 +89,30 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 		description: 'Eliminar ciclos sin matrículas asociadas'
 	},
 	{
+		key: 'courses:read',
+		label: 'Ver cursos',
+		category: 'Académico',
+		description: 'Consultar catálogo de cursos'
+	},
+	{
+		key: 'courses:create',
+		label: 'Crear cursos',
+		category: 'Académico',
+		description: 'Registrar nuevos cursos en el catálogo'
+	},
+	{
+		key: 'courses:update',
+		label: 'Editar cursos',
+		category: 'Académico',
+		description: 'Actualizar nombre y orden de los cursos'
+	},
+	{
+		key: 'courses:delete',
+		label: 'Eliminar cursos',
+		category: 'Académico',
+		description: 'Eliminar cursos sin dependencias académicas'
+	},
+	{
 		key: 'students:read',
 		label: 'Ver alumnos',
 		category: 'Estudiantes',

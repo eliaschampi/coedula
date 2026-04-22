@@ -14,6 +14,10 @@ CREATE TRIGGER academic_degrees_updated_at_tg
 BEFORE UPDATE ON public.academic_degrees
 FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
 
+CREATE TRIGGER courses_updated_at_tg
+BEFORE UPDATE ON public.courses
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
 CREATE TRIGGER academic_cycles_updated_at_tg
 BEFORE UPDATE ON public.academic_cycles
 FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
