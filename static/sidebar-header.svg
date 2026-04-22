@@ -1,0 +1,20 @@
+<svg width="640" height="320" viewBox="0 0 640 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<defs>
+		<linearGradient id="lumi-header-bg" x1="64" y1="24" x2="576" y2="296" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#1D4ED8" />
+			<stop offset="1" stop-color="#0F172A" />
+		</linearGradient>
+		<radialGradient id="lumi-header-orb-1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(540 40) rotate(125) scale(280 220)">
+			<stop stop-color="#38BDF8" stop-opacity="0.6" />
+			<stop offset="1" stop-color="#38BDF8" stop-opacity="0" />
+		</radialGradient>
+		<radialGradient id="lumi-header-orb-2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(130 260) rotate(-32) scale(300 200)">
+			<stop stop-color="#FB7185" stop-opacity="0.45" />
+			<stop offset="1" stop-color="#FB7185" stop-opacity="0" />
+		</radialGradient>
+	</defs>
+	<rect width="640" height="320" fill="url(#lumi-header-bg)" />
+	<rect width="640" height="320" fill="url(#lumi-header-orb-1)" />
+	<rect width="640" height="320" fill="url(#lumi-header-orb-2)" />
+	<path d="M-24 248C118 182 240 307 392 234C472 196 560 113 664 160V320H-24V248Z" fill="white" fill-opacity="0.1" />
+</svg>

@@ -1,0 +1,222 @@
+-- =====================================================
+-- Coedula Database Tables
+-- =====================================================
+-- Clean educational baseline schema
+-- =====================================================
+
+CREATE SEQUENCE public.student_number_seq START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE public.teacher_number_seq START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE public.enrollment_number_seq START WITH 1000 INCREMENT BY 1;
+
+-- Users
+CREATE TABLE public.users (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NULL,
+  last_name VARCHAR(150) NULL,
+  email VARCHAR(255) NOT NULL,
+  photo_url TEXT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+  last_login TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT users_pk PRIMARY KEY (code),
+  CONSTRAINT users_email_uq UNIQUE (email)
+);
+
+-- Permissions
+CREATE TABLE public.permissions (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_code UUID NOT NULL,
+  entity TEXT NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT permissions_pk PRIMARY KEY (code),
+  CONSTRAINT permissions_user_fk FOREIGN KEY (user_code) REFERENCES public.users (code) ON DELETE NO ACTION,
+  CONSTRAINT permissions_entity_user_action_uq UNIQUE (entity, user_code, action)
+);
+
+-- Auth login rate limits
+CREATE TABLE public.auth_login_rate_limits (
+  rate_key TEXT NOT NULL,
+  first_attempt_at TIMESTAMPTZ NOT NULL,
+  failed_count INTEGER NOT NULL DEFAULT 0,
+  blocked_until TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT auth_login_rate_limits_pk PRIMARY KEY (rate_key)
+);
+
+-- Branches
+CREATE TABLE public.branches (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL,
+  state BOOLEAN NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  users UUID[] NOT NULL,
+  CONSTRAINT branches_pk PRIMARY KEY (code),
+  CONSTRAINT branches_name_check CHECK (char_length(trim(name)) > 0)
+);
+
+-- Drive files
+CREATE TABLE public.drive_files (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  scope VARCHAR(30) NOT NULL DEFAULT 'shared',
+  user_code UUID NOT NULL,
+  parent_code UUID NULL,
+  name VARCHAR(500) NOT NULL,
+  type VARCHAR(10) NOT NULL DEFAULT 'otr',
+  size BIGINT NOT NULL DEFAULT 0,
+  storage_path TEXT NULL,
+  mime_type VARCHAR(255) NULL,
+  tag VARCHAR(10) NULL,
+  deleted_at TIMESTAMPTZ DEFAULT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT drive_files_pk PRIMARY KEY (code),
+  CONSTRAINT drive_files_user_fk FOREIGN KEY (user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT drive_files_parent_fk FOREIGN KEY (parent_code) REFERENCES public.drive_files (code) ON DELETE CASCADE,
+  CONSTRAINT drive_files_type_check CHECK (type IN ('dir', 'img', 'vid', 'aud', 'doc', 'zip', 'otr')),
+  CONSTRAINT drive_files_scope_check CHECK (scope IN ('shared', 'user_private'))
+);
+
+-- Academic degrees
+CREATE TABLE public.academic_degrees (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  name VARCHAR(120) NOT NULL,
+  short_name VARCHAR(40) NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT academic_degrees_pk PRIMARY KEY (code),
+  CONSTRAINT academic_degrees_name_uq UNIQUE (name),
+  CONSTRAINT academic_degrees_name_check CHECK (char_length(trim(name)) > 0),
+  CONSTRAINT academic_degrees_sort_order_check CHECK (sort_order >= 0)
+);
+
+-- Academic cycles
+CREATE TABLE public.academic_cycles (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  branch_code UUID NOT NULL,
+  title VARCHAR(150) NOT NULL,
+  modality VARCHAR(80) NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  base_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+  turn_1_attendance_time TIME NULL,
+  turn_1_tolerance_minutes INTEGER NOT NULL DEFAULT 0,
+  turn_2_attendance_time TIME NULL,
+  turn_2_tolerance_minutes INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  notes TEXT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT academic_cycles_pk PRIMARY KEY (code),
+  CONSTRAINT academic_cycles_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
+  CONSTRAINT academic_cycles_title_check CHECK (char_length(trim(title)) > 0),
+  CONSTRAINT academic_cycles_modality_check CHECK (char_length(trim(modality)) > 0),
+  CONSTRAINT academic_cycles_date_order_check CHECK (end_date >= start_date),
+  CONSTRAINT academic_cycles_base_cost_check CHECK (base_cost >= 0),
+  CONSTRAINT academic_cycles_turn_1_tolerance_check CHECK (turn_1_tolerance_minutes >= 0),
+  CONSTRAINT academic_cycles_turn_2_tolerance_check CHECK (turn_2_tolerance_minutes >= 0)
+);
+
+-- Cycle degrees
+CREATE TABLE public.cycle_degrees (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  cycle_code UUID NOT NULL,
+  degree_code UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT cycle_degrees_pk PRIMARY KEY (code),
+  CONSTRAINT cycle_degrees_cycle_fk FOREIGN KEY (cycle_code) REFERENCES public.academic_cycles (code) ON DELETE CASCADE,
+  CONSTRAINT cycle_degrees_degree_fk FOREIGN KEY (degree_code) REFERENCES public.academic_degrees (code) ON DELETE RESTRICT,
+  CONSTRAINT cycle_degrees_cycle_degree_uq UNIQUE (cycle_code, degree_code)
+);
+
+-- Students
+CREATE TABLE public.students (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  student_number VARCHAR(20) NOT NULL DEFAULT ('STU-' || LPAD(nextval('public.student_number_seq')::text, 6, '0')),
+  first_name VARCHAR(120) NOT NULL,
+  last_name VARCHAR(150) NOT NULL,
+  phone VARCHAR(40) NULL,
+  address TEXT NULL,
+  dni VARCHAR(20) NULL,
+  birth_date DATE NULL,
+  observation TEXT NULL,
+  photo_url TEXT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT students_pk PRIMARY KEY (code),
+  CONSTRAINT students_student_number_uq UNIQUE (student_number),
+  CONSTRAINT students_first_name_check CHECK (char_length(trim(first_name)) > 0),
+  CONSTRAINT students_last_name_check CHECK (char_length(trim(last_name)) > 0)
+);
+
+-- Teachers
+CREATE TABLE public.teachers (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  teacher_number VARCHAR(20) NOT NULL DEFAULT ('TCH-' || LPAD(nextval('public.teacher_number_seq')::text, 6, '0')),
+  first_name VARCHAR(120) NOT NULL,
+  last_name VARCHAR(150) NOT NULL,
+  phone VARCHAR(40) NULL,
+  address TEXT NULL,
+  dni VARCHAR(20) NULL,
+  birth_date DATE NULL,
+  observation TEXT NULL,
+  photo_url TEXT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT teachers_pk PRIMARY KEY (code),
+  CONSTRAINT teachers_teacher_number_uq UNIQUE (teacher_number),
+  CONSTRAINT teachers_first_name_check CHECK (char_length(trim(first_name)) > 0),
+  CONSTRAINT teachers_last_name_check CHECK (char_length(trim(last_name)) > 0)
+);
+
+-- Enrollments
+CREATE TABLE public.enrollments (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  enrollment_number VARCHAR(20) NOT NULL DEFAULT ('REG-' || LPAD(nextval('public.enrollment_number_seq')::text, 6, '0')),
+  student_code UUID NOT NULL,
+  cycle_degree_code UUID NOT NULL,
+  roll_code VARCHAR(4) NOT NULL,
+  pay_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
+  turn VARCHAR(12) NOT NULL DEFAULT 'turn_1',
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  group_code VARCHAR(1) NOT NULL DEFAULT 'A',
+  observation TEXT NULL,
+  finalized_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT enrollments_pk PRIMARY KEY (code),
+  CONSTRAINT enrollments_student_fk FOREIGN KEY (student_code) REFERENCES public.students (code) ON DELETE RESTRICT,
+  CONSTRAINT enrollments_cycle_degree_fk FOREIGN KEY (cycle_degree_code) REFERENCES public.cycle_degrees (code) ON DELETE RESTRICT,
+  CONSTRAINT enrollments_enrollment_number_uq UNIQUE (enrollment_number),
+  CONSTRAINT enrollments_student_cycle_degree_uq UNIQUE (student_code, cycle_degree_code),
+  CONSTRAINT enrollments_roll_code_check CHECK (roll_code ~ '^[0-9]{4}$'),
+  CONSTRAINT enrollments_pay_cost_check CHECK (pay_cost >= 0),
+  CONSTRAINT enrollments_turn_check CHECK (turn IN ('turn_1', 'turn_2', 'both')),
+  CONSTRAINT enrollments_status_check CHECK (status IN ('active', 'finalized', 'inactive')),
+  CONSTRAINT enrollments_group_code_check CHECK (group_code IN ('A', 'B', 'C', 'D')),
+  CONSTRAINT enrollments_status_finalized_check CHECK (
+    (status = 'finalized' AND finalized_at IS NOT NULL)
+    OR (status <> 'finalized' AND finalized_at IS NULL)
+  )
+);
+
+-- Seed academic degree catalog
+INSERT INTO public.academic_degrees (name, short_name, sort_order, is_active)
+VALUES
+  ('Unico', 'Unico', 0, TRUE),
+  ('1ro', '1ro', 1, TRUE),
+  ('2do', '2do', 2, TRUE),
+  ('3ro', '3ro', 3, TRUE),
+  ('4to', '4to', 4, TRUE),
+  ('5to', '5to', 5, TRUE),
+  ('6to', '6to', 6, TRUE)
+ON CONFLICT (name) DO NOTHING;

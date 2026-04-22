@@ -1,0 +1,506 @@
+/* Lumi UI - Design Tokens */
+/* Migrated from Aula UI + Critical Fixes Applied */
+/* Professional, Beautiful, High-Performance - 2026 Standards */
+
+:root {
+	color-scheme: light;
+
+	/* ========================================================================== */
+	/* COLOR SYSTEM - Material Design 3 principles */
+	/* ========================================================================== */
+
+	/* Primary palette (Professional Blue) - UNCHANGED */
+	--lumi-color-primary: rgb(30, 64, 175);
+	--lumi-color-primary-rgb: 30, 64, 175;
+	--lumi-color-primary-50: rgb(239, 246, 255);
+	--lumi-color-primary-100: rgb(219, 234, 254);
+	--lumi-color-primary-200: rgb(191, 219, 254);
+	--lumi-color-primary-300: rgb(147, 197, 253);
+	--lumi-color-primary-400: rgb(96, 165, 250);
+	--lumi-color-primary-500: rgb(59, 130, 246);
+	--lumi-color-primary-600: rgb(37, 99, 235);
+	--lumi-color-primary-700: rgb(29, 78, 216);
+	--lumi-color-primary-800: rgb(30, 64, 175);
+	--lumi-color-primary-900: rgb(30, 58, 138);
+	--lumi-color-primary-950: rgb(23, 37, 84);
+
+	/* Secondary palette (Warm Coral) - UNCHANGED */
+	--lumi-color-secondary: rgb(251, 113, 133);
+	--lumi-color-secondary-rgb: 251, 113, 133;
+	--lumi-color-secondary-50: rgb(255, 241, 242);
+	--lumi-color-secondary-100: rgb(255, 228, 230);
+	--lumi-color-secondary-200: rgb(254, 205, 211);
+	--lumi-color-secondary-300: rgb(253, 164, 175);
+	--lumi-color-secondary-400: rgb(251, 113, 133);
+	--lumi-color-secondary-500: rgb(244, 63, 94);
+	--lumi-color-secondary-600: rgb(225, 29, 72);
+	--lumi-color-secondary-700: rgb(190, 18, 60);
+	--lumi-color-secondary-800: rgb(159, 18, 57);
+	--lumi-color-secondary-900: rgb(136, 19, 55);
+	--lumi-color-secondary-950: rgb(76, 5, 25);
+
+	/* Success palette (Fresh Green) - UNCHANGED */
+	--lumi-color-success: rgb(74, 222, 128); /* green-400 */
+	--lumi-color-success-rgb: 74, 222, 128;
+	--lumi-color-success-50: rgb(240, 253, 244);
+	--lumi-color-success-100: rgb(220, 252, 231);
+	--lumi-color-success-200: rgb(187, 247, 208);
+	--lumi-color-success-300: rgb(134, 239, 172);
+	--lumi-color-success-400: rgb(74, 222, 128);
+	--lumi-color-success-500: rgb(34, 197, 94);
+	--lumi-color-success-600: rgb(22, 163, 74);
+	--lumi-color-success-700: rgb(21, 128, 61);
+	--lumi-color-success-800: rgb(22, 101, 52);
+	--lumi-color-success-900: rgb(20, 83, 45);
+	--lumi-color-success-950: rgb(5, 46, 22);
+
+	/* Warning palette (Vibrant Amber) - UNCHANGED */
+	--lumi-color-warning: rgb(251, 191, 36); /* amber-400 */
+	--lumi-color-warning-rgb: 251, 191, 36;
+	--lumi-color-warning-50: rgb(255, 251, 235);
+	--lumi-color-warning-100: rgb(254, 243, 199);
+	--lumi-color-warning-200: rgb(253, 230, 138);
+	--lumi-color-warning-300: rgb(252, 211, 77);
+	--lumi-color-warning-400: rgb(251, 191, 36);
+	--lumi-color-warning-500: rgb(245, 158, 11);
+	--lumi-color-warning-600: rgb(217, 119, 6);
+	--lumi-color-warning-700: rgb(180, 83, 9);
+	--lumi-color-warning-800: rgb(146, 64, 14);
+	--lumi-color-warning-900: rgb(120, 53, 15);
+	--lumi-color-warning-950: rgb(69, 26, 3);
+
+	/* Danger palette (Bold Red) - UNCHANGED */
+	--lumi-color-danger: rgb(248, 113, 113); /* red-400 — 5.7:1 on zinc-900 */
+	--lumi-color-danger-rgb: 248, 113, 113;
+	--lumi-color-danger-50: rgb(254, 242, 242);
+	--lumi-color-danger-100: rgb(254, 226, 226);
+	--lumi-color-danger-200: rgb(254, 202, 202);
+	--lumi-color-danger-300: rgb(252, 165, 165);
+	--lumi-color-danger-400: rgb(248, 113, 113);
+	--lumi-color-danger-500: rgb(239, 68, 68);
+	--lumi-color-danger-600: rgb(220, 38, 38);
+	--lumi-color-danger-700: rgb(185, 28, 28);
+	--lumi-color-danger-800: rgb(153, 27, 27);
+	--lumi-color-danger-900: rgb(127, 29, 29);
+	--lumi-color-danger-950: rgb(69, 10, 10);
+
+	/* ==================== FIXED: INFO PALETTE (Bright Sky Blue) ==================== */
+	/* Was identical to Primary → now perfectly distinct, modern, and semantic */
+	--lumi-color-info: rgb(14, 165, 233);
+	--lumi-color-info-rgb: 14, 165, 233;
+	--lumi-color-info-50: rgb(240, 249, 255);
+	--lumi-color-info-100: rgb(224, 242, 254);
+	--lumi-color-info-200: rgb(186, 230, 253);
+	--lumi-color-info-300: rgb(125, 211, 252);
+	--lumi-color-info-400: rgb(56, 189, 248);
+	--lumi-color-info-500: rgb(14, 165, 233);
+	--lumi-color-info-600: rgb(2, 132, 199);
+	--lumi-color-info-700: rgb(3, 105, 161);
+	--lumi-color-info-800: rgb(7, 89, 133);
+	--lumi-color-info-900: rgb(12, 74, 110);
+	--lumi-color-info-950: rgb(8, 47, 73);
+
+	/* Gray Colors - Refined Neutral Palette (converted to rgb for 100% consistency) */
+	--lumi-color-gray-50: rgb(250, 250, 250);
+	--lumi-color-gray-100: rgb(244, 244, 245);
+	--lumi-color-gray-200: rgb(228, 228, 231);
+	--lumi-color-gray-300: rgb(212, 212, 216);
+	--lumi-color-gray-400: rgb(161, 161, 170);
+	--lumi-color-gray-500: rgb(113, 113, 122);
+	--lumi-color-gray-600: rgb(82, 82, 91);
+	--lumi-color-gray-700: rgb(63, 63, 70);
+	--lumi-color-gray-800: rgb(39, 39, 42);
+	--lumi-color-gray-900: rgb(24, 24, 27);
+	--lumi-color-gray-950: rgb(9, 9, 11);
+
+	/* Semantic Colors - Light Theme */
+	--lumi-color-white: rgb(255, 255, 255);
+	--lumi-color-black: rgb(0, 0, 0);
+	--lumi-color-transparent: transparent;
+	--lumi-color-background: rgb(244, 244, 245);
+	--lumi-color-background-secondary: rgb(255, 255, 255);
+	--lumi-color-background-hover: rgb(239, 239, 241);
+	--lumi-color-background-rgb: 244, 244, 245;
+
+	/* Surface colors - Enhanced depth system */
+	--lumi-color-surface: rgb(255, 255, 255);
+	--lumi-color-surface-hover: rgb(244, 244, 245);
+	--lumi-color-surface-raised: rgb(255, 255, 255);
+	--lumi-color-surface-overlay: rgba(255, 255, 255, 0.95);
+
+	/* Text colors - Improved readability */
+	--lumi-color-text: rgb(24, 24, 27);
+	--lumi-color-text-muted: rgb(113, 113, 122);
+	--lumi-color-muted: var(--lumi-color-text-muted);
+	--lumi-color-text-light: rgb(161, 161, 170);
+	--lumi-color-text-inverse: rgb(255, 255, 255);
+
+	/* Border colors - Better visual hierarchy */
+	--lumi-color-border: rgba(228, 228, 231, 0.7);
+	--lumi-color-border-light: rgba(228, 228, 231, 0.45);
+	--lumi-color-border-strong: rgb(212, 212, 216);
+	--lumi-color-border-focus: var(--lumi-color-primary);
+
+	/* State backgrounds - Subtle and elegant */
+	--lumi-color-success-bg: rgb(240, 253, 244);
+	--lumi-color-warning-bg: rgb(255, 251, 235);
+	--lumi-color-danger-bg: rgb(254, 242, 242);
+	--lumi-color-info-bg: rgb(240, 249, 255); /* ← Updated to Sky-50 */
+	--lumi-color-primary-bg: rgb(239, 246, 255);
+	--lumi-color-secondary-bg: rgb(255, 241, 242);
+	/* ========================================================================== */
+	/* SPACING SYSTEM - 4px base unit */
+	/* ========================================================================== */
+	--lumi-space-none: 0;
+	--lumi-space-2xs: 0.25rem;
+	/* 4px */
+	--lumi-space-xs: 0.5rem;
+	/* 8px */
+	--lumi-space-sm: 0.75rem;
+	/* 12px */
+	--lumi-space-md: 1rem;
+	/* 16px - STANDARD */
+	--lumi-space-lg: 1.5rem;
+	/* 24px */
+	--lumi-space-xl: 2rem;
+	/* 32px */
+	--lumi-space-2xl: 2.5rem; /* 40px */
+	--lumi-space-xxl: var(--lumi-space-2xl); /* compatibility alias */
+	--lumi-space-3xl: 3rem;
+	/* 48px */
+	--lumi-space-4xl: 4rem;
+	/* 64px */
+	--lumi-space-5xl: 5rem;
+	/* 80px */
+	--lumi-space-6xl: 6rem;
+	/* 96px */
+
+	/* ========================================================================== */
+	/* TYPOGRAPHY SYSTEM */
+	/* ========================================================================== */
+
+	/* Font Sizes */
+	--lumi-font-size-xs: 0.75rem;
+	/* 12px */
+	--lumi-font-size-sm: 0.875rem;
+	/* 14px */
+	--lumi-font-size-base: 1rem;
+	/* 16px */
+	--lumi-font-size-lg: 1.125rem;
+	/* 18px */
+	--lumi-font-size-xl: 1.25rem;
+	/* 20px */
+	--lumi-font-size-2xl: 1.5rem;
+	/* 24px */
+	--lumi-font-size-3xl: 1.875rem;
+	/* 30px */
+	--lumi-font-size-4xl: 2.25rem;
+	/* 36px */
+	--lumi-font-size-5xl: 3rem;
+	/* 48px */
+
+	/* Font Weights */
+	--lumi-font-weight-light: 300;
+	--lumi-font-weight-normal: 400;
+	--lumi-font-weight-medium: 500;
+	--lumi-font-weight-semibold: 600;
+	--lumi-font-weight-bold: 700;
+	--lumi-font-weight-extrabold: 800;
+	--lumi-font-weight-black: 900;
+
+	/* Line Heights */
+	--lumi-line-height-none: 1;
+	--lumi-line-height-tight: 1.25;
+	--lumi-line-height-snug: 1.375;
+	--lumi-line-height-normal: 1.5;
+	--lumi-line-height-relaxed: 1.625;
+	--lumi-line-height-loose: 2;
+
+	--lumi-letter-spacing-tighter: -0.05em;
+	--lumi-letter-spacing-tight: -0.025em;
+	--lumi-letter-spacing-normal: 0em;
+	--lumi-letter-spacing-wide: 0.025em;
+	--lumi-letter-spacing-wider: 0.05em;
+	--lumi-letter-spacing-widest: 0.1em;
+
+	--lumi-opacity-muted: 0.4;
+	--lumi-opacity-disabled: 0.5;
+	--lumi-opacity-hover: 0.8;
+	--lumi-opacity-overlay: 0.95;
+	/* Font Family */
+	--lumi-font-family-sans:
+		'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+		sans-serif;
+	--lumi-font-family-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+	--lumi-font-family-mono:
+		ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono',
+		'Courier New', monospace;
+
+	/* ========================================================================== */
+	/* BORDER RADIUS SYSTEM */
+	/* ========================================================================== */
+	--lumi-radius-none: 0;
+	--lumi-radius-sm: 0.25rem;
+	/* 4px */
+	--lumi-radius-base: 0.375rem;
+	/* 6px */
+	--lumi-radius-md: 0.5rem;
+	/* 8px - STANDARD */
+	--lumi-radius-lg: 0.75rem;
+	/* 12px */
+	--lumi-radius-xl: 1rem;
+	/* 16px */
+	--lumi-radius-2xl: 1.5rem;
+	/* 24px */
+	--lumi-radius-3xl: 2rem;
+	/* 32px */
+	--lumi-radius-full: 9999px;
+
+	/* ========================================================================== */
+	/* SHADOW SYSTEM - Soft, modern glassmorphism aesthetic */
+	/* ========================================================================== */
+	--lumi-shadow-sm: 0 1px 2px -1px rgba(0, 0, 0, 0.04), 0 1px 1px -1px rgba(0, 0, 0, 0.03);
+	--lumi-shadow-md: 0 3px 10px -2px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+	--lumi-shadow-lg: 0 8px 20px -4px rgba(0, 0, 0, 0.06), 0 3px 6px -3px rgba(0, 0, 0, 0.035);
+	--lumi-shadow-xl: 0 16px 36px -6px rgba(0, 0, 0, 0.08), 0 6px 12px -4px rgba(0, 0, 0, 0.04);
+
+	/* ========================================================================== */
+	/* ICON SIZE SYSTEM */
+	/* ========================================================================== */
+	--lumi-icon-xs: 12px;
+	--lumi-icon-sm: 16px;
+	--lumi-icon-md: 20px;
+	--lumi-icon-lg: 24px;
+	--lumi-icon-xl: 32px;
+	--lumi-icon-2xl: 40px;
+
+	/* ========================================================================== */
+	/* BORDER WIDTH SYSTEM */
+	/* ========================================================================== */
+	--lumi-border-width-thin: 1px;
+	--lumi-border-width-base: 1.5px;
+	--lumi-border-width-thick: 2px;
+
+	/* ========================================================================== */
+	/* BLUR SYSTEM */
+	/* ========================================================================== */
+	--lumi-blur-sm: 4px;
+	--lumi-blur-md: 8px;
+	--lumi-blur-lg: 12px;
+	--lumi-blur-xl: 16px;
+
+	/* ========================================================================== */
+	/* OVERLAY COLOR */
+	/* ========================================================================== */
+	--lumi-color-overlay: rgba(0, 0, 0, 0.5);
+
+	/* ========================================================================== */
+	/* TRANSITION SYSTEM */
+	/* ========================================================================== */
+	--lumi-transition-all: all var(--lumi-duration-base) var(--lumi-easing-default);
+	--lumi-transition-base: var(--lumi-duration-base) var(--lumi-easing-default);
+	--lumi-transition-colors:
+		color var(--lumi-duration-base) var(--lumi-easing-default),
+		background-color var(--lumi-duration-base) var(--lumi-easing-default),
+		border-color var(--lumi-duration-base) var(--lumi-easing-default);
+	--lumi-transition-opacity: opacity var(--lumi-duration-base) var(--lumi-easing-default);
+	--lumi-transition-shadow: box-shadow var(--lumi-duration-base) var(--lumi-easing-default);
+	--lumi-transition-transform: transform var(--lumi-duration-base) var(--lumi-easing-default);
+
+	/* ========================================================================== */
+	/* Z-INDEX SYSTEM */
+	/* ========================================================================== */
+	--lumi-z-base: 1;
+	--lumi-z-sticky: 1020;
+	--lumi-z-overlay: 1030;
+	--lumi-z-fixed: 1040;
+	--lumi-z-sidebar: 1050;
+	--lumi-z-popover: 2010;
+	--lumi-z-modal-backdrop: 2020;
+	--lumi-z-modal: 2030;
+	--lumi-z-dropdown: 2040;
+	--lumi-z-tooltip: 2050;
+	--lumi-z-notification: 2060;
+
+	/* ========================================================================== */
+	/* LAYOUT SYSTEM */
+	/* ========================================================================== */
+
+	/* Dialog dimensions */
+	--lumi-dialog-width-sm: 25rem;
+	--lumi-dialog-width-md: 31.25rem;
+	--lumi-dialog-width-lg: 43.75rem;
+	--lumi-dialog-width-xl: 56.25rem;
+	--lumi-dialog-max-height: 90vh;
+	--lumi-dialog-content-max-height: 60vh;
+	--lumi-dialog-full-width: 100vw;
+	--lumi-dialog-full-height: 100vh;
+
+	/* Sidebar dimensions */
+	--lumi-sidebar-width: 16.25rem;
+	--lumi-sidebar-width-collapsed: 5rem;
+	--lumi-sidebar-width-mobile: 17.5rem;
+	--lumi-sidebar-header-image: url('/sidebar-header.svg');
+
+	/* Navbar dimensions */
+	--lumi-navbar-height: 4rem;
+
+	/* Shell layout spacing */
+	--lumi-layout-shell-padding: var(--lumi-space-md);
+	--lumi-layout-shell-padding-tablet: var(--lumi-space-sm);
+	--lumi-layout-shell-padding-mobile: var(--lumi-space-xs);
+	--lumi-layout-shell-gap: var(--lumi-space-md);
+	--lumi-layout-content-padding: var(--lumi-space-lg);
+	--lumi-layout-content-padding-tablet: var(--lumi-space-md);
+	--lumi-layout-content-padding-mobile: var(--lumi-space-sm);
+	--lumi-layout-content-padding-compact: var(--lumi-space-xs);
+	--lumi-layout-floating-radius: var(--lumi-radius-2xl);
+	--lumi-layout-floating-radius-tablet: var(--lumi-radius-xl);
+	--lumi-layout-floating-radius-mobile: var(--lumi-radius-lg);
+
+	/* Sidebar responsive geometry */
+	--lumi-sidebar-mobile-offset: var(--lumi-layout-shell-padding-tablet);
+	--lumi-sidebar-mobile-width: min(
+		var(--lumi-sidebar-width-mobile),
+		calc(100vw - (var(--lumi-sidebar-mobile-offset) * 2))
+	);
+	--lumi-sidebar-mobile-height: calc(100dvh - (var(--lumi-sidebar-mobile-offset) * 2));
+	--lumi-sidebar-mobile-closed-shift: calc(-100% - var(--lumi-sidebar-mobile-offset));
+
+	/* Dialog responsive geometry */
+	--lumi-dialog-overlay-padding: var(--lumi-space-lg);
+	--lumi-dialog-overlay-padding-mobile: var(--lumi-space-sm);
+	--lumi-dialog-mobile-max-width: calc(100vw - (var(--lumi-dialog-overlay-padding-mobile) * 2));
+	--lumi-dialog-mobile-max-height: calc(100dvh - (var(--lumi-dialog-overlay-padding-mobile) * 2));
+
+	/* Notification responsive geometry */
+	--lumi-notification-max-inline-size: calc(var(--lumi-space-6xl) * 5);
+	--lumi-notification-zone-offset: var(--lumi-space-lg);
+	--lumi-notification-zone-offset-mobile: var(--lumi-space-sm);
+
+	/* Shared control heights (Input, Button, Select, etc.) */
+	--lumi-control-height-sm: var(--lumi-space-xl);
+	--lumi-control-height-md: var(--lumi-space-xxl);
+	--lumi-control-height-lg: var(--lumi-space-3xl);
+	--lumi-control-height-xl: var(--lumi-space-4xl);
+
+	/* Drive module geometry */
+	--lumi-drive-file-grid-min-desktop: 10.5rem;
+	--lumi-drive-file-grid-min-tablet: 9.75rem;
+	--lumi-drive-file-grid-min-mobile: 8.5rem;
+	--lumi-drive-file-preview-ratio: 4 / 3;
+	--lumi-drive-file-icon-size: 2.25rem;
+	--lumi-drive-file-card-padding: var(--lumi-space-sm);
+	--lumi-drive-file-card-padding-mobile: var(--lumi-space-xs);
+	--lumi-drive-tag-dot-size: var(--lumi-space-xs);
+	--lumi-drive-selection-dot-size: var(--lumi-icon-xs);
+	--lumi-drive-scope-control-min-width: 13.75rem;
+	--lumi-drive-scope-control-basis: 15rem;
+	--lumi-drive-search-control-min-width: 15rem;
+	--lumi-drive-content-min-height: 26.25rem;
+	--lumi-drive-loading-min-height: 13.75rem;
+	--lumi-page-sidebar-drawer-width: 20rem;
+	--lumi-drive-drawer-width: var(--lumi-page-sidebar-drawer-width);
+	--lumi-drive-sidebar-nav-max-height: 20rem;
+	--lumi-drive-uploader-queue-max-height: 15rem;
+	--lumi-drive-preview-min-height: 17.5rem;
+	--lumi-drive-preview-min-height-mobile: 13.75rem;
+	--lumi-drive-preview-audio-max-width: 27.5rem;
+	--lumi-drive-preview-title-max-width: 20rem;
+
+	/* Breakpoints */
+	--lumi-breakpoint-mobile: 480px;
+	--lumi-breakpoint-tablet: 768px;
+	--lumi-breakpoint-desktop: 1024px;
+	--lumi-breakpoint-wide: 1280px;
+	--lumi-breakpoint-ultrawide: 1536px;
+
+	/* Animation durations */
+	--lumi-duration-fast: 150ms;
+	--lumi-duration-base: 200ms;
+	--lumi-duration-slow: 300ms;
+	--lumi-duration-slower: 500ms;
+
+	/* Easing functions */
+	--lumi-easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+	--lumi-easing-in: cubic-bezier(0.4, 0, 1, 1);
+	--lumi-easing-out: cubic-bezier(0, 0, 0.2, 1);
+	--lumi-easing-in-out: var(--lumi-easing-default); /* alias: same curve, used by components */
+	--lumi-easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ========================================================================== */
+/* DARK THEME */
+/* ========================================================================== */
+[data-theme='dark'] {
+	color-scheme: dark;
+
+	/* Primary - UNCHANGED */
+	--lumi-color-primary: rgb(96, 165, 250);
+	--lumi-color-primary-rgb: 96, 165, 250;
+	--lumi-color-primary-50: rgb(23, 37, 84);
+	--lumi-color-primary-100: rgb(30, 58, 138);
+	--lumi-color-primary-200: rgb(30, 64, 175);
+	--lumi-color-primary-300: rgb(29, 78, 216);
+	--lumi-color-primary-400: rgb(37, 99, 235);
+	--lumi-color-primary-500: rgb(59, 130, 246);
+	--lumi-color-primary-600: rgb(96, 165, 250);
+	--lumi-color-primary-700: rgb(147, 197, 253);
+	--lumi-color-primary-800: rgb(191, 219, 254);
+	--lumi-color-primary-900: rgb(219, 234, 254);
+	--lumi-color-primary-950: rgb(239, 246, 255);
+
+	/* ==================== FIXED: INFO PALETTE (Sky Blue - Dark) ==================== */
+	--lumi-color-info: rgb(56, 189, 248); /* sky-400 — bright & perfect in dark */
+	--lumi-color-info-rgb: 56, 189, 248;
+	--lumi-color-info-50: rgb(8, 47, 73);
+	--lumi-color-info-100: rgb(12, 74, 110);
+	--lumi-color-info-200: rgb(7, 89, 133);
+	--lumi-color-info-300: rgb(3, 105, 161);
+	--lumi-color-info-400: rgb(2, 132, 199);
+	--lumi-color-info-500: rgb(14, 165, 233);
+	--lumi-color-info-600: rgb(56, 189, 248);
+	--lumi-color-info-700: rgb(125, 211, 252);
+	--lumi-color-info-800: rgb(186, 230, 253);
+	--lumi-color-info-900: rgb(224, 242, 254);
+	--lumi-color-info-950: rgb(240, 249, 255);
+
+	/* Backgrounds */
+	--lumi-color-background: rgb(9, 9, 11);
+	--lumi-color-background-secondary: rgb(24, 24, 27);
+	--lumi-color-background-hover: rgb(39, 39, 42);
+	--lumi-color-background-rgb: 9, 9, 11;
+
+	/* Surfaces */
+	--lumi-color-surface: rgb(24, 24, 27);
+	--lumi-color-surface-hover: rgb(39, 39, 42);
+	--lumi-color-surface-raised: rgb(39, 39, 42);
+	--lumi-color-surface-overlay: rgba(24, 24, 27, 0.95);
+
+	/* Text */
+	--lumi-color-text: rgb(250, 250, 250);
+	--lumi-color-text-muted: rgb(161, 161, 170);
+	--lumi-color-muted: var(--lumi-color-text-muted);
+	--lumi-color-text-light: rgb(113, 113, 122);
+	--lumi-color-text-inverse: rgb(24, 24, 27);
+
+	/* Borders */
+	--lumi-color-border: rgba(63, 63, 70, 0.9);
+	--lumi-color-border-light: rgba(63, 63, 70, 0.45);
+	--lumi-color-border-strong: rgb(96, 96, 105);
+	--lumi-color-border-focus: var(--lumi-color-primary);
+
+	/* State backgrounds - Updated for new Info palette */
+	--lumi-color-success-bg: rgba(5, 46, 22, 0.5);
+	--lumi-color-warning-bg: rgba(69, 26, 3, 0.5);
+	--lumi-color-danger-bg: rgba(69, 10, 10, 0.5);
+	--lumi-color-info-bg: rgba(8, 47, 73, 0.55); /* ← Updated */
+	--lumi-color-primary-bg: rgba(23, 37, 84, 0.4);
+	--lumi-color-secondary-bg: rgba(76, 5, 25, 0.5);
+
+	/* Enhanced shadows for dark mode */
+	--lumi-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+	--lumi-shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.4), 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+	--lumi-shadow-lg: 0 10px 24px 0 rgba(0, 0, 0, 0.5), 0 4px 8px 0 rgba(0, 0, 0, 0.3);
+	--lumi-shadow-xl: 0 20px 40px 0 rgba(0, 0, 0, 0.6), 0 8px 16px 0 rgba(0, 0, 0, 0.4);
+}
