@@ -127,7 +127,6 @@ function attemptWrap(
 		lines.push(currentLine);
 	}
 
-	// It's truncated if we exceed allowed lines OR if any single word is wider than the column
 	const isTooLong =
 		lines.length > maxLines || lines.some((l) => font.widthOfTextAtSize(l, fontSize) > maxWidth);
 
@@ -138,13 +137,12 @@ function attemptWrap(
 }
 
 function resolveNameLayout(fullName: string, font: PDFFont, maxWidth: number): TextLayoutResult {
-	// ↓ REUDCED STUDENT FULL NAME FONT SIZES ↓
 	const profiles = [
-		{ size: 9, maxLines: 1 }, // (was 12)
-		{ size: 8, maxLines: 1 }, // (was 10)
-		{ size: 7, maxLines: 2 }, // (was 8.5)
-		{ size: 6, maxLines: 2 }, // (was 7.5)
-		{ size: 5.5, maxLines: 2 } // (was 6.5)
+		{ size: 9, maxLines: 1 },
+		{ size: 8, maxLines: 1 },
+		{ size: 7, maxLines: 2 },
+		{ size: 6, maxLines: 2 },
+		{ size: 5.5, maxLines: 2 }
 	];
 
 	for (const profile of profiles) {
@@ -160,8 +158,7 @@ function resolveNameLayout(fullName: string, font: PDFFont, maxWidth: number): T
 		}
 	}
 
-	return { lines: [fullName], fontSize: 5.5, lineHeight: 7 }; // (was 6.5, lineHeight 8)
-	// ↑ ------------------------------------ ↑
+	return { lines: [fullName], fontSize: 5.5, lineHeight: 7 };
 }
 
 // --- Asset Loaders ---
@@ -234,7 +231,7 @@ function drawQrAndDni(
 	qrImage: PDFImage
 ): void {
 	const qrSize = 800;
-	const qrX = 72;
+	const qrX = 40;
 	const qrY = 240;
 
 	page.drawImage(qrImage, {
@@ -245,7 +242,8 @@ function drawQrAndDni(
 	});
 
 	const dniFontSize = 13;
-	const dniText = data.dni;
+	// Inject spaces to increase vertical tracking/spacing for the text cleanly
+	const dniText = data.dni.split('').join(' ');
 	const dniWidth = boldFont.widthOfTextAtSize(dniText, dniFontSize);
 
 	const pillCenterX = pxX(1040);
@@ -267,7 +265,7 @@ function drawPhotoBlock(
 	data: StudentCardData,
 	photoImage: PDFImage | null
 ): void {
-	const photoX = 1244;
+	const photoX = 1300;
 	const photoY = 110;
 	const photoSize = 585;
 
@@ -310,12 +308,14 @@ function drawStudentInfo(
 	boldFont: PDFFont,
 	data: StudentCardData
 ): void {
-	// Fixed Alignment: Centered perfectly underneath the X/Width of the photo block above it
-	const panelX = 1215;
-	const panelTop = 740;
-	const panelWidth = 642;
-	const panelHeight = 240;
-	const panelPaddingX = 15;
+	// Slightly decreased the panel size for better proportion
+	const panelWidth = 660; // Was 700
+	const panelHeight = 340; // Was 420
+	const photoX = 1300;
+	const photoSize = 585;
+	const panelX = photoX + photoSize / 2 - panelWidth / 2;
+	const panelTop = 720;
+	const panelPaddingX = 20;
 
 	page.drawRectangle({
 		x: pxX(panelX),
@@ -336,8 +336,8 @@ function drawStudentInfo(
 		nameBlockWidth
 	);
 
-	// Vertically center the name in the top ~35% of the white block
-	const nameAreaCenterY = CARD_HEIGHT - pxY(panelTop + panelHeight * 0.35);
+	// Vertically center the name in the top ~22% of the white block
+	const nameAreaCenterY = CARD_HEIGHT - pxY(panelTop + panelHeight * 0.22);
 
 	let currentNameY =
 		nameAreaCenterY + (fontSize * 0.7 + (lines.length - 1) * lineHeight) / 2 - fontSize * 0.7;
@@ -354,56 +354,33 @@ function drawStudentInfo(
 		currentNameY -= lineHeight;
 	}
 
-	// --- 2. Bottom Section: 3 Minimal Fields Properly Distributed ---
-	const innerWidth = panelWidth - panelPaddingX * 2;
-	const segmentWidth = innerWidth / 3;
-	const maxTextWidthPdf = pxX(segmentWidth - 6); // Small inner padding inside the column
+	// --- 2. Bottom Section: Details Distributed Vertically (Column) ---
+	const maxTextWidthPdf = pxX(panelWidth - panelPaddingX * 2);
+	const detailFontSize = 6; // Slightly smaller to match new container scale
+	const detailLineHeight = detailFontSize * 1.2;
 
-	// Vertically center details in the lower ~25% section
-	const detailsCenterY = CARD_HEIGHT - pxY(panelTop + panelHeight * 0.75);
+	data.details.forEach((text, index) => {
+		// Attempt to wrap inside maximum 2 lines per field to prevent squishing
+		const { lines } = attemptWrap(text, boldFont, detailFontSize, maxTextWidthPdf, 2);
 
-	let unifiedSize = 8;
-	let detailLinesList: string[][] = [];
+		// Distribute vertically nicely within the bottom area (50%, 70%, 90%)
+		const relativeYPercent = 0.5 + index * 0.2;
+		const centerOffsetPx = panelTop + panelHeight * relativeYPercent;
+		const detailsCenterY = CARD_HEIGHT - pxY(centerOffsetPx);
 
-	// Loop shrinks size safely until all 3 items fit in their respective columns
-	while (unifiedSize >= 4) {
-		let allFit = true;
-		const currentTry: string[][] = [];
+		const textBlockTotalHeight = detailFontSize * 0.7 + (lines.length - 1) * detailLineHeight;
+		let currentY = detailsCenterY + textBlockTotalHeight / 2 - detailFontSize * 0.7;
 
-		for (const text of data.details) {
-			const wrapResult = attemptWrap(text.toUpperCase(), boldFont, unifiedSize, maxTextWidthPdf, 3);
-			currentTry.push(wrapResult.lines);
-			if (wrapResult.truncated) {
-				allFit = false;
-			}
-		}
-
-		detailLinesList = currentTry;
-		if (allFit) break;
-		unifiedSize -= 0.5;
-	}
-
-	const detailsLineHeight = unifiedSize * 1.15;
-
-	data.details.forEach((_, index) => {
-		const itemLines = detailLinesList[index] || [];
-
-		// Perfect geometric center X coordinate of this specific column (1st, 2nd, or 3rd)
-		const cx = panelX + panelPaddingX + segmentWidth * index + segmentWidth / 2;
-
-		const textBlockTotalHeight = unifiedSize * 0.7 + (itemLines.length - 1) * detailsLineHeight;
-		let currentY = detailsCenterY + textBlockTotalHeight / 2 - unifiedSize * 0.7;
-
-		for (const line of itemLines) {
-			const lineWidth = boldFont.widthOfTextAtSize(line, unifiedSize);
+		for (const line of lines) {
+			const lineWidth = boldFont.widthOfTextAtSize(line, detailFontSize);
 			page.drawText(line, {
-				x: pxX(cx) - lineWidth / 2,
+				x: pxX(panelX + panelWidth / 2) - lineWidth / 2, // Keeps text perfectly centered
 				y: currentY,
 				font: boldFont,
-				size: unifiedSize,
+				size: detailFontSize,
 				color: COLORS.navy
 			});
-			currentY -= detailsLineHeight;
+			currentY -= detailLineHeight;
 		}
 	});
 }
