@@ -18,7 +18,9 @@
 		List,
 		ListItem,
 		PageHeader,
+		PageSidebar,
 		Select,
+		StatCard,
 		Table,
 		type TableRow,
 		Textarea
@@ -27,7 +29,6 @@
 	import { showToast } from '$lib/stores/Toast';
 	import {
 		ENROLLMENT_STATUS_OPTIONS,
-		ENROLLMENT_TURN_OPTIONS,
 		GROUP_CODE_OPTIONS,
 		formatAcademicDegreeLabel,
 		formatEducationCurrency,
@@ -68,6 +69,7 @@
 	let filterCycleDegreeCode = $state<string | null>(null);
 	let filterGroupCode = $state<GroupCode>('A');
 	let filterSearchQuery = $state('');
+	let showMobileSidebar = $state(false);
 	let showModal = $state(false);
 	let showDeleteModal = $state(false);
 	let showGeneratedCodeModal = $state(false);
@@ -81,7 +83,7 @@
 	let formCycleCode = $state<string | null>(null);
 	let formCycleDegreeCode = $state<string | null>(null);
 	let formPayCost = $state('');
-	let formTurn = $state<'turn_1' | 'turn_2' | 'both'>('turn_1');
+	let formTurn = $state<'turn_1' | 'turn_2'>('turn_1');
 	let formStatus = $state<'active' | 'finalized' | 'inactive'>('active');
 	let formGroupCode = $state<GroupCode>('A');
 	let formObservation = $state('');
@@ -114,6 +116,44 @@
 				value: option.code,
 				label: option.label
 			}))
+	);
+	const selectedFormCycle = $derived(
+		data.cycles.find((cycle) => cycle.code === formCycleCode) ?? null
+	);
+	const formTurnOptions = $derived(
+		[
+			selectedFormCycle?.turn_1_attendance_time ? { value: 'turn_1', label: 'Turno 1' } : null,
+			selectedFormCycle?.turn_2_attendance_time ? { value: 'turn_2', label: 'Turno 2' } : null
+		].filter(Boolean) as Array<{ value: 'turn_1' | 'turn_2'; label: string }>
+	);
+
+	const selectedCycleLabel = $derived(
+		data.cycles.find((cycle) => cycle.code === filterCycleCode)?.label ?? 'Sin ciclo activo'
+	);
+
+	const selectedDegreeOption = $derived(
+		data.cycleDegreeOptions.find((option) => option.code === filterCycleDegreeCode) ?? null
+	);
+
+	const selectedDegreeLabel = $derived(selectedDegreeOption?.label ?? 'Sin grado activo');
+	const selectedDegreeChipLabel = $derived(
+		selectedDegreeOption?.degree_name
+			? formatAcademicDegreeLabel(selectedDegreeOption.degree_name)
+			: 'Sin grado'
+	);
+
+	const totalEnrollments = $derived(data.enrollments.length);
+	const activeEnrollments = $derived(
+		data.enrollments.filter((enrollment) => enrollment.status === 'active').length
+	);
+	const finalizedEnrollments = $derived(
+		data.enrollments.filter((enrollment) => enrollment.status === 'finalized').length
+	);
+	const inactiveEnrollments = $derived(
+		data.enrollments.filter((enrollment) => enrollment.status === 'inactive').length
+	);
+	const currentCohortCaption = $derived(
+		`${selectedDegreeLabel} · ${formatGroupCode(filterGroupCode)}`
 	);
 
 	function getActionError(result: { data?: Record<string, unknown> }): string | null {
@@ -245,6 +285,16 @@
 		void goto(resolve(buildFilterUrl() as '/'));
 	}
 
+	function applyFiltersAndCloseSidebar(): void {
+		showMobileSidebar = false;
+		applyFilters();
+	}
+
+	function clearFilters(): void {
+		showMobileSidebar = false;
+		void goto(resolve('/enrollments' as '/'));
+	}
+
 	function selectStudent(student: StudentSearchItem): void {
 		formStudentCode = student.code;
 		selectedStudentPreview = student;
@@ -269,6 +319,13 @@
 			formCycleCode = data.selectedCycleCode;
 			formCycleDegreeCode = data.selectedCycleDegreeCode;
 			formGroupCode = data.selectedGroupCode as GroupCode;
+		}
+	});
+
+	$effect(() => {
+		const availableTurns = formTurnOptions.map((option) => option.value);
+		if (!availableTurns.includes(formTurn) && availableTurns[0]) {
+			formTurn = availableTurns[0];
 		}
 	});
 
@@ -326,36 +383,62 @@
 	}
 </script>
 
-<div class="lumi-stack lumi-stack--lg">
+<div class="lumi-stack lumi-stack--md">
 	<PageHeader
 		title="Matrículas"
-		subtitle="Trabaja por cohorte y registra alumnos sin cargar listados masivos"
+		subtitle="Vista operativa por ciclo, grado y grupo, con filtros persistentes y registro rápido"
 		icon="clipboardPenLine"
 	>
 		{#snippet actions()}
-			<Button
-				type="filled"
-				color="primary"
-				icon="plus"
-				onclick={openCreateModal}
-				disabled={!canCreate}
+			<div
+				class="lumi-flex lumi-flex--gap-sm lumi-align-items--center lumi-page-sidebar__header-actions"
 			>
-				Nueva matrícula
-			</Button>
+				<Button
+					type="ghost"
+					size="sm"
+					icon="slidersHorizontal"
+					class="lumi-page-sidebar__mobile-trigger"
+					onclick={() => (showMobileSidebar = true)}
+					aria-label="Abrir filtros de matrículas"
+				/>
+				<Button
+					type="filled"
+					color="primary"
+					icon="plus"
+					onclick={openCreateModal}
+					disabled={!canCreate}
+				>
+					Nueva matrícula
+				</Button>
+			</div>
 		{/snippet}
 	</PageHeader>
 
-	<Card>
-		<div class="lumi-stack lumi-stack--md">
-			<div class="enrollment-filter-panel">
-				<div class="enrollment-filter-panel__copy">
-					<h2 class="enrollment-filter-panel__title">Panel de registros</h2>
-					<p class="enrollment-filter-panel__subtitle">
-						Filtra por ciclo, grado y grupo. Así el listado se mantiene útil y operativo.
-					</p>
+	<div class="lumi-layout--two-columns lumi-page-sidebar-layout enrollments-page__layout">
+		<PageSidebar
+			bind:mobileOpen={showMobileSidebar}
+			variant="enrollments"
+			mobileTitle="Ciclo y filtros"
+			mobileAriaLabel="Cerrar filtros de matrículas"
+		>
+			{#snippet sidebar()}
+				<div class="lumi-page-sidebar__section">
+					<div class="enrollments-sidebar__hero">
+						<p class="lumi-page-sidebar__label">Vista actual</p>
+						<h2 class="enrollments-sidebar__title">{selectedCycleLabel}</h2>
+						<p class="enrollments-sidebar__subtitle">{currentCohortCaption}</p>
+						<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+							<Chip color="secondary" size="sm">{selectedDegreeChipLabel}</Chip>
+							<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
+							{#if filterSearchQuery.trim()}
+								<Chip color="primary" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
+							{/if}
+						</div>
+					</div>
 				</div>
 
-				<div class="enrollment-filter-panel__controls">
+				<div class="lumi-page-sidebar__section">
+					<p class="lumi-page-sidebar__label">Seleccionar ciclo</p>
 					<Select
 						bind:value={filterCycleCode}
 						label="Ciclo"
@@ -371,135 +454,214 @@
 						disabled={!filterCycleCode}
 					/>
 					<Select bind:value={filterGroupCode} label="Grupo" options={GROUP_CODE_OPTIONS} />
+				</div>
+
+				<div class="lumi-page-sidebar__section">
+					<p class="lumi-page-sidebar__label">Buscar dentro del grupo</p>
 					<Input
 						bind:value={filterSearchQuery}
-						label="Buscar dentro del grupo"
-						placeholder="Alumno, DNI o matrícula"
+						label="Alumno, DNI o matrícula"
+						placeholder="Escribe para filtrar matrículas"
 					/>
-					<div class="enrollment-filter-panel__buttons">
-						<Button type="filled" color="primary" icon="search" onclick={applyFilters}>
+				</div>
+
+				<div class="lumi-page-sidebar__section">
+					<p class="lumi-page-sidebar__label">Acciones</p>
+					<div class="lumi-stack lumi-stack--xs">
+						<Button
+							type="filled"
+							color="primary"
+							icon="search"
+							onclick={applyFiltersAndCloseSidebar}
+						>
 							Aplicar filtros
 						</Button>
-						<Button type="border" onclick={() => void goto(resolve('/enrollments' as '/'))}>
-							Limpiar
-						</Button>
+						<Button type="border" onclick={clearFilters}>Limpiar</Button>
 					</div>
 				</div>
+			{/snippet}
+		</PageSidebar>
+
+		<section class="lumi-layout--content-right">
+			<div class="lumi-stack lumi-stack--sm">
+				<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md enrollments-page__stats-grid">
+					<StatCard
+						title="Total"
+						value={String(totalEnrollments)}
+						icon="bookCopy"
+						color="primary"
+						subtitle="Registros cargados en la vista actual"
+					/>
+					<StatCard
+						title="Activas"
+						value={String(activeEnrollments)}
+						icon="badgeCheck"
+						color="success"
+						subtitle="Alumnos actualmente en curso"
+					/>
+					<StatCard
+						title="Finalizadas"
+						value={String(finalizedEnrollments)}
+						icon="flag"
+						color="info"
+						subtitle="Cierres ya consolidados"
+					/>
+					<StatCard
+						title="Inactivas"
+						value={String(inactiveEnrollments)}
+						icon="pauseCircle"
+						color="warning"
+						subtitle="Casos en espera o suspendidos"
+					/>
+				</div>
+
+				<Card spaced>
+					<div class="lumi-stack lumi-stack--md">
+						<div class="enrollments-page__spotlight">
+							<div class="enrollments-page__spotlight-copy">
+								<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Panel operativo</p>
+								<h2 class="enrollments-page__spotlight-title">{selectedCycleLabel}</h2>
+								<p class="enrollments-page__spotlight-subtitle">
+									{currentCohortCaption}
+									{#if filterSearchQuery.trim()}
+										· Búsqueda activa: "{filterSearchQuery.trim()}"
+									{/if}
+								</p>
+							</div>
+
+							<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+								<Chip color="secondary" size="sm">{selectedDegreeChipLabel}</Chip>
+								<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
+								{#if filterSearchQuery.trim()}
+									<Chip color="primary" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
+								{/if}
+							</div>
+						</div>
+
+						{#if !canRead}
+							<Alert type="warning" closable>No tienes permisos para consultar matrículas.</Alert>
+						{:else if !data.selectedCycleCode || !data.selectedCycleDegreeCode}
+							<EmptyState
+								title="Configura ciclo, grado y grupo"
+								description="Selecciona un ciclo y un grado para empezar a trabajar los registros."
+								icon="slidersHorizontal"
+							/>
+						{:else if data.enrollments.length === 0}
+							<EmptyState
+								title="No hay matrículas para esta vista"
+								description="Cuando registres alumnos en este grupo, aparecerán aquí con su código de lista generado automáticamente."
+								icon="bookOpenCheck"
+							/>
+						{:else}
+							<Table data={enrollmentRows} pagination hover itemsPerPage={25}>
+								{#snippet thead()}
+									<th>Lista</th>
+									<th>Alumno</th>
+									<th>Asignación</th>
+									<th>Turno</th>
+									<th>Costo</th>
+									<th>Estado</th>
+									<th>Acciones</th>
+								{/snippet}
+
+								{#snippet row({ row })}
+									{@const enrollment = row as unknown as EnrollmentRow}
+									<td>
+										<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
+											<span class="lumi-font--medium">{enrollment.roll_code}</span>
+											<span class="lumi-text--xs lumi-text--muted">
+												{enrollment.enrollment_number}
+											</span>
+										</div>
+									</td>
+									<td>
+										<div class="enrollment-student-cell">
+											<Avatar text={enrollment.student_full_name} size="sm" color="primary" />
+											<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
+												<span class="lumi-font--medium">{enrollment.student_full_name}</span>
+												<span class="lumi-text--xs lumi-text--muted">
+													{enrollment.student_number} · {enrollment.student_dni || 'Sin DNI'}
+												</span>
+											</div>
+										</div>
+									</td>
+									<td>
+										<div class="enrollment-assignment-cell">
+											<span class="lumi-text--sm lumi-font--medium">{enrollment.cycle_title}</span>
+											<div class="enrollment-assignment-cell__chips">
+												<Chip color="secondary" size="sm">
+													{formatAcademicDegreeLabel(enrollment.degree_name)}
+												</Chip>
+												<Chip color="info" size="sm">
+													{formatGroupCode(enrollment.group_code)}
+												</Chip>
+											</div>
+										</div>
+									</td>
+									<td>
+										<Chip color="secondary" size="sm">
+											{formatEnrollmentTurn(enrollment.turn)}
+										</Chip>
+									</td>
+									<td>
+										<span class="lumi-font--medium">
+											{formatEducationCurrency(enrollment.pay_cost)}
+										</span>
+									</td>
+									<td>
+										<Chip color={statusColor(enrollment.status)} size="sm">
+											{formatEnrollmentStatus(enrollment.status)}
+										</Chip>
+									</td>
+									<td>
+										<Dropdown
+											position="bottom-end"
+											aria-label={`Acciones para ${enrollment.student_full_name}`}
+										>
+											{#snippet triggerContent()}
+												<Button
+													type="flat"
+													size="sm"
+													icon="moreVertical"
+													aria-label={`Abrir acciones para ${enrollment.student_full_name}`}
+												/>
+											{/snippet}
+
+											{#snippet content()}
+												<DropdownItem
+													icon="eye"
+													color="info"
+													onclick={() => openStudentProfile(enrollment.student_code)}
+													disabled={!canReadStudents}
+												>
+													Ver perfil
+												</DropdownItem>
+												<DropdownItem
+													icon="edit"
+													onclick={() => openEditModal(enrollment)}
+													disabled={!canUpdate}
+												>
+													Editar matrícula
+												</DropdownItem>
+												<DropdownItem
+													icon="trash"
+													color="danger"
+													onclick={() => openDeleteModal(enrollment)}
+													disabled={!canDelete}
+												>
+													Eliminar matrícula
+												</DropdownItem>
+											{/snippet}
+										</Dropdown>
+									</td>
+								{/snippet}
+							</Table>
+						{/if}
+					</div>
+				</Card>
 			</div>
-
-			{#if !canRead}
-				<Alert type="warning" closable>No tienes permisos para consultar matrículas.</Alert>
-			{:else if !data.selectedCycleCode || !data.selectedCycleDegreeCode}
-				<EmptyState
-					title="Configura una cohorte"
-					description="Selecciona un ciclo y un grado para empezar a trabajar los registros."
-					icon="slidersHorizontal"
-				/>
-			{:else if data.enrollments.length === 0}
-				<EmptyState
-					title="No hay matrículas para esta cohorte"
-					description="Cuando registres alumnos en este grupo, aparecerán aquí con su código de lista generado automáticamente."
-					icon="bookOpenCheck"
-				/>
-			{:else}
-				<Table data={enrollmentRows} pagination hover itemsPerPage={25}>
-					{#snippet thead()}
-						<th>Lista</th>
-						<th>Alumno</th>
-						<th>Asignación</th>
-						<th>Turno</th>
-						<th>Costo</th>
-						<th>Estado</th>
-						<th>Acciones</th>
-					{/snippet}
-
-					{#snippet row({ row })}
-						{@const enrollment = row as unknown as EnrollmentRow}
-						<td>
-							<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
-								<span class="lumi-font--medium">{enrollment.roll_code}</span>
-								<span class="lumi-text--xs lumi-text--muted">{enrollment.enrollment_number}</span>
-							</div>
-						</td>
-						<td>
-							<div class="enrollment-student-cell">
-								<Avatar text={enrollment.student_full_name} size="sm" color="primary" />
-								<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
-									<span class="lumi-font--medium">{enrollment.student_full_name}</span>
-									<span class="lumi-text--xs lumi-text--muted">
-										{enrollment.student_number} · {enrollment.student_dni || 'Sin DNI'}
-									</span>
-								</div>
-							</div>
-						</td>
-						<td>
-							<div class="enrollment-assignment-cell">
-								<span class="lumi-text--sm lumi-font--medium">{enrollment.cycle_title}</span>
-								<div class="enrollment-assignment-cell__chips">
-									<Chip color="secondary" size="sm">
-										{formatAcademicDegreeLabel(enrollment.degree_name)}
-									</Chip>
-									<Chip color="info" size="sm">{formatGroupCode(enrollment.group_code)}</Chip>
-								</div>
-							</div>
-						</td>
-						<td>
-							<Chip color="secondary" size="sm">{formatEnrollmentTurn(enrollment.turn)}</Chip>
-						</td>
-						<td>
-							<span class="lumi-font--medium">{formatEducationCurrency(enrollment.pay_cost)}</span>
-						</td>
-						<td>
-							<Chip color={statusColor(enrollment.status)} size="sm">
-								{formatEnrollmentStatus(enrollment.status)}
-							</Chip>
-						</td>
-						<td>
-							<Dropdown
-								position="bottom-end"
-								aria-label={`Acciones para ${enrollment.student_full_name}`}
-							>
-								{#snippet triggerContent()}
-									<Button
-										type="flat"
-										size="sm"
-										icon="moreVertical"
-										aria-label={`Abrir acciones para ${enrollment.student_full_name}`}
-									/>
-								{/snippet}
-
-								{#snippet content()}
-									<DropdownItem
-										icon="eye"
-										color="info"
-										onclick={() => openStudentProfile(enrollment.student_code)}
-										disabled={!canReadStudents}
-									>
-										Ver perfil
-									</DropdownItem>
-									<DropdownItem
-										icon="edit"
-										onclick={() => openEditModal(enrollment)}
-										disabled={!canUpdate}
-									>
-										Editar matrícula
-									</DropdownItem>
-									<DropdownItem
-										icon="trash"
-										color="danger"
-										onclick={() => openDeleteModal(enrollment)}
-										disabled={!canDelete}
-									>
-										Eliminar matrícula
-									</DropdownItem>
-								{/snippet}
-							</Dropdown>
-						</td>
-					{/snippet}
-				</Table>
-			{/if}
-		</div>
-	</Card>
+		</section>
+	</div>
 </div>
 
 <Dialog
@@ -643,7 +805,8 @@
 						bind:value={formTurn}
 						name="turn"
 						label="Turno"
-						options={ENROLLMENT_TURN_OPTIONS}
+						options={formTurnOptions}
+						clearable={false}
 					/>
 					<Select
 						bind:value={formGroupCode}
@@ -748,62 +911,69 @@
 </Dialog>
 
 <style>
-	.enrollment-filter-panel,
-	.enrollment-filter-panel__copy,
-	.enrollment-filter-panel__controls,
-	.enrollment-filter-panel__buttons,
+	.enrollments-sidebar__hero {
+		display: grid;
+		gap: var(--lumi-space-sm);
+		padding: var(--lumi-space-lg);
+		border-radius: var(--lumi-radius-2xl);
+		background:
+			linear-gradient(
+				145deg,
+				color-mix(in srgb, var(--lumi-color-primary) 8%, transparent) 0%,
+				color-mix(in srgb, var(--lumi-color-secondary) 8%, transparent) 68%,
+				color-mix(in srgb, var(--lumi-color-info) 6%, transparent) 100%
+			),
+			color-mix(in srgb, var(--lumi-color-surface) 92%, transparent);
+		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
+		box-shadow: var(--lumi-shadow-sm);
+	}
+
+	.enrollments-sidebar__title,
+	.enrollments-page__spotlight-title {
+		margin: 0;
+		color: var(--lumi-color-text);
+	}
+
+	.enrollments-sidebar__title {
+		font-size: var(--lumi-font-size-xl);
+	}
+
+	.enrollments-sidebar__subtitle,
+	.enrollments-page__spotlight-subtitle {
+		margin: 0;
+		font-size: var(--lumi-font-size-sm);
+		color: var(--lumi-color-text-muted);
+	}
+
+	.enrollments-page__stats-grid {
+		--lumi-grid-columns: repeat(4, minmax(0, 1fr));
+	}
+
+	.enrollments-page__spotlight,
 	.enrollment-student-preview,
 	.enrollment-student-preview__identity {
 		display: flex;
 	}
 
-	.enrollment-filter-panel,
-	.enrollment-filter-panel__controls {
-		flex-direction: column;
-	}
-
-	.enrollment-filter-panel {
-		gap: var(--lumi-space-lg);
+	.enrollments-page__spotlight {
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: var(--lumi-space-md);
 		padding: var(--lumi-space-lg);
 		border-radius: var(--lumi-radius-2xl);
 		background:
 			linear-gradient(
-				135deg,
+				140deg,
 				color-mix(in srgb, var(--lumi-color-primary) 6%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-secondary) 8%, transparent) 100%
+				color-mix(in srgb, var(--lumi-color-info) 8%, transparent) 100%
 			),
-			color-mix(in srgb, var(--lumi-color-surface) 72%, var(--lumi-color-background-hover) 28%);
+			color-mix(in srgb, var(--lumi-color-surface) 82%, var(--lumi-color-background-hover) 18%);
 		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		box-shadow: var(--lumi-shadow-sm);
 	}
 
-	.enrollment-filter-panel__copy {
-		gap: var(--lumi-space-sm);
-		align-items: flex-end;
-	}
-
-	.enrollment-filter-panel__controls {
+	.enrollments-page__spotlight-copy {
 		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: var(--lumi-space-md);
-		align-items: end;
-	}
-
-	.enrollment-filter-panel__buttons {
-		flex-wrap: wrap;
-		gap: var(--lumi-space-xs);
-	}
-
-	.enrollment-filter-panel__title {
-		margin: 0;
-		font-size: var(--lumi-font-size-xl);
-		color: var(--lumi-color-text);
-	}
-
-	.enrollment-filter-panel__subtitle {
-		margin: 0;
-		font-size: var(--lumi-font-size-sm);
-		color: var(--lumi-color-text-muted);
+		gap: var(--lumi-space-2xs);
 	}
 
 	.enrollment-student-preview {
@@ -822,20 +992,21 @@
 		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
 	}
 
-	.enrollment-student-preview__identity {
+	.enrollment-student-preview__identity,
+	.enrollment-student-cell,
+	.enrollment-assignment-cell,
+	.enrollment-assignment-cell__chips {
+		display: flex;
+	}
+
+	.enrollment-student-preview__identity,
+	.enrollment-student-cell {
 		align-items: center;
 		gap: var(--lumi-space-md);
 	}
 
-	.enrollment-student-cell {
-		display: flex;
-		align-items: center;
-		gap: var(--lumi-space-sm);
-	}
-
 	.enrollment-assignment-cell,
 	.enrollment-assignment-cell__chips {
-		display: flex;
 		flex-wrap: wrap;
 		gap: var(--lumi-space-xs);
 	}
@@ -846,20 +1017,24 @@
 	}
 
 	@media (max-width: 1100px) {
-		.enrollment-filter-panel__controls {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+		.enrollments-page__stats-grid {
+			--lumi-grid-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 
 	@media (max-width: 768px) {
-		.enrollment-filter-panel__controls,
-		.enrollment-form-grid {
-			grid-template-columns: 1fr;
+		.enrollments-page__stats-grid {
+			--lumi-grid-columns: 1fr;
 		}
 
+		.enrollments-page__spotlight,
 		.enrollment-student-preview {
 			flex-direction: column;
 			align-items: flex-start;
+		}
+
+		.enrollment-form-grid {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>

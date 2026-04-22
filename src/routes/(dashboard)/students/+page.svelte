@@ -15,16 +15,11 @@
 		InfoItem,
 		Input,
 		PageHeader,
-		StatCard,
-		StudentFormFields
+		StatCard
 	} from '$lib/components';
 	import { can } from '$lib/stores/permissions';
 	import { showToast } from '$lib/stores/Toast';
-	import {
-		buildStudentPhotoUrl,
-		formatEnrollmentStatus,
-		syncStudentPhotoFormData
-	} from '$lib/utils';
+	import { buildStudentPhotoUrl, formatEnrollmentStatus } from '$lib/utils';
 	import type { PageData } from './$types';
 
 	type StudentRow = PageData['students'][number];
@@ -35,22 +30,10 @@
 	const canCreate = $derived(can('students:create'));
 	const canUpdate = $derived(can('students:update'));
 	const canDelete = $derived(can('students:delete'));
+	const canReadAttendance = $derived(can('attendance:read'));
 
-	let showEditModal = $state(false);
 	let showDeleteModal = $state(false);
-	let errorMessage = $state('');
 	let selectedStudent = $state<StudentRow | null>(null);
-
-	let formFirstName = $state('');
-	let formLastName = $state('');
-	let formPhone = $state('');
-	let formAddress = $state('');
-	let formDni = $state('');
-	let formBirthDate = $state('');
-	let formObservation = $state('');
-	let formPhotoUrl = $state('');
-	let formPendingPhotoFile = $state<File | null>(null);
-	let formIsActive = $state(true);
 
 	function getActionError(result: { data?: Record<string, unknown> }): string | null {
 		const error = result.data?.error;
@@ -64,47 +47,15 @@
 		}
 	}
 
-	function resetForm(): void {
-		formFirstName = '';
-		formLastName = '';
-		formPhone = '';
-		formAddress = '';
-		formDni = '';
-		formBirthDate = '';
-		formObservation = '';
-		formPhotoUrl = '';
-		formPendingPhotoFile = null;
-		formIsActive = true;
-		errorMessage = '';
-	}
-
-	function openEditModal(student: StudentRow): void {
+	function openEditPage(studentCode: string): void {
 		if (!canUpdate) return;
-		selectedStudent = student;
-		formFirstName = student.first_name;
-		formLastName = student.last_name;
-		formPhone = student.phone ?? '';
-		formAddress = student.address ?? '';
-		formDni = student.dni ?? '';
-		formBirthDate = student.birth_date ? String(student.birth_date).slice(0, 10) : '';
-		formObservation = student.observation ?? '';
-		formPhotoUrl = student.photo_url ?? '';
-		formPendingPhotoFile = null;
-		formIsActive = student.is_active;
-		errorMessage = '';
-		showEditModal = true;
+		void goto(resolve(`/students/${studentCode}/edit` as '/'));
 	}
 
 	function openDeleteModal(student: StudentRow): void {
 		if (!canDelete) return;
 		selectedStudent = student;
 		showDeleteModal = true;
-	}
-
-	function closeModal(): void {
-		showEditModal = false;
-		selectedStudent = null;
-		resetForm();
 	}
 
 	function closeDeleteModal(): void {
@@ -114,6 +65,11 @@
 
 	function openStudentProfile(studentCode: string): void {
 		void goto(resolve(`/students/${studentCode}` as '/'));
+	}
+
+	function openStudentAttendance(studentCode: string): void {
+		if (!canReadAttendance) return;
+		void goto(resolve(`/students/${studentCode}/attendance` as '/'));
 	}
 </script>
 
@@ -254,8 +210,16 @@
 													Ver perfil
 												</DropdownItem>
 												<DropdownItem
+													icon="history"
+													color="info"
+													onclick={() => openStudentAttendance(student.code)}
+													disabled={!canReadAttendance}
+												>
+													Ver asistencia
+												</DropdownItem>
+												<DropdownItem
 													icon="edit"
-													onclick={() => openEditModal(student)}
+													onclick={() => openEditPage(student.code)}
 													disabled={!canUpdate}
 												>
 													Editar alumno
@@ -303,62 +267,6 @@
 		</div>
 	</Card>
 </div>
-
-<Dialog bind:open={showEditModal} title="Editar alumno" size="lg" scrollable>
-	<form
-		id="student-form"
-		method="POST"
-		action="?/update"
-		enctype="multipart/form-data"
-		use:enhance={({ formData }) => {
-			syncStudentPhotoFormData(formData, formPendingPhotoFile);
-
-			return async ({ result }) => {
-				if (result.type === 'success') {
-					await invalidate('students:load');
-					showToast('Alumno actualizado exitosamente', 'success');
-					closeModal();
-					return;
-				}
-
-				if (result.type === 'failure') {
-					errorMessage = getActionError(result) ?? 'Ocurrió un error';
-				}
-			};
-		}}
-	>
-		{#if selectedStudent}
-			<input type="hidden" name="code" value={selectedStudent.code} />
-		{/if}
-
-		{#if errorMessage}
-			<Alert type="danger" closable onclose={() => (errorMessage = '')}>
-				{errorMessage}
-			</Alert>
-		{/if}
-
-		<StudentFormFields
-			bind:photoUrl={formPhotoUrl}
-			bind:pendingPhotoFile={formPendingPhotoFile}
-			bind:firstName={formFirstName}
-			bind:lastName={formLastName}
-			bind:phone={formPhone}
-			bind:address={formAddress}
-			bind:dni={formDni}
-			bind:birthDate={formBirthDate}
-			bind:observation={formObservation}
-			bind:isActive={formIsActive}
-			isEditing
-		/>
-	</form>
-
-	{#snippet footer()}
-		<Button type="border" onclick={closeModal}>Cancelar</Button>
-		<Button type="filled" color="primary" onclick={() => submitForm('student-form')}>
-			Actualizar
-		</Button>
-	{/snippet}
-</Dialog>
 
 <Dialog bind:open={showDeleteModal} title="Eliminar alumno" size="sm">
 	<form

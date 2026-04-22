@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 
-export type PageSidebarVariant = 'default' | 'drive';
+export type PageSidebarVariant = 'default' | 'drive' | 'enrollments' | 'attendance';
 
 export interface PageSidebarProps {
 	/** Whether the mobile drawer is currently open */

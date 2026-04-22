@@ -4,7 +4,7 @@ import { readFormField } from '$lib/utils/formData';
 import { isUuid } from '$lib/utils/validation';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
 
-const VALID_TURNS = new Set(['turn_1', 'turn_2', 'both']);
+const VALID_TURNS = new Set(['turn_1', 'turn_2']);
 const VALID_STATUSES = new Set(['active', 'finalized', 'inactive']);
 const VALID_GROUPS = new Set(['A', 'B', 'C', 'D']);
 
@@ -118,7 +118,7 @@ export const actions: Actions = {
 					studentCode,
 					cycleDegreeCode,
 					payCost,
-					turn: turn as 'turn_1' | 'turn_2' | 'both',
+					turn: turn as 'turn_1' | 'turn_2',
 					status: status as 'active' | 'finalized' | 'inactive',
 					groupCode: groupCode as 'A' | 'B' | 'C' | 'D',
 					observation
@@ -192,7 +192,7 @@ export const actions: Actions = {
 					studentCode,
 					cycleDegreeCode,
 					payCost,
-					turn: turn as 'turn_1' | 'turn_2' | 'both',
+					turn: turn as 'turn_1' | 'turn_2',
 					status: status as 'active' | 'finalized' | 'inactive',
 					groupCode: groupCode as 'A' | 'B' | 'C' | 'D',
 					observation

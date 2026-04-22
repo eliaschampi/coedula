@@ -1,33 +1,31 @@
 # Database Architecture
 
-This project now uses an **init-first** model:
+This project uses an **init-only** model.
 
-1. `database/init/*.sql`: full schema source of truth for bootstrap.
-2. `database/init/BASELINE_MIGRATION`: consolidation timestamp represented by `init`.
-3. `database/migrations/`: reserved for future incremental changes after the consolidated baseline.
+## Single Source of Truth
+
+1. `database/init/*.sql` contains the full schema source of truth.
+2. `database/init/BASELINE_MIGRATION` marks the consolidated baseline represented by `init`.
+3. Incremental migration files are not part of the active workflow.
 
 ## Bootstrap Flow
 
 `pnpm db:up` (alias of `pnpm db:setup`) executes:
 
 1. `init` only if the DB has no tables.
-2. `migrate` always (usually no-op unless you add new migrations after baseline).
-3. `db:generate` for Kysely types.
+2. `db:generate` for Kysely types.
 
-Historical migrations were consolidated into `database/init`. The `database/migrations` folder is intentionally empty except for `.gitkeep`.
+`pnpm db:down` resets the schema to empty.
 
-`pnpm db:down` resets schema to empty.
-
-`pnpm db:rebuild` performs a full reset + init + migrate + type generation (non-interactive).
+`pnpm db:rebuild` performs a full reset + init + type generation.
 
 ## Team Rules
 
 1. Keep `database/init/*.sql` aligned with the real schema.
-2. For future DB changes, create new migrations in `database/migrations`.
-3. Keep migration files immutable after merge.
-4. If you re-consolidate into `init`, clear old migration files and update `database/init/BASELINE_MIGRATION`.
-5. Validate with:
-   - `pnpm db:up`
-   - `pnpm db:status`
+2. When the schema changes, update `database/init` directly.
+3. Regenerate types after schema changes with:
+   - `pnpm db:up` or `pnpm db:rebuild`
+   - `pnpm db:generate`
+4. Validate with:
    - `pnpm check`
    - `pnpm lint`

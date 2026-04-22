@@ -26,8 +26,8 @@
 			.join(' ');
 	});
 
-	// Icon size based on chip size - using centralized config
-	const iconSizePx = $derived(() => `${getIconSize(size)}px`);
+	const iconSize = $derived(size === 'sm' ? 'xs' : 'sm');
+	const iconSizePx = $derived(() => `${getIconSize(iconSize)}px`);
 
 	// Event handlers
 	const handleClose = (event: MouseEvent) => {
@@ -81,12 +81,21 @@
 	 * ============================================================================ */
 
 	.lumi-chip {
+		--lumi-chip-padding-block: var(--lumi-space-xs);
+		--lumi-chip-padding-inline: var(--lumi-space-sm);
+		--lumi-chip-gap: var(--lumi-space-xs);
+		--lumi-chip-font-size: var(--lumi-font-size-sm);
+		--lumi-chip-min-height: var(--lumi-control-height-sm);
+		--lumi-chip-close-size: var(--lumi-space-md);
 		display: inline-flex;
 		align-items: center;
-		gap: var(--lumi-space-xs);
+		gap: var(--lumi-chip-gap);
+		min-height: var(--lumi-chip-min-height);
+		padding: var(--lumi-chip-padding-block) var(--lumi-chip-padding-inline);
 		border-radius: var(--lumi-radius-full);
+		font-size: var(--lumi-chip-font-size);
 		font-weight: var(--lumi-font-weight-medium);
-		line-height: var(--lumi-line-height-normal);
+		line-height: var(--lumi-line-height-tight);
 		transition:
 			background-color var(--lumi-duration-fast) var(--lumi-easing-default),
 			color var(--lumi-duration-fast) var(--lumi-easing-default),
@@ -99,13 +108,21 @@
 
 	/* Size variants */
 	.lumi-chip--sm {
-		padding: var(--lumi-space-xs) var(--lumi-space-sm);
-		font-size: var(--lumi-font-size-sm);
+		--lumi-chip-padding-block: var(--lumi-space-2xs);
+		--lumi-chip-padding-inline: var(--lumi-space-xs);
+		--lumi-chip-gap: var(--lumi-space-2xs);
+		--lumi-chip-font-size: var(--lumi-font-size-xs);
+		--lumi-chip-min-height: calc(var(--lumi-space-lg) + var(--lumi-space-2xs));
+		--lumi-chip-close-size: var(--lumi-space-sm);
 	}
 
 	.lumi-chip--md {
-		padding: var(--lumi-space-sm) var(--lumi-space-md);
-		font-size: var(--lumi-font-size-base);
+		--lumi-chip-padding-block: var(--lumi-space-xs);
+		--lumi-chip-padding-inline: var(--lumi-space-sm);
+		--lumi-chip-gap: var(--lumi-space-xs);
+		--lumi-chip-font-size: var(--lumi-font-size-sm);
+		--lumi-chip-min-height: var(--lumi-control-height-sm);
+		--lumi-chip-close-size: var(--lumi-space-md);
 	}
 
 	/* Color variants - Flat style like button flat */
@@ -162,11 +179,10 @@
 
 	/* Text styling */
 	.lumi-chip__text {
-		flex: 1;
-		min-width: 0;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		line-height: inherit;
 	}
 
 	/* Close button styling */
@@ -174,10 +190,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: var(--lumi-space-md);
-		height: var(--lumi-space-md);
+		width: var(--lumi-chip-close-size);
+		height: var(--lumi-chip-close-size);
 		padding: 0;
-		margin-left: var(--lumi-space-xs);
+		margin-left: var(--lumi-space-2xs);
 		background: transparent;
 		border: none;
 		border-radius: var(--lumi-radius-full);

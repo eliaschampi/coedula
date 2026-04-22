@@ -108,18 +108,18 @@ If you prefer to run the **Node.js app locally** but keep the **Database in Dock
 docker-compose -f docker/docker-compose.yml up -d postgres
 ```
 
-### 2. Initialize & Migrate
+### 2. Initialize
 
-Once the database is running, use the included scripts to set up the schema.
+Once the database is running, use the included scripts to initialize the schema from `database/init`.
 
 ```bash
-# Full bootstrap (init if empty, run pending migrations, generate types)
+# Full bootstrap (init if empty, generate types)
 pnpm db:up
 
 # Drop schema only (dangerous)
 pnpm db:down
 
-# Full rebuild from scratch (reset + init + migrate + generate)
+# Full rebuild from scratch (reset + init + generate)
 pnpm db:rebuild
 ```
 
@@ -154,10 +154,9 @@ Open your browser and navigate to `http://localhost:5173`.
 
 ```
 coedula/
-├── database/               # Database scripts & migrations
-│   ├── dev/                # Developer utility scripts (setup, migrate)
-│   ├── init/               # Docker init SQL scripts
-│   └── migrations/         # Future Kysely migrations (post-baseline)
+├── database/               # Database scripts & SQL init source
+│   ├── dev/                # Developer utility scripts (setup, init)
+│   └── init/               # Full schema source of truth
 ├── docker/                 # Docker configuration
 ├── src/
 │   ├── lib/
@@ -178,22 +177,19 @@ coedula/
 
 ## 📜 Scripts Reference
 
-| Script             | Description                                          |
-| :----------------- | :--------------------------------------------------- |
-| `pnpm dev`         | Start local development server.                      |
-| `pnpm build`       | Build the application for production.                |
-| `pnpm check`       | Run Svelte-Check for type validation.                |
-| `pnpm lint`        | Run ESLint.                                          |
-| `pnpm db:setup`    | Run the database setup shell script.                 |
-| `pnpm db:up`       | Bootstrap DB (init from snapshot + migrate + types). |
-| `pnpm db:down`     | Drop and recreate `public` schema (empty DB).        |
-| `pnpm db:reset`    | Interactive reset + rebuild flow.                    |
-| `pnpm db:rebuild`  | Reset and fully rebuild schema + types.              |
-| `pnpm db:migrate`  | Apply pending database migrations (if any).          |
-| `pnpm db:rollback` | Rollback last non-baseline migration batch.          |
-| `pnpm db:status`   | Show initialization and migration status.            |
-| `pnpm db:create`   | Create a new migration file.                         |
-| `pnpm db:generate` | Generate TypeScript types from database schema.      |
+| Script             | Description                                     |
+| :----------------- | :---------------------------------------------- |
+| `pnpm dev`         | Start local development server.                 |
+| `pnpm build`       | Build the application for production.           |
+| `pnpm check`       | Run Svelte-Check for type validation.           |
+| `pnpm lint`        | Run ESLint.                                     |
+| `pnpm db:setup`    | Run the database setup shell script.            |
+| `pnpm db:up`       | Bootstrap DB (init from snapshot + types).      |
+| `pnpm db:down`     | Drop and recreate `public` schema (empty DB).   |
+| `pnpm db:reset`    | Interactive reset + rebuild flow.               |
+| `pnpm db:rebuild`  | Reset and fully rebuild schema + types.         |
+| `pnpm db:status`   | Show initialization status.                     |
+| `pnpm db:generate` | Generate TypeScript types from database schema. |
 
 ---
 
@@ -206,10 +202,9 @@ coedula/
 ### Creating a New Feature
 
 1.  **Schema:** update `database/init/*.sql` (source of truth).
-2.  **Optional Migration (future changes):** `pnpm db:create create_<feature>_table`
-3.  **Types:** `pnpm db:migrate` && `pnpm db:generate`
-4.  **Backend:** Create server load functions and actions.
-5.  **Frontend:** Build UI using Lumi UI components (`Card`, `Table`, `PageHeader`).
+2.  **Types:** `pnpm db:up` or `pnpm db:rebuild`, then `pnpm db:generate`
+3.  **Backend:** Create server load functions and actions.
+4.  **Frontend:** Build UI using Lumi UI components (`Card`, `Table`, `PageHeader`).
 
 ---
 

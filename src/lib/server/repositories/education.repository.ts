@@ -169,6 +169,30 @@ async function getCycleDegreeOption(
 	return (option as CycleDegreeOption | undefined) ?? null;
 }
 
+async function ensureCycleSupportsEnrollmentTurn(
+	db: Database,
+	cycleCode: string,
+	turn: EnrollmentTurn
+): Promise<void> {
+	const cycle = await db
+		.selectFrom('academic_cycles')
+		.select(['turn_1_attendance_time', 'turn_2_attendance_time'])
+		.where('code', '=', cycleCode)
+		.executeTakeFirst();
+
+	if (!cycle) {
+		throw new Error('El ciclo seleccionado no existe');
+	}
+
+	if (turn === 'turn_1' && !cycle.turn_1_attendance_time) {
+		throw new Error('El ciclo no tiene horario de asistencia configurado para el turno 1');
+	}
+
+	if (turn === 'turn_2' && !cycle.turn_2_attendance_time) {
+		throw new Error('El ciclo no tiene horario de asistencia configurado para el turno 2');
+	}
+}
+
 async function lockEnrollmentRollSequence(
 	db: DatabaseExecutor,
 	cycleDegreeCode: string,
@@ -644,6 +668,8 @@ export class EducationRepository {
 				'modality',
 				'start_date',
 				'end_date',
+				'turn_1_attendance_time',
+				'turn_2_attendance_time',
 				sql<string>`title || ' · ' || branch_name || ' · ' || modality`.as('label')
 			])
 			.orderBy('start_date', 'desc')
@@ -727,6 +753,8 @@ export class EducationRepository {
 			throw new Error('La combinación de ciclo y grado seleccionada no existe');
 		}
 
+		await ensureCycleSupportsEnrollmentTurn(db, cycleDegree.cycle_code, input.turn);
+
 		const payCost = input.payCost != null ? input.payCost : toNumber(cycleDegree.base_cost);
 		const year = extractYear(cycleDegree.start_date ?? new Date());
 
@@ -765,6 +793,8 @@ export class EducationRepository {
 		if (!cycleDegree) {
 			throw new Error('La combinación de ciclo y grado seleccionada no existe');
 		}
+
+		await ensureCycleSupportsEnrollmentTurn(db, cycleDegree.cycle_code, input.turn);
 
 		const payCost = input.payCost != null ? input.payCost : toNumber(cycleDegree.base_cost);
 
@@ -944,13 +974,18 @@ export class EducationRepository {
 	}
 
 	static normalizeCycleInput(input: CycleUpsertInput): CycleUpsertInput {
+		const turn1AttendanceTime = normalizeNullableText(input.turn1AttendanceTime);
+		const turn2AttendanceTime = normalizeNullableText(input.turn2AttendanceTime);
+
 		return {
 			...input,
 			title: input.title.trim(),
 			modality: input.modality.trim(),
 			notes: normalizeNullableText(input.notes),
-			turn1AttendanceTime: normalizeNullableText(input.turn1AttendanceTime),
-			turn2AttendanceTime: normalizeNullableText(input.turn2AttendanceTime),
+			turn1AttendanceTime,
+			turn2AttendanceTime,
+			turn1ToleranceMinutes: turn1AttendanceTime ? input.turn1ToleranceMinutes : 0,
+			turn2ToleranceMinutes: turn2AttendanceTime ? input.turn2ToleranceMinutes : 0,
 			degreeCodes: dedupe(input.degreeCodes)
 		};
 	}

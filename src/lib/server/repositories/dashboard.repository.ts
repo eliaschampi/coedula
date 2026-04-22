@@ -44,6 +44,15 @@ const QUICK_ACTIONS: readonly DashboardQuickAction[] = [
 		href: '/enrollments'
 	},
 	{
+		key: 'attendance:read',
+		permission: 'attendance:read',
+		title: 'Asistencia del día',
+		description: 'Controlar registros diarios y escaneo QR',
+		icon: 'clipboard',
+		color: 'warning',
+		href: '/attendance'
+	},
+	{
 		key: 'branches:create',
 		permission: 'branches:create',
 		title: 'Nueva sede',
@@ -147,7 +156,8 @@ export class DashboardRepository {
 			'students:read',
 			'students:create',
 			'enrollments:read',
-			'enrollments:create'
+			'enrollments:create',
+			'attendance:read'
 		] as const;
 
 		const permissions = await loadPermissionMap(can, permissionKeys);

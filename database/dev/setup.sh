@@ -70,18 +70,6 @@ init_database() {
     fi
 }
 
-run_migrations() {
-    log "Applying pending migrations..."
-    if run_migrate migrate >/dev/null 2>&1; then
-        success "Migrations applied"
-    else
-        error "Migration execution failed"
-        return 1
-    fi
-}
-
-
-
 generate_types() {
     log "Generating TypeScript types..."
     if pnpm run db:generate >/dev/null 2>&1; then
@@ -106,14 +94,13 @@ setup_database() {
         exit 1
     fi
 
-    # Initialize if needed, then always apply pending migrations
+    # Initialize if needed, then generate types from the init snapshot
     if is_db_initialized; then
         log "Database already initialized"
     else
         log "Fresh database detected, running initialization..."
         init_database
     fi
-    run_migrations
     generate_types
 
     success "Database setup completed successfully!"
@@ -129,12 +116,7 @@ show_status() {
 
     if is_db_initialized >/dev/null 2>&1; then
         success "Database is initialized"
-        log "Running migration status check..."
-        if run_migrate status 2>/dev/null; then
-            success "Migration status retrieved"
-        else
-            warn "Migration system not fully initialized"
-        fi
+        log "Schema source: database/init"
     else
         warn "Database not initialized. Run: pnpm db:up"
     fi
@@ -160,7 +142,7 @@ reset_database() {
         if run_migrate reset >/dev/null 2>&1; then
             success "Database reset completed"
             log "Reinitializing database with init files..."
-            if init_database && run_migrations && generate_types; then
+            if init_database && generate_types; then
                 success "Database reinitialized successfully"
             else
                 error "Failed to reinitialize database after reset"
@@ -183,8 +165,8 @@ case "${1:-setup}" in
         echo "Usage: bash database/dev/setup.sh [setup|status|reset|rebuild] [--yes]"
         echo ""
         echo "Commands:"
-        echo "  setup   - Initialize database if needed, then run pending migrations"
-        echo "  status  - Show database and migration status"
+        echo "  setup   - Initialize database if needed, then generate types"
+        echo "  status  - Show database initialization status"
         echo "  reset   - Reset database (destroys all data) and reinitialize"
         echo "  rebuild - Alias of reset"
         ;;

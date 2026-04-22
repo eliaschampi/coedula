@@ -19,6 +19,7 @@
 		type DriveFileItem,
 		type TableRow
 	} from '$lib/components';
+	import { can } from '$lib/stores/permissions';
 	import { showToast } from '$lib/stores/Toast';
 	import type { StudentDriveLink } from '$lib/types/education';
 	import {
@@ -59,6 +60,7 @@
 
 	const canReadEnrollments = $derived(data.canReadEnrollments);
 	const canReadDrive = $derived(data.canReadDrive);
+	const canReadAttendance = $derived(can('attendance:read'));
 	const canManageAttachments = $derived(data.canManageAttachments && data.canReadDrive);
 	const linkedRows = $derived(linkedFiles as unknown as TableRow[]);
 	const canGenerateCard = $derived(
@@ -94,6 +96,11 @@
 
 	function handleGenerateCard(): void {
 		window.open(`/api/students/${data.student.code}/card`, '_blank', 'noopener,noreferrer');
+	}
+
+	function openAttendanceReport(): void {
+		if (!canReadAttendance) return;
+		void goto(resolve(`/students/${data.student.code}/attendance` as '/'));
 	}
 
 	function toPreviewFile(file: StudentDriveLink): DriveFileItem {
@@ -301,6 +308,15 @@
 					Generar carnet
 				</Button>
 			{/if}
+			<Button
+				type="border"
+				color="info"
+				icon="history"
+				onclick={openAttendanceReport}
+				disabled={!canReadAttendance}
+			>
+				Ver asistencia
+			</Button>
 			<Button type="border" icon="arrowLeft" onclick={() => void goto(resolve('/students' as '/'))}>
 				Volver
 			</Button>

@@ -10,8 +10,7 @@ export const CYCLE_MODALITY_OPTIONS: SelectOption[] = [
 
 export const ENROLLMENT_TURN_OPTIONS: SelectOption[] = [
 	{ value: 'turn_1', label: 'Turno 1' },
-	{ value: 'turn_2', label: 'Turno 2' },
-	{ value: 'both', label: 'Ambos turnos' }
+	{ value: 'turn_2', label: 'Turno 2' }
 ];
 
 export const ENROLLMENT_STATUS_OPTIONS: SelectOption[] = [
@@ -207,8 +206,12 @@ export function getEducationDateProgress(
 
 export function formatEnrollmentTurn(turn: EnrollmentTurn): string {
 	if (turn === 'turn_1') return 'Turno 1';
-	if (turn === 'turn_2') return 'Turno 2';
-	return 'Ambos turnos';
+	return 'Turno 2';
+}
+
+export function getEnrollmentTurnColor(turn: EnrollmentTurn): 'primary' | 'info' | 'secondary' {
+	if (turn === 'turn_1') return 'primary';
+	return 'info';
 }
 
 export function formatEnrollmentStatus(status: EnrollmentStatus): string {

@@ -2,7 +2,7 @@ import type { DriveFileType } from '$lib/utils/drive';
 
 export type DateValue = string | Date | null;
 
-export type EnrollmentTurn = 'turn_1' | 'turn_2' | 'both';
+export type EnrollmentTurn = 'turn_1' | 'turn_2';
 export type EnrollmentStatus = 'active' | 'finalized' | 'inactive';
 export type GroupCode = 'A' | 'B' | 'C' | 'D';
 
@@ -99,6 +99,8 @@ export interface CycleOption {
 	modality: string;
 	start_date: DateValue;
 	end_date: DateValue;
+	turn_1_attendance_time: string | null;
+	turn_2_attendance_time: string | null;
 	label: string;
 }
 

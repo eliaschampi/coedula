@@ -314,8 +314,8 @@ To ensure technical perfection and maintainability, follow this strict procedure
 
 ### Phase 1: Database & Types (The Foundation)
 
-1.  **Create Migration:**
-    Run `pnpm db:create create_<entity_name>_table`.
+1.  **Update Init SQL:**
+    Edit `database/init/*.sql`.
     - _Standard:_ Use snake_case for table names (e.g., `products`).
     - _Mandatory Fields:_ `id` (uuid/serial), `created_at` (timestamp), `updated_at` (timestamp).
     - _Example:_
@@ -334,7 +334,7 @@ To ensure technical perfection and maintainability, follow this strict procedure
       ```
 
 2.  **Apply & Generate:**
-    Run `pnpm db:migrate` then `pnpm db:generate`.
+    Run `pnpm db:up` or `pnpm db:rebuild`, then `pnpm db:generate`.
     - _Verification:_ Check `src/lib/database/types.ts` to ensure the new interface exists.
 
 ### Phase 2: Backend Architecture (Service-Repository)

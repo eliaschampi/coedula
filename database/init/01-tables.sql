@@ -214,13 +214,33 @@ CREATE TABLE public.enrollments (
   CONSTRAINT enrollments_student_cycle_degree_uq UNIQUE (student_code, cycle_degree_code),
   CONSTRAINT enrollments_roll_code_check CHECK (roll_code ~ '^[0-9]{4}$'),
   CONSTRAINT enrollments_pay_cost_check CHECK (pay_cost >= 0),
-  CONSTRAINT enrollments_turn_check CHECK (turn IN ('turn_1', 'turn_2', 'both')),
+  CONSTRAINT enrollments_turn_check CHECK (turn IN ('turn_1', 'turn_2')),
   CONSTRAINT enrollments_status_check CHECK (status IN ('active', 'finalized', 'inactive')),
   CONSTRAINT enrollments_group_code_check CHECK (group_code IN ('A', 'B', 'C', 'D')),
   CONSTRAINT enrollments_status_finalized_check CHECK (
     (status = 'finalized' AND finalized_at IS NOT NULL)
     OR (status <> 'finalized' AND finalized_at IS NULL)
   )
+);
+
+-- Attendance
+CREATE TABLE public.attendances (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  enrollment_code UUID NOT NULL,
+  attendance_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  state VARCHAR(20) NOT NULL DEFAULT 'presente',
+  entry_time TIME NULL,
+  observation TEXT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT attendances_pk PRIMARY KEY (code),
+  CONSTRAINT attendances_enrollment_fk FOREIGN KEY (enrollment_code) REFERENCES public.enrollments (code) ON DELETE CASCADE,
+  CONSTRAINT attendances_state_check CHECK (state IN ('presente', 'falta', 'tarde', 'justificado', 'permiso')),
+  CONSTRAINT attendances_state_time_check CHECK (
+    (state IN ('presente', 'tarde') AND entry_time IS NOT NULL)
+    OR (state IN ('falta', 'justificado', 'permiso') AND entry_time IS NULL)
+  ),
+  CONSTRAINT attendances_enrollment_date_uq UNIQUE (enrollment_code, attendance_date)
 );
 
 -- Seed academic degree catalog

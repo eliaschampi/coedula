@@ -33,3 +33,7 @@ FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
 CREATE TRIGGER enrollments_updated_at_tg
 BEFORE UPDATE ON public.enrollments
 FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
+CREATE TRIGGER attendances_updated_at_tg
+BEFORE UPDATE ON public.attendances
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();

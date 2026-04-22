@@ -100,6 +100,38 @@ FROM public.enrollments e
 INNER JOIN public.students s ON s.code = e.student_code
 INNER JOIN public.cycle_degree_overview cdo ON cdo.code = e.cycle_degree_code;
 
+CREATE OR REPLACE VIEW public.attendance_overview AS
+SELECT
+  a.code AS attendance_code,
+  a.attendance_date,
+  a.state AS attendance_state,
+  a.entry_time AS attendance_entry_time,
+  a.observation AS attendance_observation,
+  a.created_at AS attendance_created_at,
+  a.updated_at AS attendance_updated_at,
+  eo.code AS enrollment_code,
+  eo.enrollment_number,
+  eo.student_code,
+  eo.student_number,
+  eo.student_full_name,
+  eo.student_dni,
+  eo.student_phone,
+  s.photo_url AS student_photo_url,
+  eo.cycle_degree_code,
+  eo.cycle_code,
+  eo.branch_code,
+  eo.branch_name,
+  eo.cycle_title,
+  eo.modality,
+  eo.degree_code,
+  eo.degree_name,
+  eo.roll_code,
+  eo.turn,
+  eo.group_code
+FROM public.attendances a
+INNER JOIN public.enrollment_overview eo ON eo.code = a.enrollment_code
+INNER JOIN public.students s ON s.code = eo.student_code;
+
 CREATE OR REPLACE VIEW public.student_overview AS
 SELECT
   s.code,

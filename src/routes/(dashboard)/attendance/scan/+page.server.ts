@@ -1,0 +1,12 @@
+import { error } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	if (!(await locals.can('attendance:create'))) {
+		throw error(403, 'No tienes permisos para registrar asistencia');
+	}
+
+	return {
+		title: 'Escanear asistencia'
+	};
+};

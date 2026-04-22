@@ -44,6 +44,46 @@ export interface AcademicDegrees {
 	updated_at: Generated<Timestamp>;
 }
 
+export interface AttendanceOverview {
+	attendance_code: string | null;
+	attendance_created_at: Timestamp | null;
+	attendance_date: Timestamp | null;
+	attendance_entry_time: string | null;
+	attendance_observation: string | null;
+	attendance_state: string | null;
+	attendance_updated_at: Timestamp | null;
+	branch_code: string | null;
+	branch_name: string | null;
+	cycle_code: string | null;
+	cycle_degree_code: string | null;
+	cycle_title: string | null;
+	degree_code: string | null;
+	degree_name: string | null;
+	enrollment_code: string | null;
+	enrollment_number: string | null;
+	group_code: string | null;
+	modality: string | null;
+	roll_code: string | null;
+	student_code: string | null;
+	student_dni: string | null;
+	student_full_name: string | null;
+	student_number: string | null;
+	student_phone: string | null;
+	student_photo_url: string | null;
+	turn: string | null;
+}
+
+export interface Attendances {
+	attendance_date: Generated<Timestamp>;
+	code: Generated<string>;
+	created_at: Generated<Timestamp>;
+	enrollment_code: string;
+	entry_time: string | null;
+	observation: string | null;
+	state: Generated<string>;
+	updated_at: Generated<Timestamp>;
+}
+
 export interface AuthLoginRateLimits {
 	blocked_until: Timestamp;
 	failed_count: Generated<number>;
@@ -300,6 +340,8 @@ export interface Users {
 export interface DB {
 	academic_cycles: AcademicCycles;
 	academic_degrees: AcademicDegrees;
+	attendance_overview: AttendanceOverview;
+	attendances: Attendances;
 	auth_login_rate_limits: AuthLoginRateLimits;
 	branches: Branches;
 	cycle_degree_overview: CycleDegreeOverview;

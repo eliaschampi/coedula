@@ -94,6 +94,7 @@ export type { SliderColor, SliderProps, SliderSize } from './Slider';
 export { Slider } from './Slider';
 export type { StatusIndicatorProps, StatusIndicatorStatus } from './StatusIndicator';
 export { StatusIndicator } from './StatusIndicator';
+export { StudentForm } from './StudentForm';
 export { StudentFormFields } from './StudentFormFields';
 export { StudentPhotoUploader } from './StudentPhotoUploader';
 export type { SwitchColor, SwitchProps, SwitchSize } from './Switch';

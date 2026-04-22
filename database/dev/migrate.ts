@@ -276,7 +276,7 @@ async function runMigrations(db: Database) {
 	const pendingMigrations = migrationFiles.filter((m) => !executedIds.has(m.id));
 
 	if (pendingMigrations.length === 0) {
-		console.log('No pending migrations');
+		console.log('No pending schema updates');
 		return;
 	}
 
@@ -444,14 +444,11 @@ async function run(args: string[]) {
 
 			case 'help':
 			default:
-				console.log(`🗄️  Coedula Migration System
+				console.log(`🗄️  Coedula Database Tool
 Usage: npx tsx database/dev/migrate.ts <command>
 Commands:
   init              Initialize database with init/ SQL files
-  migrate           Run pending migrations (UP sections)
-  rollback          Rollback last non-baseline batch (DOWN sections)
-  status            Show migration status
-  create <name>     Create new migration file with UP/DOWN sections
+  status            Show database status
   check             Check database connection
   check:tables      Check if core schema tables exist
   reset             Reset database (destroys all data)`);

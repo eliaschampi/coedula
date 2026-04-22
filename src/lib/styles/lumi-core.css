@@ -168,6 +168,24 @@ body {
 	);
 }
 
+.lumi-page-sidebar__card--enrollments {
+	--lumi-page-sidebar-gradient: linear-gradient(
+		160deg,
+		color-mix(in srgb, var(--lumi-color-primary) 7%, transparent) 0%,
+		color-mix(in srgb, var(--lumi-color-secondary) 7%, transparent) 52%,
+		color-mix(in srgb, var(--lumi-color-info) 4%, transparent) 100%
+	);
+}
+
+.lumi-page-sidebar__card--attendance {
+	--lumi-page-sidebar-gradient: linear-gradient(
+		160deg,
+		color-mix(in srgb, var(--lumi-color-primary) 7%, transparent) 0%,
+		color-mix(in srgb, var(--lumi-color-info) 8%, transparent) 52%,
+		color-mix(in srgb, var(--lumi-color-warning) 5%, transparent) 100%
+	);
+}
+
 .lumi-page-sidebar__content {
 	display: flex;
 	flex-direction: column;

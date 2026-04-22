@@ -81,6 +81,7 @@
 	const canReadCycles = $derived(can('cycles:read'));
 	const canReadStudents = $derived(can('students:read'));
 	const canReadEnrollments = $derived(can('enrollments:read'));
+	const canReadAttendance = $derived(can('attendance:read'));
 	const canReadDrive = $derived(can('drive:read'));
 </script>
 
@@ -190,6 +191,19 @@
 					<Icon icon="userCheck" size="20px" />
 				{/snippet}
 				Matrículas
+			</SidebarItem>
+		{/if}
+
+		{#if canReadAttendance}
+			<SidebarItem
+				href="/attendance"
+				active={page.url.pathname.startsWith('/attendance')}
+				collapsed={sidebarCollapsed}
+			>
+				{#snippet icon()}
+					<Icon icon="clipboard" size="20px" />
+				{/snippet}
+				Asistencia
 			</SidebarItem>
 		{/if}
 

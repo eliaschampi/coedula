@@ -113,9 +113,15 @@ export const actions: Actions = {
 				return fail(400, { error: 'Debe indicar un rango de fechas válido' });
 			}
 
-			if (!isValidTimeInput(turn1AttendanceTime) || !isValidTimeInput(turn2AttendanceTime)) {
+			if (!isValidTimeInput(turn1AttendanceTime)) {
 				return fail(400, {
-					error: 'Las horas de asistencia de ambos turnos son obligatorias y deben ser válidas'
+					error: 'La hora de asistencia del turno 1 es obligatoria y debe ser válida'
+				});
+			}
+
+			if (turn2AttendanceTime && !isValidTimeInput(turn2AttendanceTime)) {
+				return fail(400, {
+					error: 'La hora de asistencia del turno 2 debe ser válida cuando se configure'
 				});
 			}
 
@@ -139,7 +145,7 @@ export const actions: Actions = {
 					turn1AttendanceTime,
 					turn1ToleranceMinutes,
 					turn2AttendanceTime,
-					turn2ToleranceMinutes,
+					turn2ToleranceMinutes: turn2AttendanceTime ? turn2ToleranceMinutes : 0,
 					isActive,
 					notes,
 					degreeCodes
@@ -201,9 +207,15 @@ export const actions: Actions = {
 				return fail(400, { error: 'Debe indicar un rango de fechas válido' });
 			}
 
-			if (!isValidTimeInput(turn1AttendanceTime) || !isValidTimeInput(turn2AttendanceTime)) {
+			if (!isValidTimeInput(turn1AttendanceTime)) {
 				return fail(400, {
-					error: 'Las horas de asistencia de ambos turnos son obligatorias y deben ser válidas'
+					error: 'La hora de asistencia del turno 1 es obligatoria y debe ser válida'
+				});
+			}
+
+			if (turn2AttendanceTime && !isValidTimeInput(turn2AttendanceTime)) {
+				return fail(400, {
+					error: 'La hora de asistencia del turno 2 debe ser válida cuando se configure'
 				});
 			}
 
@@ -228,7 +240,7 @@ export const actions: Actions = {
 					turn1AttendanceTime,
 					turn1ToleranceMinutes,
 					turn2AttendanceTime,
-					turn2ToleranceMinutes,
+					turn2ToleranceMinutes: turn2AttendanceTime ? turn2ToleranceMinutes : 0,
 					isActive,
 					notes,
 					degreeCodes

@@ -137,6 +137,30 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 		description: 'Eliminar matrículas registradas por error'
 	},
 	{
+		key: 'attendance:read',
+		label: 'Ver asistencia',
+		category: 'Académico',
+		description: 'Consultar asistencias diarias y reportes históricos'
+	},
+	{
+		key: 'attendance:create',
+		label: 'Registrar asistencia',
+		category: 'Académico',
+		description: 'Registrar asistencias manuales, automáticas y por QR'
+	},
+	{
+		key: 'attendance:update',
+		label: 'Editar asistencia',
+		category: 'Académico',
+		description: 'Corregir estado, hora y observaciones de asistencia'
+	},
+	{
+		key: 'attendance:delete',
+		label: 'Eliminar asistencia',
+		category: 'Académico',
+		description: 'Eliminar registros de asistencia cargados por error'
+	},
+	{
 		key: 'teachers:read',
 		label: 'Ver docentes',
 		category: 'Académico',

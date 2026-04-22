@@ -55,3 +55,8 @@ CREATE INDEX enrollments_cycle_degree_idx ON public.enrollments (cycle_degree_co
 CREATE INDEX enrollments_student_idx ON public.enrollments (student_code, created_at DESC);
 CREATE UNIQUE INDEX enrollments_roll_code_cycle_group_uq
   ON public.enrollments (cycle_degree_code, group_code, roll_code);
+
+-- Attendance
+CREATE INDEX attendances_date_idx ON public.attendances (attendance_date DESC, state);
+CREATE INDEX attendances_enrollment_idx ON public.attendances (enrollment_code, attendance_date DESC);
+CREATE INDEX attendances_state_idx ON public.attendances (state, attendance_date DESC);

@@ -54,8 +54,8 @@
 	let formBaseCost = $state('0');
 	let formTurn1AttendanceTime = $state('07:00');
 	let formTurn1ToleranceMinutes = $state('5');
-	let formTurn2AttendanceTime = $state('16:00');
-	let formTurn2ToleranceMinutes = $state('5');
+	let formTurn2AttendanceTime = $state('');
+	let formTurn2ToleranceMinutes = $state('0');
 	let formNotes = $state('');
 	let formIsActive = $state(true);
 	let selectedDegreeCode = $state<string | null>(null);
@@ -100,8 +100,8 @@
 		formBaseCost = '0';
 		formTurn1AttendanceTime = '07:00';
 		formTurn1ToleranceMinutes = '5';
-		formTurn2AttendanceTime = '16:00';
-		formTurn2ToleranceMinutes = '5';
+		formTurn2AttendanceTime = '';
+		formTurn2ToleranceMinutes = '0';
 		formNotes = '';
 		formIsActive = true;
 		selectedDegreeCode = null;
@@ -315,18 +315,22 @@
 						<Fieldset legend="Horario">
 							<div class="lumi-stack lumi-stack--2xs">
 								<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 1</span>
-								<span class="lumi-font--medium">{cycle.turn_1_attendance_time || '07:00'}</span>
+								<span class="lumi-font--medium">
+									{cycle.turn_1_attendance_time || 'No configurado'}
+								</span>
 								<span class="lumi-text--sm lumi-text--muted">
 									Tolerancia {cycle.turn_1_tolerance_minutes} min
 								</span>
 							</div>
-							<div class="lumi-stack lumi-stack--2xs">
-								<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 2</span>
-								<span class="lumi-font--medium">{cycle.turn_2_attendance_time || '16:00'}</span>
-								<span class="lumi-text--sm lumi-text--muted">
-									Tolerancia {cycle.turn_2_tolerance_minutes} min
-								</span>
-							</div>
+							{#if cycle.turn_2_attendance_time}
+								<div class="lumi-stack lumi-stack--2xs">
+									<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 2</span>
+									<span class="lumi-font--medium">{cycle.turn_2_attendance_time}</span>
+									<span class="lumi-text--sm lumi-text--muted">
+										Tolerancia {cycle.turn_2_tolerance_minutes} min
+									</span>
+								</div>
+							{/if}
 						</Fieldset>
 
 						<div class="lumi-stack lumi-stack--2xs">
@@ -451,16 +455,14 @@
 						bind:value={formTurn2AttendanceTime}
 						name="turn_2_attendance_time"
 						type="time"
-						label="Hora de asistencia turno 2"
-						required
+						label="Hora de asistencia turno 2 (opcional)"
 					/>
 					<Input
 						bind:value={formTurn2ToleranceMinutes}
 						name="turn_2_tolerance_minutes"
 						type="number"
 						label="Tolerancia turno 2 (minutos)"
-						placeholder="5"
-						required
+						placeholder="0"
 					/>
 				</div>
 			</Fieldset>
