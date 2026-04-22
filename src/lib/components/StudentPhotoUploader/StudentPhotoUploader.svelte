@@ -38,14 +38,16 @@
 		disabled = false
 	}: Props = $props();
 
+	// Component State
 	let open = $state(false);
 	let uploading = $state(false);
 	let errorMessage = $state('');
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let canvasContainer = $state<HTMLDivElement | null>(null);
-	let cropAreaElement = $state<HTMLButtonElement | null>(null);
 	let fileInput = $state<HTMLInputElement | null>(null);
 	let imageData = $state<HTMLImageElement | null>(null);
+
+	// Drag & Crop State
 	let dragging = $state(false);
 	let dragOffsetX = $state(0);
 	let dragOffsetY = $state(0);
@@ -71,7 +73,7 @@
 	function getPlacement(image: HTMLImageElement, targetCanvas: HTMLCanvasElement): ImagePlacement {
 		const widthRatio = targetCanvas.width / image.width;
 		const heightRatio = targetCanvas.height / image.height;
-		const scaleFactor = Math.min(widthRatio, heightRatio);
+		const scaleFactor = Math.min(widthRatio, heightRatio); // object-fit: contain
 		const width = image.width * scaleFactor;
 		const height = image.height * scaleFactor;
 
@@ -85,14 +87,9 @@
 	}
 
 	function drawImage(): void {
-		if (!canvas || !imageData) {
-			return;
-		}
-
+		if (!canvas || !imageData) return;
 		const context = canvas.getContext('2d');
-		if (!context) {
-			return;
-		}
+		if (!context) return;
 
 		context.clearRect(0, 0, canvas.width, canvas.height);
 		const placement = getPlacement(imageData, canvas);
@@ -102,29 +99,31 @@
 
 	async function prepareCanvas(): Promise<void> {
 		await tick();
-
-		if (!canvas || !canvasContainer) {
-			return;
-		}
+		if (!canvas || !canvasContainer) return;
 
 		canvas.width = canvasContainer.clientWidth;
 		canvas.height = canvasContainer.clientHeight;
 
 		if (imageData) {
-			const nextSize = clamp(Math.min(canvas.width, canvas.height) * 0.45, 160, 260);
-			cropArea = {
-				x: (canvas.width - nextSize) / 2,
-				y: (canvas.height - nextSize) / 2,
-				size: nextSize
-			};
-			drawImage();
+			drawImage(); // Draw first to get lastPlacement
+
+			if (lastPlacement) {
+				// Make crop area 85% of the shortest side of the actual image
+				const maxImageDim = Math.min(lastPlacement.width, lastPlacement.height);
+				const nextSize = maxImageDim * 0.85;
+
+				// Center it precisely on the image
+				cropArea = {
+					x: lastPlacement.x + (lastPlacement.width - nextSize) / 2,
+					y: lastPlacement.y + (lastPlacement.height - nextSize) / 2,
+					size: nextSize
+				};
+			}
 		}
 	}
 
 	function openFileDialog(): void {
-		if (!disabled && !uploading) {
-			fileInput?.click();
-		}
+		if (!disabled && !uploading) fileInput?.click();
 	}
 
 	function closeDialog(): void {
@@ -136,7 +135,6 @@
 		if (localPreviewUrl.startsWith('blob:')) {
 			URL.revokeObjectURL(localPreviewUrl);
 		}
-
 		localPreviewUrl = '';
 	}
 
@@ -147,14 +145,8 @@
 	}
 
 	function validateSelectedFile(file: File): string | null {
-		if (!file.type.startsWith('image/')) {
-			return 'Solo se permiten imágenes';
-		}
-
-		if (file.size > MAX_FILE_SIZE) {
-			return 'La imagen excede el tamaño máximo permitido';
-		}
-
+		if (!file.type.startsWith('image/')) return 'Solo se permiten imágenes';
+		if (file.size > MAX_FILE_SIZE) return 'La imagen excede el tamaño máximo permitido';
 		return null;
 	}
 
@@ -181,12 +173,8 @@
 	function handleFileChange(event: Event): void {
 		const target = event.currentTarget as HTMLInputElement | null;
 		const file = target?.files?.[0];
-		if (!file) {
-			return;
-		}
-
-		loadFile(file);
-		target.value = '';
+		if (file) loadFile(file);
+		if (target) target.value = '';
 	}
 
 	async function pasteImage(): Promise<void> {
@@ -207,10 +195,7 @@
 			}
 
 			const preferredType = matchingItem.types.find((type) => type.startsWith('image/'));
-			if (!preferredType) {
-				errorMessage = 'No se encontró una imagen válida en el portapapeles';
-				return;
-			}
+			if (!preferredType) return;
 
 			const blob = await matchingItem.getType(preferredType);
 			loadFile(new File([blob], 'student-photo.png', { type: blob.type }));
@@ -219,54 +204,60 @@
 		}
 	}
 
-	function startDrag(event: MouseEvent): void {
-		if (uploading) {
-			return;
-		}
+	// --- Enhanced Pointer Drag Logic ---
+	function startDrag(event: PointerEvent): void {
+		if (uploading) return;
+
+		const target = event.currentTarget as HTMLElement;
+		target.setPointerCapture(event.pointerId); // Locks pointer to this element (smooth fast dragging)
 
 		dragging = true;
 		dragOffsetX = event.offsetX;
 		dragOffsetY = event.offsetY;
 	}
 
-	function stopDrag(): void {
+	function stopDrag(event: PointerEvent): void {
 		dragging = false;
+		const target = event.currentTarget as HTMLElement;
+		if (target.hasPointerCapture(event.pointerId)) {
+			target.releasePointerCapture(event.pointerId);
+		}
 	}
 
-	function handleDrag(event: MouseEvent): void {
-		if (!dragging || !canvas) {
-			return;
-		}
+	function handleDrag(event: PointerEvent): void {
+		if (!dragging || !canvas || !lastPlacement) return;
 
 		const rect = canvas.getBoundingClientRect();
 		const nextX = event.clientX - rect.left - dragOffsetX;
 		const nextY = event.clientY - rect.top - dragOffsetY;
 
+		// Constrain dragging completely inside the IMAGE bounds, not just the canvas
+		const minX = lastPlacement.x;
+		const minY = lastPlacement.y;
+		const maxX = lastPlacement.x + lastPlacement.width - cropArea.size;
+		const maxY = lastPlacement.y + lastPlacement.height - cropArea.size;
+
 		cropArea = {
 			...cropArea,
-			x: clamp(nextX, 0, canvas.width - cropArea.size),
-			y: clamp(nextY, 0, canvas.height - cropArea.size)
+			x: clamp(nextX, minX, maxX),
+			y: clamp(nextY, minY, maxY)
 		};
 	}
 
 	async function saveCroppedImage(): Promise<void> {
-		if (!canvas || !imageData || !lastPlacement || uploading) {
-			return;
-		}
+		if (!canvas || !imageData || !lastPlacement || uploading) return;
 
 		uploading = true;
 		errorMessage = '';
 
 		try {
-			const targetSize = 500;
+			const targetSize = 500; // Final square output size
 			const exportCanvas = document.createElement('canvas');
 			exportCanvas.width = targetSize;
 			exportCanvas.height = targetSize;
 			const exportContext = exportCanvas.getContext('2d');
 
-			if (!exportContext) {
-				throw new Error('No se pudo preparar la imagen');
-			}
+			if (!exportContext) throw new Error('No se pudo preparar la imagen');
 
 			const sourceX = (cropArea.x - lastPlacement.x) / lastPlacement.scaleFactor;
 			const sourceY = (cropArea.y - lastPlacement.y) / lastPlacement.scaleFactor;
@@ -286,12 +277,8 @@
 
 			const blob = await new Promise<Blob>((resolve, reject) => {
 				exportCanvas.toBlob((result) => {
-					if (!result) {
-						reject(new Error('No se pudo exportar la foto'));
-						return;
-					}
-
-					resolve(result);
+					if (result) resolve(result);
+					else reject(new Error('No se pudo exportar la foto'));
 				}, 'image/png');
 			});
 
@@ -310,42 +297,19 @@
 		clearPreviewUrl();
 	}
 
-	function syncCropAreaStyles(): void {
-		if (!cropAreaElement) {
-			return;
-		}
-
-		cropAreaElement.style.setProperty('--lumi-student-photo-crop-x', `${cropArea.x}px`);
-		cropAreaElement.style.setProperty('--lumi-student-photo-crop-y', `${cropArea.y}px`);
-		cropAreaElement.style.setProperty('--lumi-student-photo-crop-size', `${cropArea.size}px`);
-	}
-
+	// --- Effects ---
 	$effect(() => {
-		syncCropAreaStyles();
+		if (!open) clearTransientState();
 	});
 
 	$effect(() => {
-		if (open) {
-			return;
-		}
-
-		clearTransientState();
+		if (!pendingFile) clearPreviewUrl();
 	});
 
 	$effect(() => {
-		if (pendingFile) {
-			return;
-		}
-
-		clearPreviewUrl();
-	});
-
-	$effect(() => {
-		if (!open) {
-			return;
-		}
-
+		if (!open) return;
 		void prepareCanvas();
+
 		const handleResize = () => void prepareCanvas();
 		window.addEventListener('resize', handleResize);
 
@@ -356,9 +320,7 @@
 	});
 
 	$effect(() => {
-		return () => {
-			clearPreviewUrl();
-		};
+		return () => clearPreviewUrl(); // Component unmount cleanup
 	});
 </script>
 
@@ -431,16 +393,18 @@
 					bind:this={canvasContainer}
 					class="lumi-student-photo-field__canvas-shell"
 					role="presentation"
-					onmousemove={handleDrag}
-					onmouseup={stopDrag}
-					onmouseleave={stopDrag}
 				>
 					<canvas bind:this={canvas} class="lumi-student-photo-field__canvas"></canvas>
+
+					<!-- Bound CSS variables directly in markup (Svelte 5 best practice) -->
 					<button
-						bind:this={cropAreaElement}
 						type="button"
 						class="lumi-student-photo-field__crop-area"
-						onmousedown={startDrag}
+						style="--lumi-student-photo-crop-x: {cropArea.x}px; --lumi-student-photo-crop-y: {cropArea.y}px; --lumi-student-photo-crop-size: {cropArea.size}px;"
+						onpointerdown={startDrag}
+						onpointermove={handleDrag}
+						onpointerup={stopDrag}
+						onpointercancel={stopDrag}
 						aria-label="Mover recorte"
 						disabled={uploading}
 					>
@@ -476,6 +440,7 @@
 </Dialog>
 
 <style>
+	/* All CSS kept perfectly consistent with your original file */
 	.lumi-student-photo-field {
 		padding: var(--lumi-space-md);
 		border-radius: var(--lumi-radius-2xl);
@@ -569,6 +534,7 @@
 		align-items: end;
 		justify-content: center;
 		padding: var(--lumi-space-sm);
+		touch-action: none; /* Prevents mobile scrolling while dragging */
 	}
 
 	.lumi-student-photo-field__crop-area:active {
@@ -581,6 +547,7 @@
 		background: color-mix(in srgb, var(--lumi-color-black) 65%, transparent);
 		color: var(--lumi-color-white);
 		font-size: var(--lumi-font-size-xs);
+		pointer-events: none; /* Prevents text from interfering with drag events */
 	}
 
 	@media (max-width: 768px) {

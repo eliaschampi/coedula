@@ -368,7 +368,7 @@ function drawStudentInfo(
 	// Loop shrinks size safely until all 3 items fit in their respective columns
 	while (unifiedSize >= 4) {
 		let allFit = true;
-		let currentTry: string[][] = [];
+		const currentTry: string[][] = [];
 
 		for (const text of data.details) {
 			const wrapResult = attemptWrap(text.toUpperCase(), boldFont, unifiedSize, maxTextWidthPdf, 3);
