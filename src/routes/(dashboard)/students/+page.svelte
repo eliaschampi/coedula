@@ -220,7 +220,7 @@
 											size="xl"
 											color="primary"
 										/>
-										<div class="lumi-stack lumi-stack--2xs">
+										<div>
 											<div class="student-card__name-row">
 												<h3 class="student-card__name">{student.full_name}</h3>
 												<Chip color={student.is_active ? 'success' : 'danger'} size="sm">
@@ -284,7 +284,7 @@
 										<InfoItem
 											icon="badgeCheck"
 											label="Matrícula actual"
-											value={student.current_enrollment_number || 'Sin matrícula actual'}
+											value={student.current_cycle_title || 'Sin matrícula actual'}
 										/>
 										<InfoItem
 											icon="activity"

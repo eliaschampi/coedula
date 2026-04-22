@@ -81,7 +81,6 @@ function buildStudentCardData(
 	return {
 		fullName: toSafeText(student.full_name, 'Alumno sin nombre'),
 		dni,
-		// Detail order: [0]=Cycle, [1]=Degree Name, [2]=Group
 		details: [
 			toSafeText(enrollment.cycle_title, 'N/A'),
 			toSafeText(enrollment.degree_name, 'N/A'),
@@ -97,7 +96,7 @@ function getInitials(fullName: string): string {
 	return words.map((word) => word[0]?.toUpperCase() ?? '').join('') || 'AL';
 }
 
-// --- High Performance Text Logic ---
+// --- Fixed High Performance Text Logic ---
 function attemptWrap(
 	text: string,
 	font: PDFFont,
@@ -110,16 +109,8 @@ function attemptWrap(
 
 	const lines: string[] = [];
 	let currentLine = '';
-	let truncated = false;
 
-	for (let i = 0; i < words.length; i++) {
-		const word = words[i];
-
-		// If a single word bleeds beyond container, flag it
-		if (font.widthOfTextAtSize(word, fontSize) > maxWidth) {
-			truncated = true;
-		}
-
+	for (const word of words) {
 		const candidate = currentLine ? `${currentLine} ${word}` : word;
 
 		if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth) {
@@ -127,18 +118,8 @@ function attemptWrap(
 		} else {
 			if (currentLine) {
 				lines.push(currentLine);
-				currentLine = word;
-			} else {
-				lines.push(word);
-				currentLine = '';
 			}
-
-			if (lines.length >= maxLines) {
-				if (i < words.length - 1 || currentLine !== '') {
-					truncated = true;
-				}
-				return { lines, truncated };
-			}
+			currentLine = word;
 		}
 	}
 
@@ -146,16 +127,24 @@ function attemptWrap(
 		lines.push(currentLine);
 	}
 
-	return { lines, truncated };
+	// It's truncated if we exceed allowed lines OR if any single word is wider than the column
+	const isTooLong =
+		lines.length > maxLines || lines.some((l) => font.widthOfTextAtSize(l, fontSize) > maxWidth);
+
+	return {
+		lines: lines.slice(0, maxLines),
+		truncated: isTooLong
+	};
 }
 
 function resolveNameLayout(fullName: string, font: PDFFont, maxWidth: number): TextLayoutResult {
+	// ↓ REUDCED STUDENT FULL NAME FONT SIZES ↓
 	const profiles = [
-		{ size: 12, maxLines: 1 },
-		{ size: 10, maxLines: 1 },
-		{ size: 8.5, maxLines: 2 },
-		{ size: 7.5, maxLines: 2 },
-		{ size: 6.5, maxLines: 2 }
+		{ size: 9, maxLines: 1 }, // (was 12)
+		{ size: 8, maxLines: 1 }, // (was 10)
+		{ size: 7, maxLines: 2 }, // (was 8.5)
+		{ size: 6, maxLines: 2 }, // (was 7.5)
+		{ size: 5.5, maxLines: 2 } // (was 6.5)
 	];
 
 	for (const profile of profiles) {
@@ -171,7 +160,8 @@ function resolveNameLayout(fullName: string, font: PDFFont, maxWidth: number): T
 		}
 	}
 
-	return { lines: [fullName], fontSize: 6.5, lineHeight: 8 };
+	return { lines: [fullName], fontSize: 5.5, lineHeight: 7 }; // (was 6.5, lineHeight 8)
+	// ↑ ------------------------------------ ↑
 }
 
 // --- Asset Loaders ---
@@ -243,8 +233,8 @@ function drawQrAndDni(
 	data: StudentCardData,
 	qrImage: PDFImage
 ): void {
-	const qrSize = 720;
-	const qrX = 105;
+	const qrSize = 800;
+	const qrX = 72;
 	const qrY = 240;
 
 	page.drawImage(qrImage, {
@@ -320,11 +310,12 @@ function drawStudentInfo(
 	boldFont: PDFFont,
 	data: StudentCardData
 ): void {
-	const panelX = 1204;
-	const panelTop = 720;
+	// Fixed Alignment: Centered perfectly underneath the X/Width of the photo block above it
+	const panelX = 1215;
+	const panelTop = 740;
 	const panelWidth = 642;
-	const panelHeight = 260;
-	const panelPaddingX = 18;
+	const panelHeight = 240;
+	const panelPaddingX = 15;
 
 	page.drawRectangle({
 		x: pxX(panelX),
@@ -345,10 +336,8 @@ function drawStudentInfo(
 		nameBlockWidth
 	);
 
-	const rowMidlinePx = 850;
-	const nameAreaTopY = CARD_HEIGHT - pxY(panelTop);
-	const nameAreaBottomY = CARD_HEIGHT - pxY(rowMidlinePx);
-	const nameAreaCenterY = (nameAreaTopY + nameAreaBottomY) / 2;
+	// Vertically center the name in the top ~35% of the white block
+	const nameAreaCenterY = CARD_HEIGHT - pxY(panelTop + panelHeight * 0.35);
 
 	let currentNameY =
 		nameAreaCenterY + (fontSize * 0.7 + (lines.length - 1) * lineHeight) / 2 - fontSize * 0.7;
@@ -365,51 +354,46 @@ function drawStudentInfo(
 		currentNameY -= lineHeight;
 	}
 
-	// --- 2. Bottom Section: Details Distributed in Smart Columns ---
-	const innerWidthPx = panelWidth - panelPaddingX * 2;
-	// Proportional Splitting: Cycle 25%, Degree 50%, Group 25%
-	const colWidthsPx = [innerWidthPx * 0.25, innerWidthPx * 0.5, innerWidthPx * 0.25];
+	// --- 2. Bottom Section: 3 Minimal Fields Properly Distributed ---
+	const innerWidth = panelWidth - panelPaddingX * 2;
+	const segmentWidth = innerWidth / 3;
+	const maxTextWidthPdf = pxX(segmentWidth - 6); // Small inner padding inside the column
 
-	const detailsCenterY = CARD_HEIGHT - pxY(915);
+	// Vertically center details in the lower ~25% section
+	const detailsCenterY = CARD_HEIGHT - pxY(panelTop + panelHeight * 0.75);
 
-	let unifiedSize = 8.5; // Start with a readable font size
+	let unifiedSize = 8;
 	let detailLinesList: string[][] = [];
 
+	// Loop shrinks size safely until all 3 items fit in their respective columns
 	while (unifiedSize >= 4) {
 		let allFit = true;
-		const currentTryLines: string[][] = [];
+		let currentTry: string[][] = [];
 
-		for (let i = 0; i < data.details.length; i++) {
-			const text = data.details[i];
-			// 8px internal padding inside the sub-columns
-			const maxTextWidthPdf = pxX(colWidthsPx[i] - 8);
-
+		for (const text of data.details) {
 			const wrapResult = attemptWrap(text.toUpperCase(), boldFont, unifiedSize, maxTextWidthPdf, 3);
-			currentTryLines.push(wrapResult.lines);
-
+			currentTry.push(wrapResult.lines);
 			if (wrapResult.truncated) {
 				allFit = false;
 			}
 		}
 
-		// Always persist the best attempt so far to avoid printing blanks
-		detailLinesList = currentTryLines;
+		detailLinesList = currentTry;
 		if (allFit) break;
 		unifiedSize -= 0.5;
 	}
 
 	const detailsLineHeight = unifiedSize * 1.15;
-	let currentXOffset = panelX + panelPaddingX;
 
 	data.details.forEach((_, index) => {
 		const itemLines = detailLinesList[index] || [];
-		const colWidth = colWidthsPx[index];
-		const cx = currentXOffset + colWidth / 2; // Center of this specific column
+
+		// Perfect geometric center X coordinate of this specific column (1st, 2nd, or 3rd)
+		const cx = panelX + panelPaddingX + segmentWidth * index + segmentWidth / 2;
 
 		const textBlockTotalHeight = unifiedSize * 0.7 + (itemLines.length - 1) * detailsLineHeight;
 		let currentY = detailsCenterY + textBlockTotalHeight / 2 - unifiedSize * 0.7;
 
-		// Render text lines safely centered
 		for (const line of itemLines) {
 			const lineWidth = boldFont.widthOfTextAtSize(line, unifiedSize);
 			page.drawText(line, {
@@ -421,18 +405,6 @@ function drawStudentInfo(
 			});
 			currentY -= detailsLineHeight;
 		}
-
-		// Polish: Draw a subtle dividing line between columns
-		if (index < data.details.length - 1) {
-			page.drawLine({
-				start: { x: pxX(currentXOffset + colWidth), y: detailsCenterY + 10 },
-				end: { x: pxX(currentXOffset + colWidth), y: detailsCenterY - 10 },
-				color: COLORS.border,
-				thickness: 0.6
-			});
-		}
-
-		currentXOffset += colWidth;
 	});
 }
 
