@@ -61,9 +61,8 @@
 	{#if !canCreate}
 		<Alert type="warning" closable>No tienes permisos para crear alumnos.</Alert>
 	{:else}
-		<Alert type="info" closable={false}>
-			Busca primero en el directorio de alumnos para evitar fichas duplicadas antes de registrar una
-			nueva.
+		<Alert type="warning" closable={false}>
+			Busca primero en el directorio de alumnos para evitar registros duplicados. 
 		</Alert>
 
 		<Card

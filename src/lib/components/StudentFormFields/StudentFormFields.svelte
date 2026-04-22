@@ -63,7 +63,7 @@
 
 	<Fieldset legend="Contacto">
 		<div class="lumi-grid lumi-grid--responsive lumi-grid--gap-md">
-			<Input bind:value={phone} name="phone" label="Teléfono" placeholder="999 999 999" />
+			<Input bind:value={phone} name="phone" label="Teléfono" placeholder="987652432" />
 			<Input
 				bind:value={address}
 				name="address"
@@ -77,7 +77,7 @@
 		bind:value={observation}
 		name="observation"
 		label="Observaciones"
-		placeholder="Anotaciones médicas, pedagógicas o administrativas"
+		placeholder="Información adicional del estudiante"
 		rows={4}
 	/>
 
