@@ -9,8 +9,9 @@
 		Card,
 		Chip,
 		Dialog,
+		Dropdown,
+		DropdownItem,
 		EmptyState,
-		Image,
 		InfoItem,
 		Input,
 		PageHeader,
@@ -21,8 +22,7 @@
 	import { showToast } from '$lib/stores/Toast';
 	import {
 		buildStudentPhotoUrl,
-		formatAcademicDegreeLabel,
-		formatEducationDate,
+		formatEnrollmentStatus,
 		syncStudentPhotoFormData
 	} from '$lib/utils';
 	import type { PageData } from './$types';
@@ -203,8 +203,8 @@
 			{:else}
 				<div class="lumi-flex lumi-flex--column lumi-flex--gap-md">
 					<Alert type="info" closable={false}>
-						Se encontraron <strong>{data.students.length}</strong> coincidencias. Usa código, DNI y situación
-						académica para distinguir alumnos con nombres similares.
+						Se encontraron <strong>{data.students.length}</strong> coincidencias. Usa DNI, teléfono, matrícula
+						actual y estado para distinguir alumnos con nombres similares.
 					</Alert>
 
 					{#each data.students as student (student.code)}
@@ -212,19 +212,14 @@
 							<div class="lumi-stack lumi-stack--md">
 								<div class="student-card__header">
 									<div class="student-card__identity">
-										{#if student.photo_url}
-											<div class="student-card__photo">
-												<Image
-													src={buildStudentPhotoUrl(student.photo_url, 'thumb')}
-													alt={student.full_name}
-													width={64}
-													height={64}
-													radius="full"
-												/>
-											</div>
-										{:else}
-											<Avatar text={student.full_name} size="xl" color="primary" />
-										{/if}
+										<Avatar
+											src={student.photo_url
+												? buildStudentPhotoUrl(student.photo_url, 'thumb')
+												: ''}
+											text={student.full_name}
+											size="xl"
+											color="primary"
+										/>
 										<div class="lumi-stack lumi-stack--2xs">
 											<div class="student-card__name-row">
 												<h3 class="student-card__name">{student.full_name}</h3>
@@ -237,66 +232,68 @@
 									</div>
 
 									<div class="student-card__actions">
-										<Button
-											type="flat"
-											color="info"
-											icon="eye"
-											onclick={() => openStudentProfile(student.code)}
+										<Dropdown
+											position="bottom-end"
+											aria-label={`Acciones para ${student.full_name}`}
 										>
-											Perfil
-										</Button>
-										<Button
-											type="flat"
-											icon="edit"
-											onclick={() => openEditModal(student)}
-											disabled={!canUpdate}
-										>
-											Editar
-										</Button>
-										<Button
-											type="flat"
-											color="danger"
-											icon="trash"
-											onclick={() => openDeleteModal(student)}
-											disabled={!canDelete}
-										>
-											Eliminar
-										</Button>
+											{#snippet triggerContent()}
+												<Button
+													type="flat"
+													size="sm"
+													icon="moreVertical"
+													aria-label={`Abrir acciones para ${student.full_name}`}
+												/>
+											{/snippet}
+
+											{#snippet content()}
+												<DropdownItem
+													icon="eye"
+													color="info"
+													onclick={() => openStudentProfile(student.code)}
+												>
+													Ver perfil
+												</DropdownItem>
+												<DropdownItem
+													icon="edit"
+													onclick={() => openEditModal(student)}
+													disabled={!canUpdate}
+												>
+													Editar alumno
+												</DropdownItem>
+												<DropdownItem
+													icon="trash"
+													color="danger"
+													onclick={() => openDeleteModal(student)}
+													disabled={!canDelete}
+												>
+													Eliminar alumno
+												</DropdownItem>
+											{/snippet}
+										</Dropdown>
 									</div>
 								</div>
 
-								<div class="student-card__details">
-									<InfoItem icon="creditCard" label="DNI" value={student.dni || 'Sin DNI'} />
-									<InfoItem icon="phone" label="Teléfono" value={student.phone || 'Sin teléfono'} />
-									<InfoItem
-										icon="calendar"
-										label="Nacimiento"
-										value={formatEducationDate(student.birth_date)}
-									/>
-									<InfoItem
-										icon="list"
-										label="Historial"
-										value={`${student.enrollments_count} matrícula${student.enrollments_count === 1 ? '' : 's'}`}
-									/>
-								</div>
-
-								<div class="student-card__current">
-									<span class="student-card__section-label">Situación académica</span>
-									{#if student.current_cycle_title}
-										<div class="lumi-stack lumi-stack--2xs">
-											<strong>{student.current_cycle_title}</strong>
-											<span class="lumi-text--sm lumi-text--muted">
-												{formatAcademicDegreeLabel(student.current_degree_name)}
-											</span>
-											<span class="lumi-text--xs lumi-text--muted">
-												{student.current_branch_name || 'Sin sede actual'}
-											</span>
-										</div>
-									{:else}
-										<p class="lumi-text--sm lumi-text--muted">
-											Este alumno aún no tiene matrículas registradas.
-										</p>
-									{/if}
+								<div class="student-card__body">
+									<div class="student-card__details">
+										<InfoItem icon="creditCard" label="DNI" value={student.dni || 'Sin DNI'} />
+										<InfoItem
+											icon="phone"
+											label="Teléfono"
+											value={student.phone || 'Sin teléfono'}
+										/>
+										<InfoItem
+											icon="badgeCheck"
+											label="Matrícula actual"
+											value={student.current_enrollment_number || 'Sin matrícula actual'}
+										/>
+										<InfoItem
+											icon="activity"
+											label="Estado académico"
+											value={student.current_enrollment_status
+												? formatEnrollmentStatus(student.current_enrollment_status)
+												: 'Sin matrícula actual'}
+										/>
+									</div>
 								</div>
 							</div>
 						</Card>
@@ -426,7 +423,6 @@
 	.student-card__identity,
 	.student-card__actions,
 	.student-card__header,
-	.student-card__details,
 	.student-card__name-row {
 		display: flex;
 	}
@@ -439,7 +435,6 @@
 
 	.student-search-panel__buttons,
 	.student-card__actions,
-	.student-card__details,
 	.student-card__name-row {
 		flex-wrap: wrap;
 		gap: var(--lumi-space-xs);
@@ -456,8 +451,7 @@
 	}
 
 	.student-search-panel__subtitle,
-	.student-card__code,
-	.student-card__section-label {
+	.student-card__code {
 		color: var(--lumi-color-text-muted);
 	}
 
@@ -478,33 +472,14 @@
 		gap: var(--lumi-space-md);
 	}
 
+	.student-card__body,
 	.student-card__details {
 		display: grid;
+		gap: var(--lumi-space-md);
+	}
+
+	.student-card__details {
 		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-	}
-
-	.student-card__current {
-		padding: var(--lumi-space-md);
-		border-radius: var(--lumi-radius-xl);
-		background: color-mix(in srgb, var(--lumi-color-background-hover) 65%, transparent);
-		border: var(--lumi-border-width-thin) solid
-			color-mix(in srgb, var(--lumi-color-border) 78%, var(--lumi-color-border-strong) 22%);
-	}
-
-	.student-card__photo {
-		flex-shrink: 0;
-		border: var(--lumi-border-width-thin) solid
-			color-mix(in srgb, var(--lumi-color-border) 72%, var(--lumi-color-border-strong) 28%);
-		box-shadow: var(--lumi-shadow-sm);
-	}
-
-	.student-card__section-label {
-		display: block;
-		margin-bottom: var(--lumi-space-xs);
-		font-size: var(--lumi-font-size-xs);
-		font-weight: var(--lumi-font-weight-semibold);
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
 	}
 
 	@media (max-width: 900px) {

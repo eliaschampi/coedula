@@ -1,3 +1,5 @@
+import type { DriveFileType } from '$lib/utils/drive';
+
 export type DateValue = string | Date | null;
 
 export type EnrollmentTurn = 'turn_1' | 'turn_2' | 'both';
@@ -135,6 +137,18 @@ export interface StudentDirectorySummary {
 	activeStudents: number;
 	studentsWithEnrollments: number;
 	totalEnrollments: number;
+}
+
+export interface StudentDriveLink {
+	link_code: string;
+	file_code: string;
+	file_name: string;
+	file_type: DriveFileType;
+	file_size: string | number;
+	mime_type: string | null;
+	linked_at: string;
+	file_created_at: string;
+	file_updated_at: string;
 }
 
 export interface EducationDashboardSummary {

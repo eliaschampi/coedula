@@ -202,6 +202,14 @@ export interface Permissions {
 	user_code: string;
 }
 
+export interface StudentDriveLinks {
+	code: Generated<string>;
+	created_at: Generated<Timestamp>;
+	file_code: string;
+	linked_by_user_code: string;
+	student_code: string;
+}
+
 export interface StudentOverview {
 	address: string | null;
 	birth_date: Timestamp | null;
@@ -304,6 +312,7 @@ export interface DB {
 	enrollments: Enrollments;
 	migrations: Migrations;
 	permissions: Permissions;
+	student_drive_links: StudentDriveLinks;
 	student_overview: StudentOverview;
 	students: Students;
 	teacher_overview: TeacherOverview;

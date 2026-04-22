@@ -27,6 +27,39 @@ export const GROUP_CODE_OPTIONS: SelectOption[] = [
 	{ value: 'D', label: 'Grupo D' }
 ];
 
+const DAY_IN_MS = 1000 * 60 * 60 * 24;
+
+function toDateAtStartOfDay(value: string | Date | null | undefined): Date | null {
+	if (!value) {
+		return null;
+	}
+
+	if (value instanceof Date) {
+		return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+	}
+
+	const normalizedValue = value.trim();
+	if (!normalizedValue) {
+		return null;
+	}
+
+	const directDateMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (directDateMatch) {
+		return new Date(
+			Number(directDateMatch[1]),
+			Number(directDateMatch[2]) - 1,
+			Number(directDateMatch[3])
+		);
+	}
+
+	const parsedDate = new Date(normalizedValue);
+	if (Number.isNaN(parsedDate.getTime())) {
+		return null;
+	}
+
+	return new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+}
+
 export function formatAcademicDegreeLabel(degreeName: string | null | undefined): string {
 	const normalizedDegreeName = degreeName?.trim() ?? '';
 	if (normalizedDegreeName) {
@@ -101,6 +134,75 @@ export function formatEducationDateRange(
 	}
 
 	return `${start} - ${end}`;
+}
+
+export function getEducationDateProgress(
+	startDate: string | Date | null | undefined,
+	endDate: string | Date | null | undefined
+): {
+	totalDays: number;
+	passedDays: number;
+	remainingDays: number;
+	daysUntilStart: number;
+	percentage: number;
+	status: 'upcoming' | 'active' | 'completed';
+} {
+	const start = toDateAtStartOfDay(startDate);
+	const end = toDateAtStartOfDay(endDate);
+	const today = toDateAtStartOfDay(new Date());
+
+	if (!start || !end || !today) {
+		return {
+			totalDays: 0,
+			passedDays: 0,
+			remainingDays: 0,
+			daysUntilStart: 0,
+			percentage: 0,
+			status: 'upcoming'
+		};
+	}
+
+	const totalDays = Math.max(Math.round((end.getTime() - start.getTime()) / DAY_IN_MS), 1);
+
+	if (today.getTime() <= start.getTime()) {
+		const daysUntilStart = Math.max(Math.ceil((start.getTime() - today.getTime()) / DAY_IN_MS), 0);
+
+		return {
+			totalDays,
+			passedDays: 0,
+			remainingDays: totalDays,
+			daysUntilStart,
+			percentage: 0,
+			status: 'upcoming'
+		};
+	}
+
+	if (today.getTime() >= end.getTime()) {
+		return {
+			totalDays,
+			passedDays: totalDays,
+			remainingDays: 0,
+			daysUntilStart: 0,
+			percentage: 100,
+			status: 'completed'
+		};
+	}
+
+	const passedDays = Math.min(
+		Math.max(Math.floor((today.getTime() - start.getTime()) / DAY_IN_MS), 0),
+		totalDays
+	);
+	const remainingDays = Math.max(totalDays - passedDays, 0);
+	const percentage = Number(((passedDays * 100) / totalDays).toFixed(2));
+
+	return {
+		totalDays,
+		passedDays,
+		remainingDays,
+		daysUntilStart: 0,
+		percentage,
+		status: 'active'
+	};
 }
 
 export function formatEnrollmentTurn(turn: EnrollmentTurn): string {

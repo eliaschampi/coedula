@@ -9,6 +9,7 @@ export {
 	formatEducationCurrency,
 	formatEducationDate,
 	formatEducationDateRange,
+	getEducationDateProgress,
 	formatEnrollmentStatus,
 	formatEnrollmentTurn,
 	formatGroupCode

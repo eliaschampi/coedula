@@ -42,6 +42,9 @@ CREATE UNIQUE INDEX teachers_dni_uq
 CREATE INDEX students_full_name_idx ON public.students (last_name, first_name);
 CREATE INDEX students_created_at_idx ON public.students (created_at DESC);
 CREATE INDEX students_is_active_idx ON public.students (is_active, created_at DESC);
+CREATE INDEX student_drive_links_student_idx ON public.student_drive_links (student_code, created_at DESC);
+CREATE INDEX student_drive_links_file_idx ON public.student_drive_links (file_code);
+CREATE INDEX student_drive_links_user_idx ON public.student_drive_links (linked_by_user_code);
 CREATE INDEX teachers_full_name_idx ON public.teachers (last_name, first_name);
 CREATE INDEX teachers_created_at_idx ON public.teachers (created_at DESC);
 CREATE INDEX teachers_is_active_idx ON public.teachers (is_active, created_at DESC);

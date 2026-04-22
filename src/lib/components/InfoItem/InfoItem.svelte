@@ -28,9 +28,11 @@
 	const classes = $derived(
 		['lumi-info-item', `lumi-info-item--${layout}`, className].filter(Boolean).join(' ')
 	);
+
+	const styleVars = $derived(`--_accent: var(--lumi-color-${iconColor});`);
 </script>
 
-<div class={classes} style="--_accent: var(--lumi-color-{iconColor})">
+<div class={classes} style={styleVars}>
 	{#if hasIcon}
 		<div class="lumi-info-item__icon">
 			{#if iconSlot}
@@ -41,117 +43,112 @@
 		</div>
 	{/if}
 
-	<div class="lumi-info-item__label">
-		{#if labelSlot}
-			{@render labelSlot()}
-		{:else}
-			{label}
-		{/if}
-	</div>
+	<div class="lumi-info-item__content">
+		<div class="lumi-info-item__label">
+			{#if labelSlot}
+				{@render labelSlot()}
+			{:else}
+				{label}
+			{/if}
+		</div>
 
-	<div class="lumi-info-item__value">
-		{#if children}
-			{@render children()}
-		{:else}
-			{value}
-		{/if}
+		<div class="lumi-info-item__value">
+			{#if children}
+				{@render children()}
+			{:else}
+				{value}
+			{/if}
+		</div>
 	</div>
 </div>
 
 <style>
 	.lumi-info-item {
-		--info-shell-bg: color-mix(
+		--info-shell-bg: color-mix(in srgb, var(--lumi-color-surface) 82%, transparent);
+		--info-shell-border: color-mix(in srgb, var(--lumi-color-border) 84%, transparent);
+		--info-icon-bg: color-mix(in srgb, var(--_accent, var(--lumi-color-primary)) 10%, transparent);
+		--info-icon-border: color-mix(
 			in srgb,
-			var(--lumi-color-surface) 60%,
-			var(--lumi-color-background-hover) 40%
+			var(--_accent, var(--lumi-color-primary)) 18%,
+			var(--lumi-color-border)
 		);
-		--info-shell-border: color-mix(
-			in srgb,
-			var(--lumi-color-border) 74%,
-			var(--lumi-color-border-strong) 26%
-		);
-		--info-highlight: color-mix(in srgb, var(--_accent, var(--lumi-color-primary)) 8%, transparent);
-		display: flex;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		gap: var(--lumi-space-sm);
 		min-width: 0;
-		padding: var(--lumi-space-xs) var(--lumi-space-sm);
+		padding: var(--lumi-space-sm) var(--lumi-space-md);
 		border: var(--lumi-border-width-thin) solid var(--info-shell-border);
-		border-radius: var(--lumi-radius-md);
-		background:
-			linear-gradient(180deg, var(--info-highlight) 0%, transparent 34%), var(--info-shell-bg);
-		box-shadow: var(--lumi-shadow-sm);
+		border-radius: var(--lumi-radius-xl);
+		background: var(--info-shell-bg);
 		transition:
 			border-color var(--lumi-duration-fast) var(--lumi-easing-default),
-			background-color var(--lumi-duration-fast) var(--lumi-easing-default);
+			background-color var(--lumi-duration-fast) var(--lumi-easing-default),
+			box-shadow var(--lumi-duration-fast) var(--lumi-easing-default);
 	}
 
 	.lumi-info-item:hover {
 		border-color: color-mix(
 			in srgb,
-			var(--_accent, var(--lumi-color-primary)) 22%,
+			var(--_accent, var(--lumi-color-primary)) 24%,
 			var(--info-shell-border)
 		);
+		box-shadow: 0 0 0 var(--lumi-border-width-thin)
+			color-mix(in srgb, var(--_accent, var(--lumi-color-primary)) 10%, transparent);
 	}
 
-	/* ── Horizontal ───────────────────────────── */
 	.lumi-info-item--horizontal {
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--lumi-space-xs);
+		grid-template-columns: auto minmax(0, 1fr);
 	}
 
-	/* ── Vertical ─────────────────────────────── */
 	.lumi-info-item--vertical {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: var(--lumi-space-2xs);
+		grid-template-columns: minmax(0, 1fr);
+		align-items: start;
 	}
 
-	/* ── Icon ─────────────────────────────────── */
 	.lumi-info-item__icon {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		flex-shrink: 0;
-		width: calc(var(--lumi-icon-sm) + var(--lumi-space-sm));
-		height: calc(var(--lumi-icon-sm) + var(--lumi-space-sm));
+		width: calc(var(--lumi-icon-sm) + var(--lumi-space-lg));
+		height: calc(var(--lumi-icon-sm) + var(--lumi-space-lg));
 		color: var(--_accent, var(--lumi-color-primary));
-		border-radius: var(--lumi-radius-sm);
-		border: var(--lumi-border-width-thin) solid
-			color-mix(in srgb, var(--_accent, var(--lumi-color-primary)) 24%, transparent);
-		background: color-mix(in srgb, var(--_accent, var(--lumi-color-primary)) 12%, transparent);
+		border-radius: var(--lumi-radius-lg);
+		border: var(--lumi-border-width-thin) solid var(--info-icon-border);
+		background: var(--info-icon-bg);
+		box-shadow: inset 0 1px 0 rgba(var(--lumi-color-white-rgb), 0.35);
 	}
 
-	/* ── Label ────────────────────────────────── */
+	.lumi-info-item--vertical .lumi-info-item__icon {
+		margin-bottom: var(--lumi-space-2xs);
+	}
+
+	.lumi-info-item__content {
+		display: grid;
+		gap: var(--lumi-space-2xs);
+		min-width: 0;
+	}
+
 	.lumi-info-item__label {
 		font-size: var(--lumi-font-size-xs);
 		font-weight: var(--lumi-font-weight-semibold);
 		color: var(--lumi-color-text-muted);
 		line-height: var(--lumi-line-height-normal);
-		letter-spacing: 0.03em;
+		letter-spacing: 0.02em;
 		text-transform: uppercase;
-		flex: 0 0 auto;
-		max-width: 100%;
 	}
 
-	/* ── Value ────────────────────────────────── */
 	.lumi-info-item__value {
 		font-size: var(--lumi-font-size-sm);
-		font-weight: var(--lumi-font-weight-medium);
+		font-weight: var(--lumi-font-weight-semibold);
 		color: var(--lumi-color-text);
-		line-height: var(--lumi-line-height-normal);
-		flex: 1 1 12rem;
-		min-width: min(12rem, 100%);
-		white-space: normal;
-		word-break: normal;
+		line-height: var(--lumi-line-height-snug);
+		min-width: 0;
 		overflow-wrap: break-word;
-		hyphens: auto;
 	}
 
 	.lumi-info-item__value :global(*) {
-		max-width: 100%;
 		min-width: 0;
-		white-space: normal;
-		word-break: normal;
 		overflow-wrap: break-word;
 	}
 </style>

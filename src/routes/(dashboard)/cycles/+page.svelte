@@ -5,17 +5,19 @@
 		Alert,
 		Button,
 		Card,
-		Chip,
 		Dialog,
+		Dropdown,
+		DropdownItem,
 		EmptyState,
 		Fieldset,
-		InfoItem,
 		Input,
 		List,
 		ListHeader,
 		ListItem,
 		PageHeader,
+		Progress,
 		Select,
+		StatusIndicator,
 		Switch,
 		Textarea
 	} from '$lib/components';
@@ -26,7 +28,8 @@
 		CYCLE_MODALITY_OPTIONS,
 		formatDateInputValue,
 		formatEducationCurrency,
-		formatEducationDateRange
+		formatEducationDateRange,
+		getEducationDateProgress
 	} from '$lib/utils/education';
 	import type { PageData } from './$types';
 
@@ -167,6 +170,37 @@
 	function getDegreeLabel(degreeCode: string): string {
 		return data.degreeCatalog.find((degree) => degree.code === degreeCode)?.label ?? 'Grado';
 	}
+
+	function getCycleTimeline(cycle: AcademicCycleOverview) {
+		return getEducationDateProgress(cycle.start_date, cycle.end_date);
+	}
+
+	function getCycleProgressColor(
+		cycle: AcademicCycleOverview
+	): 'primary' | 'info' | 'success' | 'warning' {
+		const timeline = getCycleTimeline(cycle);
+		if (timeline.status === 'completed') return 'success';
+		if (timeline.status === 'upcoming') return 'info';
+		return cycle.is_active ? 'primary' : 'warning';
+	}
+
+	function getCycleProgressHeadline(cycle: AcademicCycleOverview): string {
+		const timeline = getCycleTimeline(cycle);
+
+		if (timeline.status === 'completed') {
+			return `Finalizado en ${timeline.totalDays} día${timeline.totalDays === 1 ? '' : 's'}`;
+		}
+
+		if (timeline.status === 'upcoming') {
+			if (timeline.daysUntilStart === 0) {
+				return 'Empieza hoy';
+			}
+
+			return `Empieza en ${timeline.daysUntilStart} día${timeline.daysUntilStart === 1 ? '' : 's'}`;
+		}
+
+		return `Han transcurrido ${timeline.passedDays} de ${timeline.totalDays} día${timeline.totalDays === 1 ? '' : 's'}`;
+	}
 </script>
 
 <div class="lumi-stack lumi-stack--lg">
@@ -197,93 +231,119 @@
 			icon="bookOpen"
 		/>
 	{:else}
-		<div class="cycles-grid">
+		<div class="lumi-grid lumi-grid--responsive lumi-grid--gap-md">
 			{#each data.cycles as cycle (cycle.code)}
-				<div class="cycle-card">
-					<Card>
-						<div class="lumi-stack lumi-stack--md">
-							<div
-								class="lumi-flex lumi-justify--between lumi-align-items--start lumi-flex--gap-sm lumi-flex--wrap"
-							>
-								<div class="lumi-stack lumi-stack--2xs">
-									<div class="lumi-flex lumi-align-items--center lumi-flex--gap-xs lumi-flex--wrap">
-										<h3 class="lumi-margin--none">{cycle.title}</h3>
-										<Chip color={cycle.is_active ? 'success' : 'danger'} size="sm">
-											{cycle.is_active ? 'Activo' : 'Inactivo'}
-										</Chip>
-										<Chip color="info" size="sm">{cycle.modality}</Chip>
+				<Card spaced hoverable>
+					{@const timeline = getCycleTimeline(cycle)}
+					{#snippet header()}
+						<div class="lumi-flex lumi-justify--between lumi-align-items--start lumi-flex--gap-sm">
+							<div class="lumi-stack lumi-stack--2xs">
+								<div class="lumi-flex lumi-align-items--center lumi-flex--gap-xs lumi-flex--wrap">
+									<h3 class="lumi-margin--none">{cycle.title}</h3>
+									<div
+										class="lumi-flex lumi-align-items--center lumi-flex--gap-2xs lumi-text--xs lumi-text--muted"
+									>
+										<StatusIndicator active={cycle.is_active} pulse={cycle.is_active} />
+										<span>{cycle.is_active ? 'Activo' : 'Inactivo'}</span>
 									</div>
-									<p class="lumi-text--sm lumi-text--muted lumi-margin--none">
-										{cycle.branch_name}
-									</p>
 								</div>
+								<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+									{cycle.branch_name} · {cycle.modality}
+								</p>
+							</div>
 
-								<div class="lumi-flex lumi-flex--gap-xs">
+							<Dropdown position="bottom-end" aria-label={`Acciones para ${cycle.title}`}>
+								{#snippet triggerContent()}
 									<Button
 										type="flat"
 										size="sm"
+										icon="moreVertical"
+										aria-label={`Abrir acciones para ${cycle.title}`}
+									/>
+								{/snippet}
+
+								{#snippet content()}
+									<DropdownItem
 										icon="edit"
 										onclick={() => openEditModal(cycle)}
 										disabled={!canUpdate}
-									/>
-									<Button
-										type="flat"
-										size="sm"
+									>
+										Editar ciclo
+									</DropdownItem>
+									<DropdownItem
 										icon="trash"
 										color="danger"
 										onclick={() => openDeleteModal(cycle)}
 										disabled={!canDelete}
-									/>
-								</div>
-							</div>
+									>
+										Eliminar ciclo
+									</DropdownItem>
+								{/snippet}
+							</Dropdown>
+						</div>
+					{/snippet}
 
-							<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-sm cycle-card__meta">
-								<Chip color="secondary" size="sm">{cycle.degree_count} grados</Chip>
-								<Chip color="primary" size="sm">
-									{cycle.active_enrollment_count} activas / {cycle.enrollment_count} total
-								</Chip>
-								<InfoItem
-									icon="calendar"
-									label="Rango"
-									value={formatEducationDateRange(cycle.start_date, cycle.end_date)}
-								/>
-								<InfoItem
-									icon="wallet"
-									label="Costo base"
-									value={formatEducationCurrency(cycle.base_cost)}
-								/>
-								<InfoItem
-									icon="clock"
-									label="Turno 1"
-									value={`${cycle.turn_1_attendance_time || '07:00'} · Tol. ${cycle.turn_1_tolerance_minutes} min`}
-								/>
-								<InfoItem
-									icon="clock"
-									label="Turno 2"
-									value={`${cycle.turn_2_attendance_time || '16:00'} · Tol. ${cycle.turn_2_tolerance_minutes} min`}
-								/>
-							</div>
+					<div class="lumi-stack lumi-stack--sm">
+						<div class="lumi-flex lumi-flex--wrap lumi-flex--gap-sm lumi-text--sm lumi-text--muted">
+							<span>{cycle.degree_count} grados</span>
+							<span>{cycle.active_enrollment_count} activas / {cycle.enrollment_count} total</span>
+							<span>{formatEducationCurrency(cycle.base_cost)}</span>
+						</div>
 
-							<div class="lumi-stack lumi-stack--2xs">
-								<span class="lumi-text--xs lumi-text--muted lumi-font--medium">
-									Oferta académica
-								</span>
-								<p class="lumi-text--sm lumi-margin--none">
-									{cycle.degrees_summary || 'Sin grados configurados'}
+						<div class="lumi-stack lumi-stack--2xs">
+							<div
+								class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
+							>
+								<p class="lumi-margin--none lumi-font--medium">
+									{formatEducationDateRange(cycle.start_date, cycle.end_date)}
+								</p>
+								<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+									{getCycleProgressHeadline(cycle)}
 								</p>
 							</div>
 
-							{#if cycle.notes}
-								<div class="lumi-stack lumi-stack--2xs">
-									<span class="lumi-text--xs lumi-text--muted lumi-font--medium">
-										Observaciones
-									</span>
-									<p class="lumi-text--sm lumi-text--muted lumi-margin--none">{cycle.notes}</p>
-								</div>
-							{/if}
+							<Progress
+								value={timeline.percentage}
+								color={getCycleProgressColor(cycle)}
+								size="lg"
+								striped={timeline.status === 'active'}
+								animated={timeline.status === 'active'}
+								showLabel
+							/>
 						</div>
-					</Card>
-				</div>
+
+						<Fieldset legend="Horario">
+							<div class="lumi-stack lumi-stack--2xs">
+								<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 1</span>
+								<span class="lumi-font--medium">{cycle.turn_1_attendance_time || '07:00'}</span>
+								<span class="lumi-text--sm lumi-text--muted">
+									Tolerancia {cycle.turn_1_tolerance_minutes} min
+								</span>
+							</div>
+							<div class="lumi-stack lumi-stack--2xs">
+								<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 2</span>
+								<span class="lumi-font--medium">{cycle.turn_2_attendance_time || '16:00'}</span>
+								<span class="lumi-text--sm lumi-text--muted">
+									Tolerancia {cycle.turn_2_tolerance_minutes} min
+								</span>
+							</div>
+						</Fieldset>
+
+						<div class="lumi-stack lumi-stack--2xs">
+							<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Grados</span>
+							<p class="lumi-margin--none lumi-text--sm">
+								{cycle.degrees_summary || 'Sin grados configurados'}
+							</p>
+						</div>
+
+						{#if cycle.notes}
+							<div class="lumi-stack lumi-stack--2xs">
+								<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Observaciones</span>
+								<p class="lumi-margin--none lumi-text--sm lumi-text--muted">{cycle.notes}</p>
+							</div>
+						{/if}
+					</div>
+				</Card>
 			{/each}
 		</div>
 	{/if}
@@ -501,17 +561,3 @@
 		</Button>
 	{/snippet}
 </Dialog>
-
-<style>
-	.cycles-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 22rem));
-		gap: var(--lumi-space-md);
-		justify-content: center;
-		align-items: start;
-	}
-
-	.cycle-card {
-		width: min(100%, 22rem);
-	}
-</style>

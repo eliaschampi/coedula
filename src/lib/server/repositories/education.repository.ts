@@ -423,6 +423,47 @@ export class EducationRepository {
 		return rows as StudentOverview[];
 	}
 
+	static async searchStudentOptions(
+		db: Database,
+		query: string,
+		limit = 12
+	): Promise<StudentOption[]> {
+		const normalizedQuery = query.trim();
+		if (normalizedQuery.length < 2) {
+			return [];
+		}
+
+		const searchPattern = buildStudentSearchPattern(normalizedQuery);
+		const rows = await db
+			.selectFrom('student_overview')
+			.select([
+				'code',
+				'student_number',
+				'full_name',
+				'dni',
+				'photo_url',
+				'current_cycle_title',
+				'current_degree_name',
+				sql<string>`student_number || ' · ' || full_name`.as('label')
+			])
+			.where((eb) =>
+				eb.or([
+					sql<boolean>`LOWER(full_name) LIKE ${searchPattern}`,
+					sql<boolean>`LOWER(student_number) LIKE ${searchPattern}`,
+					sql<boolean>`LOWER(COALESCE(dni, '')) LIKE ${searchPattern}`,
+					sql<boolean>`LOWER(COALESCE(phone, '')) LIKE ${searchPattern}`
+				])
+			)
+			.where('is_active', '=', true)
+			.orderBy('updated_at', 'desc')
+			.orderBy('last_name', 'asc')
+			.orderBy('first_name', 'asc')
+			.limit(limit)
+			.execute();
+
+		return rows as StudentOption[];
+	}
+
 	static async getStudentDirectorySummary(db: Database): Promise<StudentDirectorySummary> {
 		const [activeStudents, studentsWithEnrollments, totalEnrollments] = await Promise.all([
 			db

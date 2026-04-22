@@ -156,6 +156,20 @@ CREATE TABLE public.students (
   CONSTRAINT students_last_name_check CHECK (char_length(trim(last_name)) > 0)
 );
 
+-- Student drive links
+CREATE TABLE public.student_drive_links (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  student_code UUID NOT NULL,
+  file_code UUID NOT NULL,
+  linked_by_user_code UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT student_drive_links_pk PRIMARY KEY (code),
+  CONSTRAINT student_drive_links_student_fk FOREIGN KEY (student_code) REFERENCES public.students (code) ON DELETE CASCADE,
+  CONSTRAINT student_drive_links_file_fk FOREIGN KEY (file_code) REFERENCES public.drive_files (code) ON DELETE CASCADE,
+  CONSTRAINT student_drive_links_user_fk FOREIGN KEY (linked_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT student_drive_links_student_file_uq UNIQUE (student_code, file_code)
+);
+
 -- Teachers
 CREATE TABLE public.teachers (
   code UUID NOT NULL DEFAULT gen_random_uuid(),

@@ -9,6 +9,8 @@
 		Card,
 		Chip,
 		Dialog,
+		Dropdown,
+		DropdownItem,
 		EmptyState,
 		Fieldset,
 		InfoItem,
@@ -29,7 +31,6 @@
 		GROUP_CODE_OPTIONS,
 		formatAcademicDegreeLabel,
 		formatEducationCurrency,
-		formatEducationDateRange,
 		formatEnrollmentStatus,
 		formatEnrollmentTurn,
 		formatGroupCode
@@ -60,6 +61,7 @@
 	const canCreate = $derived(can('enrollments:create'));
 	const canUpdate = $derived(can('enrollments:update'));
 	const canDelete = $derived(can('enrollments:delete'));
+	const canReadStudents = $derived(can('students:read'));
 	const enrollmentRows = $derived(data.enrollments as unknown as TableRow[]);
 
 	let filterCycleCode = $state<string | null>(null);
@@ -251,6 +253,7 @@
 	}
 
 	function openStudentProfile(studentCode: string): void {
+		if (!canReadStudents) return;
 		void goto(resolve(`/students/${studentCode}` as '/'));
 	}
 
@@ -403,7 +406,7 @@
 					{#snippet thead()}
 						<th>Lista</th>
 						<th>Alumno</th>
-						<th>Ciclo y grado</th>
+						<th>Asignación</th>
 						<th>Turno</th>
 						<th>Costo</th>
 						<th>Estado</th>
@@ -419,25 +422,25 @@
 							</div>
 						</td>
 						<td>
-							<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
-								<span class="lumi-font--medium">{enrollment.student_full_name}</span>
-								<span class="lumi-text--xs lumi-text--muted">
-									{enrollment.student_number} · {enrollment.student_dni || 'Sin DNI'}
-								</span>
+							<div class="enrollment-student-cell">
+								<Avatar text={enrollment.student_full_name} size="sm" color="primary" />
+								<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
+									<span class="lumi-font--medium">{enrollment.student_full_name}</span>
+									<span class="lumi-text--xs lumi-text--muted">
+										{enrollment.student_number} · {enrollment.student_dni || 'Sin DNI'}
+									</span>
+								</div>
 							</div>
 						</td>
 						<td>
-							<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
-								<span class="lumi-text--sm">{enrollment.cycle_title}</span>
-								<span class="lumi-text--xs lumi-text--muted">
-									{formatAcademicDegreeLabel(enrollment.degree_name)}
-								</span>
-								<span class="lumi-text--xs lumi-text--muted">
-									{formatGroupCode(enrollment.group_code)} · {formatEducationDateRange(
-										enrollment.start_date,
-										enrollment.end_date
-									)}
-								</span>
+							<div class="enrollment-assignment-cell">
+								<span class="lumi-text--sm lumi-font--medium">{enrollment.cycle_title}</span>
+								<div class="enrollment-assignment-cell__chips">
+									<Chip color="secondary" size="sm">
+										{formatAcademicDegreeLabel(enrollment.degree_name)}
+									</Chip>
+									<Chip color="info" size="sm">{formatGroupCode(enrollment.group_code)}</Chip>
+								</div>
 							</div>
 						</td>
 						<td>
@@ -452,30 +455,45 @@
 							</Chip>
 						</td>
 						<td>
-							<div class="lumi-flex lumi-flex--gap-xs">
-								<Button
-									type="flat"
-									size="sm"
-									color="info"
-									icon="eye"
-									onclick={() => openStudentProfile(enrollment.student_code)}
-								/>
-								<Button
-									type="flat"
-									size="sm"
-									icon="edit"
-									onclick={() => openEditModal(enrollment)}
-									disabled={!canUpdate}
-								/>
-								<Button
-									type="flat"
-									size="sm"
-									icon="trash"
-									color="danger"
-									onclick={() => openDeleteModal(enrollment)}
-									disabled={!canDelete}
-								/>
-							</div>
+							<Dropdown
+								position="bottom-end"
+								aria-label={`Acciones para ${enrollment.student_full_name}`}
+							>
+								{#snippet triggerContent()}
+									<Button
+										type="flat"
+										size="sm"
+										icon="moreVertical"
+										aria-label={`Abrir acciones para ${enrollment.student_full_name}`}
+									/>
+								{/snippet}
+
+								{#snippet content()}
+									<DropdownItem
+										icon="eye"
+										color="info"
+										onclick={() => openStudentProfile(enrollment.student_code)}
+										disabled={!canReadStudents}
+									>
+										Ver perfil
+									</DropdownItem>
+									<DropdownItem
+										icon="edit"
+										onclick={() => openEditModal(enrollment)}
+										disabled={!canUpdate}
+									>
+										Editar matrícula
+									</DropdownItem>
+									<DropdownItem
+										icon="trash"
+										color="danger"
+										onclick={() => openDeleteModal(enrollment)}
+										disabled={!canDelete}
+									>
+										Eliminar matrícula
+									</DropdownItem>
+								{/snippet}
+							</Dropdown>
 						</td>
 					{/snippet}
 				</Table>
@@ -761,7 +779,7 @@
 
 	.enrollment-filter-panel__copy {
 		gap: var(--lumi-space-sm);
-		align-items: end;
+		align-items: flex-start;
 	}
 
 	.enrollment-filter-panel__controls {
@@ -807,6 +825,24 @@
 	.enrollment-student-preview__identity {
 		align-items: center;
 		gap: var(--lumi-space-md);
+	}
+
+	.enrollment-student-cell {
+		display: flex;
+		align-items: center;
+		gap: var(--lumi-space-sm);
+	}
+
+	.enrollment-assignment-cell,
+	.enrollment-assignment-cell__chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--lumi-space-xs);
+	}
+
+	.enrollment-assignment-cell {
+		flex-direction: column;
+		align-items: flex-start;
 	}
 
 	@media (max-width: 1100px) {
