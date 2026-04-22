@@ -28,6 +28,7 @@
 	"dependencies": {
 		"@floating-ui/dom": "^1.7.6",
 		"@lucide/svelte": "^0.577.0",
+		"@u4/opencv4nodejs": "^7.1.2",
 		"bcryptjs": "^3.0.3",
 		"cookie": "^1.1.1",
 		"jsonwebtoken": "^9.0.3",

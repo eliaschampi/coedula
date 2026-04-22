@@ -4,7 +4,11 @@ import type { GroupCode } from '$lib/types/education';
 import type {
 	EvaluationAnswerKey,
 	EvaluationOverview,
+	EvaluationSavedResultSummary,
+	EvaluationScoreSummary,
+	EvaluationStudentAnswer,
 	EvaluationQuestionRecord,
+	EvaluationProcessingStudentSummary,
 	EvaluationSectionFormItem,
 	EvaluationSectionOverview
 } from '$lib/types/evaluation';
@@ -28,6 +32,51 @@ interface EvaluationQuestionUpsertInput {
 	correctKey: EvaluationAnswerKey;
 	omitable: boolean;
 	scorePercent: number;
+}
+
+interface EvaluationResultReplacementInput {
+	evaluationCode: string;
+	enrollmentCode: string;
+	answers: Array<{
+		question_code: string;
+		student_answer: EvaluationStudentAnswer;
+	}>;
+	general: EvaluationScoreSummary;
+	sections: Array<{
+		section_code: string;
+		correct_count: number;
+		incorrect_count: number;
+		blank_count: number;
+		score: number;
+	}>;
+}
+
+interface EvaluationProcessingEnrollmentRow {
+	enrollment_code: string;
+	enrollment_number: string;
+	roll_code: string;
+	student_code: string;
+	student_full_name: string;
+	student_number: string;
+	student_dni: string | null;
+	student_photo_url: string | null;
+}
+
+interface EvaluationSavedResultRow {
+	code: string;
+	enrollment_code: string;
+	enrollment_number: string;
+	roll_code: string;
+	student_code: string;
+	student_full_name: string;
+	student_number: string;
+	student_dni: string | null;
+	student_photo_url: string | null;
+	correct_count: number | string | bigint;
+	incorrect_count: number | string | bigint;
+	blank_count: number | string | bigint;
+	score: number | string | bigint;
+	calculated_at: Date | string;
 }
 
 interface EvaluationOverviewRow {
@@ -344,6 +393,25 @@ function assertValidQuestionSet(
 	}
 }
 
+function mapSavedResultSummary(row: EvaluationSavedResultRow): EvaluationSavedResultSummary {
+	return {
+		code: row.code,
+		enrollment_code: row.enrollment_code,
+		enrollment_number: row.enrollment_number,
+		roll_code: row.roll_code,
+		student_code: row.student_code,
+		student_full_name: row.student_full_name,
+		student_number: row.student_number,
+		student_dni: row.student_dni,
+		student_photo_url: row.student_photo_url,
+		correct_count: toNumber(row.correct_count),
+		incorrect_count: toNumber(row.incorrect_count),
+		blank_count: toNumber(row.blank_count),
+		score: toNumber(row.score),
+		calculated_at: row.calculated_at
+	};
+}
+
 export class EvaluationRepository {
 	static normalizeEvaluationInput(input: EvaluationUpsertInput): EvaluationUpsertInput {
 		return {
@@ -595,5 +663,230 @@ export class EvaluationRepository {
 		evaluationCode: string
 	): Promise<EvaluationSectionOverview[]> {
 		return loadSectionRows(db, evaluationCode);
+	}
+
+	static async findEnrollmentForProcessing(
+		db: Database,
+		filters: {
+			cycleDegreeCode: string;
+			groupCode: GroupCode;
+			rollCode: string;
+		}
+	): Promise<{
+		enrollment_code: string;
+		enrollment_number: string;
+		roll_code: string;
+		student: EvaluationProcessingStudentSummary;
+	} | null> {
+		const row = await db
+			.selectFrom('enrollment_overview as eo')
+			.innerJoin('students as s', 's.code', 'eo.student_code')
+			.select([
+				'eo.code as enrollment_code',
+				'eo.enrollment_number',
+				'eo.roll_code',
+				'eo.student_code',
+				'eo.student_full_name',
+				'eo.student_number',
+				'eo.student_dni',
+				's.photo_url as student_photo_url'
+			])
+			.where('eo.cycle_degree_code', '=', filters.cycleDegreeCode)
+			.where('eo.group_code', '=', filters.groupCode)
+			.where('eo.roll_code', '=', filters.rollCode)
+			.where('eo.status', 'in', ['active', 'finalized'])
+			.orderBy('eo.updated_at', 'desc')
+			.executeTakeFirst();
+
+		if (!row) {
+			return null;
+		}
+
+		const enrollment = row as EvaluationProcessingEnrollmentRow;
+
+		return {
+			enrollment_code: enrollment.enrollment_code,
+			enrollment_number: enrollment.enrollment_number,
+			roll_code: enrollment.roll_code,
+			student: {
+				code: enrollment.student_code,
+				full_name: enrollment.student_full_name,
+				student_number: enrollment.student_number,
+				dni: enrollment.student_dni,
+				photo_url: enrollment.student_photo_url
+			}
+		};
+	}
+
+	static async replaceProcessedResult(
+		db: Database,
+		input: EvaluationResultReplacementInput
+	): Promise<void> {
+		const questions = await db
+			.selectFrom('eval_questions')
+			.select(['code', 'section_code'])
+			.where('eval_code', '=', input.evaluationCode)
+			.orderBy('order_in_eval', 'asc')
+			.execute();
+
+		if (questions.length === 0) {
+			throw new Error('La evaluación no tiene claves configuradas');
+		}
+
+		const questionCodeSet = new Set(questions.map((question) => question.code));
+		const answerQuestionCodes = new Set(input.answers.map((answer) => answer.question_code));
+
+		if (input.answers.length !== questions.length || answerQuestionCodes.size !== questions.length) {
+			throw new Error('La cantidad de respuestas no coincide con la evaluación seleccionada');
+		}
+
+		if (input.answers.some((answer) => !questionCodeSet.has(answer.question_code))) {
+			throw new Error('La carga contiene respuestas que no pertenecen a la evaluación');
+		}
+
+		const questionCodes = questions.map((question) => question.code);
+
+		await db.transaction().execute(async (trx) => {
+			await trx
+				.deleteFrom('eval_answers')
+				.where('enrollment_code', '=', input.enrollmentCode)
+				.where('question_code', 'in', questionCodes)
+				.execute();
+
+			await trx
+				.insertInto('eval_answers')
+				.values(
+					input.answers.map((answer) => ({
+						enrollment_code: input.enrollmentCode,
+						question_code: answer.question_code,
+						student_answer: answer.student_answer
+					}))
+				)
+				.execute();
+
+			await trx
+				.deleteFrom('eval_results')
+				.where('enrollment_code', '=', input.enrollmentCode)
+				.where('eval_code', '=', input.evaluationCode)
+				.execute();
+
+			await trx
+				.insertInto('eval_results')
+				.values([
+					{
+						enrollment_code: input.enrollmentCode,
+						eval_code: input.evaluationCode,
+						section_code: null,
+						correct_count: input.general.correct_count,
+						incorrect_count: input.general.incorrect_count,
+						blank_count: input.general.blank_count,
+						score: input.general.score
+					},
+					...input.sections.map((section) => ({
+						enrollment_code: input.enrollmentCode,
+						eval_code: input.evaluationCode,
+						section_code: section.section_code,
+						correct_count: section.correct_count,
+						incorrect_count: section.incorrect_count,
+						blank_count: section.blank_count,
+						score: section.score
+					}))
+				])
+				.execute();
+		});
+	}
+
+	static async countSavedResults(db: Database, evaluationCode: string): Promise<number> {
+		const row = await db
+			.selectFrom('eval_results')
+			.select((eb) => eb.fn.count<string>('code').as('count'))
+			.where('eval_code', '=', evaluationCode)
+			.where('section_code', 'is', null)
+			.executeTakeFirst();
+
+		return toNumber(row?.count);
+	}
+
+	static async listSavedResults(
+		db: Database,
+		evaluationCode: string
+	): Promise<EvaluationSavedResultSummary[]> {
+		const rows = await db
+			.selectFrom('eval_results as er')
+			.innerJoin('enrollment_overview as eo', 'eo.code', 'er.enrollment_code')
+			.innerJoin('students as s', 's.code', 'eo.student_code')
+			.select([
+				'er.code',
+				'er.enrollment_code',
+				'eo.enrollment_number',
+				'eo.roll_code',
+				'eo.student_code',
+				'eo.student_full_name',
+				'eo.student_number',
+				'eo.student_dni',
+				's.photo_url as student_photo_url',
+				'er.correct_count',
+				'er.incorrect_count',
+				'er.blank_count',
+				'er.score',
+				'er.calculated_at'
+			])
+			.where('er.eval_code', '=', evaluationCode)
+			.where('er.section_code', 'is', null)
+			.orderBy('eo.roll_code', 'asc')
+			.orderBy('eo.student_full_name', 'asc')
+			.execute();
+
+		return rows.map((row) => mapSavedResultSummary(row as EvaluationSavedResultRow));
+	}
+
+	static async deleteSavedResults(
+		db: Database,
+		evaluationCode: string,
+		resultCodes: string[] = []
+	): Promise<number> {
+		return db.transaction().execute(async (trx) => {
+			const targetRows = await trx
+				.selectFrom('eval_results')
+				.select(['code', 'enrollment_code'])
+				.where('eval_code', '=', evaluationCode)
+				.where('section_code', 'is', null)
+				.$if(resultCodes.length > 0, (qb) => qb.where('code', 'in', resultCodes))
+				.execute();
+
+			const enrollmentCodes = Array.from(
+				new Set(targetRows.map((row) => row.enrollment_code).filter(Boolean))
+			);
+
+			if (enrollmentCodes.length === 0) {
+				return 0;
+			}
+
+			const questionCodes = await trx
+				.selectFrom('eval_questions')
+				.select('code')
+				.where('eval_code', '=', evaluationCode)
+				.execute();
+
+			if (questionCodes.length > 0) {
+				await trx
+					.deleteFrom('eval_answers')
+					.where('enrollment_code', 'in', enrollmentCodes)
+					.where(
+						'question_code',
+						'in',
+						questionCodes.map((question) => question.code)
+					)
+					.execute();
+			}
+
+			await trx
+				.deleteFrom('eval_results')
+				.where('eval_code', '=', evaluationCode)
+				.where('enrollment_code', 'in', enrollmentCodes)
+				.execute();
+
+			return enrollmentCodes.length;
+		});
 	}
 }

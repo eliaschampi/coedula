@@ -174,6 +174,20 @@
 		void goto(resolve(`/evaluations/${evaluationCode}/keys?returnTo=${returnTo}` as '/'));
 	}
 
+	function openProcessPage(evaluationCode?: string): void {
+		const entries = [
+			filterCycleCode ? `cycle=${encodeURIComponent(filterCycleCode)}` : '',
+			filterCycleDegreeCode ? `degree=${encodeURIComponent(filterCycleDegreeCode)}` : '',
+			filterGroupCode ? `group=${encodeURIComponent(filterGroupCode)}` : '',
+			filterSearchQuery.trim() ? `search=${encodeURIComponent(filterSearchQuery.trim())}` : '',
+			evaluationCode ? `evaluation=${encodeURIComponent(evaluationCode)}` : ''
+		].filter(Boolean);
+
+		void goto(
+			resolve(`/evaluations/process${entries.length > 0 ? `?${entries.join('&')}` : ''}` as '/')
+		);
+	}
+
 	function buildFilterUrl(): string {
 		const entries = [
 			filterCycleCode ? `cycle=${encodeURIComponent(filterCycleCode)}` : '',
@@ -372,6 +386,15 @@
 					onclick={() => (showMobileSidebar = true)}
 					aria-label="Abrir filtros de evaluaciones"
 				/>
+				<Button
+					type="border"
+					color="info"
+					icon="imagePlus"
+					onclick={() => openProcessPage()}
+					disabled={!canUpdate || configuredEvaluations === 0}
+				>
+					Procesar hojas
+				</Button>
 				<Button
 					type="filled"
 					color="primary"
@@ -603,6 +626,14 @@
 													onclick={() => openKeysPage(evaluation.code)}
 												>
 													Configurar claves
+												</DropdownItem>
+												<DropdownItem
+													icon="imagePlus"
+													color="info"
+													onclick={() => openProcessPage(evaluation.code)}
+													disabled={!canUpdate || !evaluation.has_questions}
+												>
+													Procesar respuestas
 												</DropdownItem>
 												<DropdownItem
 													icon="edit"

@@ -10,6 +10,8 @@ import type {
 export const DEFAULT_EVALUATION_SECTION_QUESTION_COUNT = 10;
 export const MAX_EVALUATION_QUESTIONS = 80;
 export const EVALUATION_ANSWER_KEYS = ['A', 'B', 'C', 'D', 'E'] as const;
+const A5_VERTICAL_RATIO = 1 / 1.414;
+const A5_RATIO_TOLERANCE = 0.05;
 
 export const EVALUATION_ANSWER_KEY_OPTIONS: SelectOption[] = EVALUATION_ANSWER_KEYS.map((key) => ({
 	value: key,
@@ -90,4 +92,20 @@ export function applyEvaluationKeyString(
 		...question,
 		correct_key: (normalizedKeys[index] ?? question.correct_key) as EvaluationDraftAnswerKey
 	}));
+}
+
+export function validateEvaluationSheetProportion(
+	width: number,
+	height: number
+): {
+	isValid: boolean;
+	format: string;
+} {
+	const imageRatio = width / height;
+	const isValid = Math.abs(imageRatio - A5_VERTICAL_RATIO) <= A5_RATIO_TOLERANCE;
+
+	return {
+		isValid,
+		format: isValid ? 'A5 Vertical' : 'Formato no A5'
+	};
 }

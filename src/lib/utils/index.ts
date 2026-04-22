@@ -26,7 +26,8 @@ export {
 	calculateEvaluationQuestionTotal,
 	getLocalEvaluationQuestionIndex,
 	isEvaluationAnswerKey,
-	normalizeEvaluationSections
+	normalizeEvaluationSections,
+	validateEvaluationSheetProportion
 } from './evaluation';
 export {
 	ATTENDANCE_STATE_OPTIONS,
