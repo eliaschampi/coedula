@@ -779,7 +779,7 @@
 
 	.enrollment-filter-panel__copy {
 		gap: var(--lumi-space-sm);
-		align-items: flex-start;
+		align-items: flex-end;
 	}
 
 	.enrollment-filter-panel__controls {

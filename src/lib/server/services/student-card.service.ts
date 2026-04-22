@@ -84,7 +84,7 @@ function buildStudentCardData(
 		details: [
 			toSafeText(enrollment.cycle_title, 'N/A'),
 			toSafeText(enrollment.degree_name, 'N/A'),
-			toSafeText(enrollment.group_code, 'N/A')
+			toSafeText(`Grupo ${enrollment.group_code}`, 'N/A')
 		]
 	};
 }
@@ -232,7 +232,7 @@ function drawQrAndDni(
 ): void {
 	const qrSize = 800;
 	const qrX = 40;
-	const qrY = 240;
+	const qrY = 250;
 
 	page.drawImage(qrImage, {
 		x: pxX(qrX),
