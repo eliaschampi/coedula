@@ -37,6 +37,7 @@ const COLORS = {
 interface StudentCardData {
 	fullName: string;
 	dni: string;
+	rollCode: string;
 	details: string[];
 }
 
@@ -69,6 +70,11 @@ function getPreferredEnrollment(enrollments: EnrollmentOverview[]): EnrollmentOv
 	return enrollments.find((item) => item.status === 'active') ?? enrollments[0] ?? null;
 }
 
+function formatRollCode(value: string | null | undefined): string {
+	const normalized = value?.trim() ?? '';
+	return normalized ? normalized.padStart(4, '0') : '0000';
+}
+
 function buildStudentCardData(
 	student: StudentOverview,
 	enrollment: EnrollmentOverview
@@ -81,6 +87,7 @@ function buildStudentCardData(
 	return {
 		fullName: toSafeText(student.full_name, 'Alumno sin nombre'),
 		dni,
+		rollCode: formatRollCode(enrollment.roll_code),
 		details: [
 			toSafeText(enrollment.cycle_title, 'N/A'),
 			toSafeText(enrollment.degree_name, 'N/A'),
@@ -224,7 +231,7 @@ function drawBackground(page: PDFPage, backgroundImage: PDFImage | null): void {
 	page.drawImage(backgroundImage, { x: 0, y: 0, width: CARD_WIDTH, height: CARD_HEIGHT });
 }
 
-function drawQrAndDni(
+function drawQrAndRollCode(
 	page: PDFPage,
 	boldFont: PDFFont,
 	data: StudentCardData,
@@ -242,16 +249,15 @@ function drawQrAndDni(
 	});
 
 	const dniFontSize = 13;
-	// Inject spaces to increase vertical tracking/spacing for the text cleanly
-	const dniText = data.dni.split('').join(' ');
-	const dniWidth = boldFont.widthOfTextAtSize(dniText, dniFontSize);
+	const rollCodeText = data.rollCode.split('').join(' ');
+	const rollCodeWidth = boldFont.widthOfTextAtSize(rollCodeText, dniFontSize);
 
 	const pillCenterX = pxX(1040);
 	const pillCenterY = CARD_HEIGHT / 2;
 
-	page.drawText(dniText, {
+	page.drawText(rollCodeText, {
 		x: pillCenterX + dniFontSize * 0.35,
-		y: pillCenterY - dniWidth / 2,
+		y: pillCenterY - rollCodeWidth / 2,
 		font: boldFont,
 		size: dniFontSize,
 		color: COLORS.text,
@@ -302,12 +308,7 @@ function drawPhotoBlock(
 	});
 }
 
-function drawStudentInfo(
-	page: PDFPage,
-	font: PDFFont,
-	boldFont: PDFFont,
-	data: StudentCardData
-): void {
+function drawStudentInfo(page: PDFPage, boldFont: PDFFont, data: StudentCardData): void {
 	// Slightly decreased the panel size for better proportion
 	const panelWidth = 660; // Was 700
 	const panelHeight = 340; // Was 420
@@ -356,7 +357,7 @@ function drawStudentInfo(
 
 	// --- 2. Bottom Section: Details Distributed Vertically (Column) ---
 	const maxTextWidthPdf = pxX(panelWidth - panelPaddingX * 2);
-	const detailFontSize = 6; // Slightly smaller to match new container scale
+	const detailFontSize = 5.5; // Slightly smaller to match new container scale
 	const detailLineHeight = detailFontSize * 1.2;
 
 	data.details.forEach((text, index) => {
@@ -400,8 +401,7 @@ export async function generateStudentCardPdf(db: Database, studentCode: string):
 	const pdf = await PDFDocument.create();
 	const page = pdf.addPage([CARD_WIDTH, CARD_HEIGHT]);
 
-	const [font, boldFont, backgroundPng, qrPng, photoPng] = await Promise.all([
-		pdf.embedFont(StandardFonts.Helvetica),
+	const [boldFont, backgroundPng, qrPng, photoPng] = await Promise.all([
 		pdf.embedFont(StandardFonts.HelveticaBold),
 		loadBackgroundTemplate(),
 		buildQrPng(cardData.dni),
@@ -413,9 +413,9 @@ export async function generateStudentCardPdf(db: Database, studentCode: string):
 	const photoImage = photoPng ? await pdf.embedPng(photoPng) : null;
 
 	drawBackground(page, backgroundImage);
-	drawQrAndDni(page, boldFont, cardData, qrImage);
+	drawQrAndRollCode(page, boldFont, cardData, qrImage);
 	drawPhotoBlock(page, boldFont, cardData, photoImage);
-	drawStudentInfo(page, font, boldFont, cardData);
+	drawStudentInfo(page, boldFont, cardData);
 
 	return Buffer.from(await pdf.save());
 }

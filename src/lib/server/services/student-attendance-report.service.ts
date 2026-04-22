@@ -1,37 +1,56 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+import {
+	PDFDocument,
+	StandardFonts,
+	rgb,
+	type PDFFont,
+	type PDFImage,
+	type PDFPage
+} from 'pdf-lib';
 import type { Database } from '$lib/database';
 import type { AttendanceOverviewItem } from '$lib/types/attendance';
 import type { EnrollmentOverview, EnrollmentTurn, StudentOverview } from '$lib/types/education';
 import { AttendanceRepository } from '$lib/server/repositories/attendance.repository';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
-import {
-	formatAttendanceState,
-	formatAttendanceTime,
-	summarizeAttendance
-} from '$lib/utils/attendance';
-import { formatEducationDate, formatEnrollmentTurn, formatGroupCode } from '$lib/utils/education';
+import { formatAttendanceState, formatAttendanceTime } from '$lib/utils/attendance';
+import { formatEducationDate, formatGroupCode } from '$lib/utils/education';
+
+const LETTERHEAD_PATH = join(process.cwd(), 'static', 'membrete.png');
+const REPORT_TITLE = 'Constancia de asistencia';
 
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
-const PAGE_MARGIN = 40;
-const CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
-const FOOTER_HEIGHT = 28;
-const TABLE_HEADER_HEIGHT = 24;
+const CONTENT_X = 48;
+const CONTENT_WIDTH = PAGE_WIDTH - CONTENT_X * 2;
+const TITLE_Y = 734;
+const SUMMARY_CARD_TOP_Y = 708;
+const NEXT_PAGE_TABLE_TOP_Y = 712;
+const TABLE_BOTTOM_Y = 108;
+const TABLE_HEADER_HEIGHT = 26;
+const TABLE_FONT_SIZE = 9;
 const TABLE_LINE_HEIGHT = 11;
 
+const TABLE_COLUMNS = [
+	{ label: 'Fecha', x: CONTENT_X, width: 90 },
+	{ label: 'Estado', x: CONTENT_X + 90, width: 92 },
+	{ label: 'Ingreso', x: CONTENT_X + 182, width: 76 },
+	{ label: 'Observaciones', x: CONTENT_X + 258, width: CONTENT_WIDTH - 258 }
+] as const;
+
 const COLORS = {
-	primary: rgb(0.1176, 0.251, 0.6863),
-	accent: rgb(0.9843, 0.4431, 0.5216),
-	text: rgb(0.102, 0.121, 0.18),
-	muted: rgb(0.4, 0.45, 0.55),
-	border: rgb(0.86, 0.89, 0.93),
-	surface: rgb(0.965, 0.975, 0.99),
+	text: rgb(0.12, 0.13, 0.16),
+	muted: rgb(0.43, 0.46, 0.52),
+	border: rgb(0.85, 0.87, 0.9),
+	panelBorder: rgb(0.88, 0.89, 0.92),
+	surface: rgb(0.984, 0.986, 0.991),
+	headerSurface: rgb(0.965, 0.967, 0.972),
 	white: rgb(1, 1, 1),
-	success: rgb(0.133, 0.773, 0.369),
-	warning: rgb(0.961, 0.62, 0.043),
-	danger: rgb(0.937, 0.267, 0.267),
-	info: rgb(0.231, 0.51, 0.965),
-	secondary: rgb(0.43, 0.48, 0.56)
+	accent: rgb(0.84, 0.16, 0.12),
+	success: rgb(0.12, 0.62, 0.31),
+	warning: rgb(0.85, 0.55, 0.1),
+	danger: rgb(0.84, 0.18, 0.18),
+	info: rgb(0.34, 0.41, 0.52)
 } as const;
 
 interface StudentAttendanceReportFilters {
@@ -45,23 +64,34 @@ interface ReportContext {
 	records: AttendanceOverviewItem[];
 	fromDate: string;
 	toDate: string;
-	selectedTurn: EnrollmentTurn;
-	enrollmentLines: string[];
+	cycleTitle: string;
+	groupLabel: string;
+}
+
+interface PdfAssets {
+	font: PDFFont;
+	boldFont: PDFFont;
+	backgroundImage: PDFImage | null;
 }
 
 interface LayoutState {
 	page: PDFPage;
 	cursorY: number;
-	pageNumber: number;
+}
+
+interface SummaryRow {
+	label: string;
+	lines: string[];
+	fontSize: number;
 }
 
 interface TableRowContent {
 	dateLines: string[];
 	stateLines: string[];
-	timeLines: string[];
-	enrollmentLines: string[];
-	detailLines: string[];
+	entryLines: string[];
+	observationLines: string[];
 	rowHeight: number;
+	stateColor: (typeof COLORS)[keyof typeof COLORS];
 }
 
 function wrapText(text: string, font: PDFFont, fontSize: number, maxWidth: number): string[] {
@@ -106,45 +136,38 @@ function wrapText(text: string, font: PDFFont, fontSize: number, maxWidth: numbe
 	return lines.length > 0 ? lines : ['—'];
 }
 
+function toSafeText(value: string | null | undefined, fallback = '—'): string {
+	const normalized = value?.trim() ?? '';
+	return normalized.length > 0 ? normalized : fallback;
+}
+
 function getAttendanceColor(state: AttendanceOverviewItem['attendance_state']) {
 	if (state === 'presente') return COLORS.success;
 	if (state === 'tarde') return COLORS.warning;
 	if (state === 'falta') return COLORS.danger;
 	if (state === 'justificado') return COLORS.info;
-	return COLORS.secondary;
+	return COLORS.muted;
 }
 
-function buildEnrollmentLines(
-	records: AttendanceOverviewItem[],
+function getPreferredEnrollment(
 	enrollments: EnrollmentOverview[],
-	selectedTurn: EnrollmentTurn
-): string[] {
-	const recordLines = Array.from(
-		new Map(
-			records.map((record) => [
-				record.enrollment_code,
-				`${record.enrollment_number} · ${record.cycle_title} · ${record.degree_name} · ${formatGroupCode(record.group_code)}`
-			])
-		).values()
-	);
-
-	if (recordLines.length > 0) {
-		return recordLines;
-	}
-
-	const preferredEnrollment =
-		enrollments.find((item) => item.status === 'active' && item.turn === selectedTurn) ??
-		enrollments.find((item) => item.turn === selectedTurn) ??
+	requestedTurn: EnrollmentTurn | null
+): EnrollmentOverview | null {
+	return (
+		enrollments.find((item) => item.status === 'active' && item.turn === requestedTurn) ??
+		enrollments.find((item) => item.turn === requestedTurn) ??
 		enrollments.find((item) => item.status === 'active') ??
-		enrollments[0];
+		enrollments[0] ??
+		null
+	);
+}
 
-	if (!preferredEnrollment) {
-		return ['Sin matrícula registrada'];
+async function loadLetterheadPng(): Promise<Uint8Array | null> {
+	try {
+		return await readFile(LETTERHEAD_PATH);
+	} catch {
+		return null;
 	}
-
-	return [
-		`${preferredEnrollment.enrollment_number} · ${preferredEnrollment.cycle_title} · ${preferredEnrollment.degree_name} · ${formatGroupCode(preferredEnrollment.group_code)}`
-	];
 }
 
 async function resolveReportContext(
@@ -162,176 +185,316 @@ async function resolveReportContext(
 		EducationRepository.listStudentEnrollmentHistory(db, studentCode)
 	]);
 
+	const preferredEnrollment = getPreferredEnrollment(enrollments, filters.requestedTurn);
 	const availableTurns = Array.from(
 		new Set(allRecords.map((record) => record.turn))
 	) as EnrollmentTurn[];
 	const selectedTurn =
-		filters.requestedTurn && availableTurns.includes(filters.requestedTurn)
-			? filters.requestedTurn
-			: (availableTurns[0] ?? 'turn_1');
-
+		filters.requestedTurn ?? availableTurns[0] ?? preferredEnrollment?.turn ?? 'turn_1';
 	const records = allRecords.filter((record) => record.turn === selectedTurn);
-	const enrollmentLines = buildEnrollmentLines(records, enrollments, selectedTurn);
+	const referenceRecord = records[0] ?? null;
 
 	return {
 		student,
 		records,
 		fromDate: filters.fromDate,
 		toDate: filters.toDate,
-		selectedTurn,
-		enrollmentLines
+		cycleTitle: toSafeText(referenceRecord?.cycle_title ?? preferredEnrollment?.cycle_title),
+		groupLabel: referenceRecord
+			? formatGroupCode(referenceRecord.group_code)
+			: preferredEnrollment
+				? formatGroupCode(preferredEnrollment.group_code)
+				: 'Sin grupo registrado'
 	};
 }
 
-function drawPageNumber(page: PDFPage, pageNumber: number, font: PDFFont): void {
-	page.drawText(`Página ${pageNumber}`, {
-		x: PAGE_WIDTH - PAGE_MARGIN - 48,
-		y: 16,
-		font,
-		size: 9,
-		color: COLORS.muted
+function drawBackground(page: PDFPage, backgroundImage: PDFImage | null): void {
+	if (!backgroundImage) {
+		page.drawRectangle({
+			x: 0,
+			y: 0,
+			width: PAGE_WIDTH,
+			height: PAGE_HEIGHT,
+			color: COLORS.white
+		});
+		return;
+	}
+
+	page.drawImage(backgroundImage, {
+		x: 0,
+		y: 0,
+		width: PAGE_WIDTH,
+		height: PAGE_HEIGHT
 	});
 }
 
-function createLayout(pdf: PDFDocument, font: PDFFont): LayoutState {
+function createBasePage(pdf: PDFDocument, assets: PdfAssets): PDFPage {
 	const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-	drawPageNumber(page, pdf.getPageCount(), font);
 
-	return {
-		page,
-		cursorY: PAGE_HEIGHT - PAGE_MARGIN,
-		pageNumber: pdf.getPageCount()
-	};
+	drawBackground(page, assets.backgroundImage);
+
+	return page;
 }
 
-function createNextPage(pdf: PDFDocument, font: PDFFont): LayoutState {
-	const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-	drawPageNumber(page, pdf.getPageCount(), font);
+function drawCenteredTitle(
+	page: PDFPage,
+	boldFont: PDFFont,
+	title: string,
+	y: number,
+	size: number
+) {
+	const titleWidth = boldFont.widthOfTextAtSize(title, size);
+	const titleX = (PAGE_WIDTH - titleWidth) / 2;
 
-	return {
-		page,
-		cursorY: PAGE_HEIGHT - PAGE_MARGIN,
-		pageNumber: pdf.getPageCount()
-	};
+	page.drawText(title, {
+		x: titleX,
+		y,
+		font: boldFont,
+		size,
+		color: COLORS.text
+	});
+
+	page.drawLine({
+		start: { x: PAGE_WIDTH / 2 - 78, y: y - 9 },
+		end: { x: PAGE_WIDTH / 2 + 78, y: y - 9 },
+		thickness: 1,
+		color: COLORS.accent
+	});
 }
 
-function ensureSpace(
-	pdf: PDFDocument,
-	layout: LayoutState,
-	font: PDFFont,
-	requiredHeight: number
-): LayoutState {
-	if (layout.cursorY - requiredHeight >= PAGE_MARGIN + FOOTER_HEIGHT) {
-		return layout;
-	}
+function buildSummaryRows(context: ReportContext, boldFont: PDFFont): SummaryRow[] {
+	const valueWidth = 290;
 
-	return createNextPage(pdf, font);
+	return [
+		{
+			label: 'Alumno',
+			lines: wrapText(context.student.full_name, boldFont, 11.5, valueWidth),
+			fontSize: 11.5
+		},
+		{
+			label: 'Ciclo',
+			lines: wrapText(context.cycleTitle, boldFont, 10.5, valueWidth),
+			fontSize: 10.5
+		},
+		{
+			label: 'Grupo',
+			lines: wrapText(context.groupLabel, boldFont, 10.5, valueWidth),
+			fontSize: 10.5
+		},
+		{
+			label: 'Periodo',
+			lines: wrapText(
+				`${formatEducationDate(context.fromDate)} - ${formatEducationDate(context.toDate)}`,
+				boldFont,
+				10.5,
+				valueWidth
+			),
+			fontSize: 10.5
+		}
+	];
 }
 
-function drawMetricCard(
+function drawSummaryCard(
 	page: PDFPage,
 	font: PDFFont,
 	boldFont: PDFFont,
-	input: {
-		x: number;
-		y: number;
-		width: number;
-		title: string;
-		value: string;
-		color: (typeof COLORS)[keyof typeof COLORS];
-	}
-): void {
+	context: ReportContext
+): number {
+	const cardWidth = CONTENT_WIDTH;
+	const cardX = CONTENT_X;
+	const labelX = cardX + 20;
+	const valueX = cardX + 118;
+	const rows = buildSummaryRows(context, boldFont);
+	const rowHeights = rows.map((row) => Math.max(28, row.lines.length * 12 + 12));
+	const cardHeight = 18 + rowHeights.reduce((sum, height) => sum + height, 0);
+	const cardY = SUMMARY_CARD_TOP_Y - cardHeight;
+
 	page.drawRectangle({
-		x: input.x,
-		y: input.y,
-		width: input.width,
-		height: 52,
-		color: COLORS.surface,
-		borderColor: COLORS.border,
+		x: cardX,
+		y: cardY,
+		width: cardWidth,
+		height: cardHeight,
+		color: COLORS.white,
+		borderColor: COLORS.panelBorder,
 		borderWidth: 1
 	});
 
-	page.drawText(input.title, {
-		x: input.x + 12,
-		y: input.y + 34,
-		font,
-		size: 9,
-		color: COLORS.muted
+	page.drawRectangle({
+		x: cardX,
+		y: SUMMARY_CARD_TOP_Y - 3,
+		width: cardWidth,
+		height: 3,
+		color: COLORS.accent
 	});
 
-	page.drawText(input.value, {
-		x: input.x + 12,
-		y: input.y + 14,
-		font: boldFont,
-		size: 16,
-		color: input.color
+	let currentTopY = SUMMARY_CARD_TOP_Y - 14;
+
+	rows.forEach((row, index) => {
+		if (index > 0) {
+			page.drawLine({
+				start: { x: cardX + 20, y: currentTopY + 8 },
+				end: { x: cardX + cardWidth - 20, y: currentTopY + 8 },
+				thickness: 0.6,
+				color: COLORS.border
+			});
+		}
+
+		page.drawText(row.label.toUpperCase(), {
+			x: labelX,
+			y: currentTopY,
+			font,
+			size: 8,
+			color: COLORS.muted
+		});
+
+		row.lines.forEach((line, lineIndex) => {
+			page.drawText(line, {
+				x: valueX,
+				y: currentTopY - 2 - lineIndex * 12,
+				font: boldFont,
+				size: row.fontSize,
+				color: COLORS.text
+			});
+		});
+
+		currentTopY -= rowHeights[index];
 	});
+
+	return cardY;
+}
+
+function drawColumnSeparators(page: PDFPage, bottomY: number, height: number): void {
+	for (const column of TABLE_COLUMNS.slice(1)) {
+		page.drawLine({
+			start: { x: column.x, y: bottomY },
+			end: { x: column.x, y: bottomY + height },
+			thickness: 0.6,
+			color: COLORS.border
+		});
+	}
 }
 
 function drawTableHeader(page: PDFPage, boldFont: PDFFont, topY: number): number {
 	const headerY = topY - TABLE_HEADER_HEIGHT;
 
 	page.drawRectangle({
-		x: PAGE_MARGIN,
+		x: CONTENT_X,
 		y: headerY,
 		width: CONTENT_WIDTH,
 		height: TABLE_HEADER_HEIGHT,
-		color: COLORS.primary
+		color: COLORS.headerSurface,
+		borderColor: COLORS.border,
+		borderWidth: 1
 	});
 
-	const columns = [
-		{ label: 'Fecha', x: PAGE_MARGIN + 10 },
-		{ label: 'Estado', x: PAGE_MARGIN + 84 },
-		{ label: 'Ingreso', x: PAGE_MARGIN + 160 },
-		{ label: 'Matrícula', x: PAGE_MARGIN + 220 },
-		{ label: 'Detalle', x: PAGE_MARGIN + 310 }
-	];
+	page.drawLine({
+		start: { x: CONTENT_X, y: topY },
+		end: { x: CONTENT_X + CONTENT_WIDTH, y: topY },
+		thickness: 1,
+		color: COLORS.accent
+	});
 
-	for (const column of columns) {
+	drawColumnSeparators(page, headerY, TABLE_HEADER_HEIGHT);
+
+	for (const column of TABLE_COLUMNS) {
+		const textWidth = boldFont.widthOfTextAtSize(column.label, TABLE_FONT_SIZE);
+
 		page.drawText(column.label, {
-			x: column.x,
+			x: column.x + column.width / 2 - textWidth / 2,
 			y: headerY + 8,
 			font: boldFont,
-			size: 9,
-			color: COLORS.white
+			size: TABLE_FONT_SIZE,
+			color: COLORS.text
 		});
 	}
 
-	return headerY - 8;
+	return headerY;
+}
+
+function buildTableRowContent(
+	font: PDFFont,
+	boldFont: PDFFont,
+	record: AttendanceOverviewItem
+): TableRowContent {
+	const dateLines = wrapText(
+		formatEducationDate(record.attendance_date),
+		font,
+		TABLE_FONT_SIZE,
+		TABLE_COLUMNS[0].width - 20
+	);
+	const stateLines = wrapText(
+		formatAttendanceState(record.attendance_state),
+		boldFont,
+		TABLE_FONT_SIZE,
+		TABLE_COLUMNS[1].width - 20
+	);
+	const entryLines = wrapText(
+		formatAttendanceTime(record.attendance_entry_time),
+		font,
+		TABLE_FONT_SIZE,
+		TABLE_COLUMNS[2].width - 20
+	);
+	const observationLines = wrapText(
+		toSafeText(record.attendance_observation),
+		font,
+		TABLE_FONT_SIZE,
+		TABLE_COLUMNS[3].width - 20
+	);
+	const maxLineCount = Math.max(
+		dateLines.length,
+		stateLines.length,
+		entryLines.length,
+		observationLines.length
+	);
+
+	return {
+		dateLines,
+		stateLines,
+		entryLines,
+		observationLines,
+		rowHeight: Math.max(30, maxLineCount * TABLE_LINE_HEIGHT + 12),
+		stateColor: getAttendanceColor(record.attendance_state)
+	};
 }
 
 function drawTableRow(
 	page: PDFPage,
 	font: PDFFont,
 	boldFont: PDFFont,
-	record: AttendanceOverviewItem,
 	content: TableRowContent,
-	topY: number
+	topY: number,
+	rowIndex: number
 ): number {
-	const { dateLines, stateLines, timeLines, enrollmentLines, detailLines, rowHeight } = content;
-	const rowBottomY = topY - rowHeight;
+	const rowY = topY - content.rowHeight;
+	const rowColor = rowIndex % 2 === 0 ? COLORS.white : COLORS.surface;
 
 	page.drawRectangle({
-		x: PAGE_MARGIN,
-		y: rowBottomY,
+		x: CONTENT_X,
+		y: rowY,
 		width: CONTENT_WIDTH,
-		height: rowHeight,
-		color: COLORS.white,
+		height: content.rowHeight,
+		color: rowColor,
 		borderColor: COLORS.border,
 		borderWidth: 1
 	});
 
-	const columns = [
-		{ x: PAGE_MARGIN + 10, lines: dateLines, font },
+	drawColumnSeparators(page, rowY, content.rowHeight);
+
+	const columns: Array<{
+		x: number;
+		lines: string[];
+		font: PDFFont;
+		color?: TableRowContent['stateColor'];
+	}> = [
+		{ x: TABLE_COLUMNS[0].x + 10, lines: content.dateLines, font },
 		{
-			x: PAGE_MARGIN + 84,
-			lines: stateLines,
+			x: TABLE_COLUMNS[1].x + 10,
+			lines: content.stateLines,
 			font: boldFont,
-			color: getAttendanceColor(record.attendance_state)
+			color: content.stateColor
 		},
-		{ x: PAGE_MARGIN + 160, lines: timeLines, font },
-		{ x: PAGE_MARGIN + 220, lines: enrollmentLines, font },
-		{ x: PAGE_MARGIN + 310, lines: detailLines, font }
+		{ x: TABLE_COLUMNS[2].x + 10, lines: content.entryLines, font },
+		{ x: TABLE_COLUMNS[3].x + 10, lines: content.observationLines, font }
 	];
 
 	for (const column of columns) {
@@ -340,50 +503,85 @@ function drawTableRow(
 				x: column.x,
 				y: topY - 16 - index * TABLE_LINE_HEIGHT,
 				font: column.font,
-				size: 9,
+				size: TABLE_FONT_SIZE,
 				color: column.color ?? COLORS.text
 			});
 		});
 	}
 
-	return rowBottomY - 6;
+	return rowY;
 }
 
-function buildTableRowContent(
-	font: PDFFont,
-	boldFont: PDFFont,
-	record: AttendanceOverviewItem
-): TableRowContent {
-	const detailText = `${record.cycle_title} · ${record.degree_name} · ${formatGroupCode(record.group_code)}${
-		record.attendance_observation ? `\nObs: ${record.attendance_observation}` : ''
-	}`;
+function drawEmptyTableState(page: PDFPage, font: PDFFont, boldFont: PDFFont, topY: number): void {
+	const emptyHeight = 62;
+	const emptyY = topY - emptyHeight;
 
-	const dateLines = wrapText(formatEducationDate(record.attendance_date), font, 9, 60);
-	const stateLines = wrapText(formatAttendanceState(record.attendance_state), boldFont, 9, 68);
-	const timeLines = wrapText(formatAttendanceTime(record.attendance_entry_time), font, 9, 50);
-	const enrollmentLines = wrapText(
-		`${record.enrollment_number} · Lista ${record.roll_code}`,
+	page.drawRectangle({
+		x: CONTENT_X,
+		y: emptyY,
+		width: CONTENT_WIDTH,
+		height: emptyHeight,
+		color: COLORS.white,
+		borderColor: COLORS.border,
+		borderWidth: 1
+	});
+
+	const title = 'No se registraron asistencias en el periodo seleccionado.';
+	const subtitle = 'Ajusta el rango o el turno para generar otra constancia.';
+	const titleWidth = boldFont.widthOfTextAtSize(title, 10.5);
+	const subtitleWidth = font.widthOfTextAtSize(subtitle, 9);
+
+	page.drawText(title, {
+		x: CONTENT_X + CONTENT_WIDTH / 2 - titleWidth / 2,
+		y: emptyY + 35,
+		font: boldFont,
+		size: 10.5,
+		color: COLORS.text
+	});
+
+	page.drawText(subtitle, {
+		x: CONTENT_X + CONTENT_WIDTH / 2 - subtitleWidth / 2,
+		y: emptyY + 20,
 		font,
-		9,
-		82
-	);
-	const detailLines = wrapText(detailText, font, 9, 240);
-	const maxLineCount = Math.max(
-		dateLines.length,
-		stateLines.length,
-		timeLines.length,
-		enrollmentLines.length,
-		detailLines.length
-	);
+		size: 9,
+		color: COLORS.muted
+	});
+}
+
+function createFirstPage(pdf: PDFDocument, assets: PdfAssets, context: ReportContext): LayoutState {
+	const page = createBasePage(pdf, assets);
+
+	drawCenteredTitle(page, assets.boldFont, REPORT_TITLE, TITLE_Y, 18);
+
+	const summaryBottomY = drawSummaryCard(page, assets.font, assets.boldFont, context);
+	const tableTopY = summaryBottomY - 14;
+	const cursorY = drawTableHeader(page, assets.boldFont, tableTopY);
+
+	return { page, cursorY };
+}
+
+function createContinuationPage(pdf: PDFDocument, assets: PdfAssets): LayoutState {
+	const page = createBasePage(pdf, assets);
+
+	drawCenteredTitle(page, assets.boldFont, REPORT_TITLE, 734, 14);
 
 	return {
-		dateLines,
-		stateLines,
-		timeLines,
-		enrollmentLines,
-		detailLines,
-		rowHeight: Math.max(28, maxLineCount * TABLE_LINE_HEIGHT + 10)
+		page,
+		cursorY: drawTableHeader(page, assets.boldFont, NEXT_PAGE_TABLE_TOP_Y)
 	};
+}
+
+function ensureSpace(
+	pdf: PDFDocument,
+	layout: LayoutState,
+	assets: PdfAssets,
+	requiredHeight: number
+): LayoutState {
+	if (layout.cursorY - requiredHeight >= TABLE_BOTTOM_Y) {
+		return layout;
+	}
+
+	return createContinuationPage(pdf, assets);
 }
 
 export async function generateStudentAttendanceReportPdf(
@@ -392,230 +590,29 @@ export async function generateStudentAttendanceReportPdf(
 	filters: StudentAttendanceReportFilters
 ): Promise<Buffer> {
 	const context = await resolveReportContext(db, studentCode, filters);
-	const summary = summarizeAttendance(context.records);
 
 	const pdf = await PDFDocument.create();
-	const [font, boldFont] = await Promise.all([
+	const [font, boldFont, letterheadPng] = await Promise.all([
 		pdf.embedFont(StandardFonts.Helvetica),
-		pdf.embedFont(StandardFonts.HelveticaBold)
+		pdf.embedFont(StandardFonts.HelveticaBold),
+		loadLetterheadPng()
 	]);
 
-	let layout = createLayout(pdf, font);
+	const backgroundImage = letterheadPng ? await pdf.embedPng(letterheadPng) : null;
+	const assets: PdfAssets = { font, boldFont, backgroundImage };
 
-	layout.page.drawRectangle({
-		x: PAGE_MARGIN,
-		y: layout.cursorY - 86,
-		width: CONTENT_WIDTH,
-		height: 86,
-		color: COLORS.primary
-	});
-
-	layout.page.drawText('Reporte de asistencia', {
-		x: PAGE_MARGIN + 18,
-		y: layout.cursorY - 28,
-		font: boldFont,
-		size: 20,
-		color: COLORS.white
-	});
-
-	layout.page.drawText(context.student.full_name, {
-		x: PAGE_MARGIN + 18,
-		y: layout.cursorY - 54,
-		font: boldFont,
-		size: 14,
-		color: COLORS.white
-	});
-
-	layout.page.drawText(
-		`${context.student.student_number} · ${context.student.dni?.trim() || 'Sin DNI'} · ${formatEnrollmentTurn(context.selectedTurn)}`,
-		{
-			x: PAGE_MARGIN + 18,
-			y: layout.cursorY - 72,
-			font,
-			size: 10,
-			color: COLORS.white
-		}
-	);
-
-	layout.cursorY -= 106;
-
-	layout.page.drawText('Resumen del reporte', {
-		x: PAGE_MARGIN,
-		y: layout.cursorY,
-		font: boldFont,
-		size: 12,
-		color: COLORS.text
-	});
-
-	layout.cursorY -= 12;
-
-	const infoBoxHeight = 78;
-	layout.page.drawRectangle({
-		x: PAGE_MARGIN,
-		y: layout.cursorY - infoBoxHeight,
-		width: CONTENT_WIDTH,
-		height: infoBoxHeight,
-		color: COLORS.surface,
-		borderColor: COLORS.border,
-		borderWidth: 1
-	});
-
-	layout.page.drawText('Rango', {
-		x: PAGE_MARGIN + 14,
-		y: layout.cursorY - 20,
-		font,
-		size: 9,
-		color: COLORS.muted
-	});
-	layout.page.drawText(
-		`${formatEducationDate(context.fromDate)} - ${formatEducationDate(context.toDate)}`,
-		{
-			x: PAGE_MARGIN + 14,
-			y: layout.cursorY - 36,
-			font: boldFont,
-			size: 10,
-			color: COLORS.text
-		}
-	);
-
-	layout.page.drawText('Generado', {
-		x: PAGE_MARGIN + 220,
-		y: layout.cursorY - 20,
-		font,
-		size: 9,
-		color: COLORS.muted
-	});
-	layout.page.drawText(formatEducationDate(new Date()), {
-		x: PAGE_MARGIN + 220,
-		y: layout.cursorY - 36,
-		font: boldFont,
-		size: 10,
-		color: COLORS.text
-	});
-
-	layout.page.drawText('Matrícula', {
-		x: PAGE_MARGIN + 14,
-		y: layout.cursorY - 54,
-		font,
-		size: 9,
-		color: COLORS.muted
-	});
-
-	const enrollmentDisplayLines = context.enrollmentLines
-		.slice(0, 3)
-		.flatMap((line) => wrapText(line, font, 9, CONTENT_WIDTH - 28));
-	if (context.enrollmentLines.length > 3) {
-		enrollmentDisplayLines.push(
-			`+${context.enrollmentLines.length - 3} matrícula(s) adicional(es)`
-		);
-	}
-
-	enrollmentDisplayLines.slice(0, 2).forEach((line, index) => {
-		layout.page.drawText(line, {
-			x: PAGE_MARGIN + 14,
-			y: layout.cursorY - 68 - index * 11,
-			font,
-			size: 9,
-			color: COLORS.text
-		});
-	});
-
-	layout.cursorY -= infoBoxHeight + 18;
-
-	const cardWidth = (CONTENT_WIDTH - 18) / 4;
-	drawMetricCard(layout.page, font, boldFont, {
-		x: PAGE_MARGIN,
-		y: layout.cursorY - 52,
-		width: cardWidth,
-		title: 'Registros',
-		value: String(summary.total),
-		color: COLORS.primary
-	});
-	drawMetricCard(layout.page, font, boldFont, {
-		x: PAGE_MARGIN + cardWidth + 6,
-		y: layout.cursorY - 52,
-		width: cardWidth,
-		title: 'Presentes',
-		value: String(summary.present),
-		color: COLORS.success
-	});
-	drawMetricCard(layout.page, font, boldFont, {
-		x: PAGE_MARGIN + (cardWidth + 6) * 2,
-		y: layout.cursorY - 52,
-		width: cardWidth,
-		title: 'Tardes',
-		value: String(summary.late),
-		color: COLORS.warning
-	});
-	drawMetricCard(layout.page, font, boldFont, {
-		x: PAGE_MARGIN + (cardWidth + 6) * 3,
-		y: layout.cursorY - 52,
-		width: cardWidth,
-		title: 'Incidencias',
-		value: String(summary.incidents),
-		color: COLORS.accent
-	});
-
-	layout.cursorY -= 72;
-
-	layout.page.drawText('Detalle de asistencias', {
-		x: PAGE_MARGIN,
-		y: layout.cursorY,
-		font: boldFont,
-		size: 12,
-		color: COLORS.text
-	});
-
-	layout.cursorY -= 14;
+	let layout = createFirstPage(pdf, assets, context);
 
 	if (context.records.length === 0) {
-		layout.page.drawRectangle({
-			x: PAGE_MARGIN,
-			y: layout.cursorY - 68,
-			width: CONTENT_WIDTH,
-			height: 68,
-			color: COLORS.surface,
-			borderColor: COLORS.border,
-			borderWidth: 1
-		});
+		drawEmptyTableState(layout.page, font, boldFont, layout.cursorY);
+		return Buffer.from(await pdf.save());
+	}
 
-		layout.page.drawText('No se encontraron asistencias en el rango seleccionado.', {
-			x: PAGE_MARGIN + 16,
-			y: layout.cursorY - 30,
-			font: boldFont,
-			size: 11,
-			color: COLORS.text
-		});
-		layout.page.drawText('Ajusta las fechas o el turno para generar otro reporte.', {
-			x: PAGE_MARGIN + 16,
-			y: layout.cursorY - 46,
-			font,
-			size: 9,
-			color: COLORS.muted
-		});
-	} else {
-		layout.cursorY = drawTableHeader(layout.page, boldFont, layout.cursorY);
+	for (const [index, record] of context.records.entries()) {
+		const rowContent = buildTableRowContent(font, boldFont, record);
 
-		for (const record of context.records) {
-			const rowContent = buildTableRowContent(font, boldFont, record);
-			layout = ensureSpace(pdf, layout, font, rowContent.rowHeight + 12);
-
-			if (layout.cursorY > PAGE_HEIGHT - PAGE_MARGIN - 1) {
-				layout.cursorY = drawTableHeader(layout.page, boldFont, layout.cursorY);
-			} else if (layout.cursorY < PAGE_MARGIN + FOOTER_HEIGHT + rowContent.rowHeight + 12) {
-				layout = createNextPage(pdf, font);
-				layout.cursorY = drawTableHeader(layout.page, boldFont, layout.cursorY);
-			}
-
-			layout.cursorY = drawTableRow(
-				layout.page,
-				font,
-				boldFont,
-				record,
-				rowContent,
-				layout.cursorY
-			);
-		}
+		layout = ensureSpace(pdf, layout, assets, rowContent.rowHeight);
+		layout.cursorY = drawTableRow(layout.page, font, boldFont, rowContent, layout.cursorY, index);
 	}
 
 	return Buffer.from(await pdf.save());
