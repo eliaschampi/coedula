@@ -88,15 +88,13 @@
 		icon="clipboard"
 	>
 		{#snippet actions()}
-			<Button type="filled" color="primary" icon="download" onclick={exportPdfReport}>
-				Exportar PDF
-			</Button>
+			<Button type="gradient" color="primary" icon="download" onclick={exportPdfReport} />
 			<Button
 				type="border"
 				icon="arrowLeft"
 				onclick={() => void goto(resolve(`/students/${data.student.code}` as '/'))}
 			>
-				Volver al perfil
+				Perfil
 			</Button>
 		{/snippet}
 	</PageHeader>

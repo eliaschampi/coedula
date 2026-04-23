@@ -32,7 +32,6 @@
 	let selectedCourse = $state<CourseRow | null>(null);
 
 	let formName = $state('');
-	let formSortOrder = $state('0');
 
 	function getActionError(result: { data?: Record<string, unknown> }): string | null {
 		const error = result.data?.error;
@@ -51,7 +50,6 @@
 		isEditing = false;
 		selectedCourse = null;
 		formName = '';
-		formSortOrder = '0';
 		errorMessage = '';
 		showModal = true;
 	}
@@ -61,7 +59,6 @@
 		isEditing = true;
 		selectedCourse = course;
 		formName = course.name;
-		formSortOrder = String(course.sort_order);
 		errorMessage = '';
 		showModal = true;
 	}
@@ -129,7 +126,6 @@
 			<Table data={data.courses} search pagination hover itemsPerPage={10}>
 				{#snippet thead()}
 					<th>Nombre</th>
-					<th>Orden</th>
 					<th>Acciones</th>
 				{/snippet}
 
@@ -138,7 +134,6 @@
 					<td>
 						<span class="lumi-font--medium">{course.name}</span>
 					</td>
-					<td>{course.sort_order}</td>
 					<td>
 						<div class="lumi-flex lumi-flex--gap-xs">
 							<Button
@@ -200,14 +195,6 @@
 				name="name"
 				label="Nombre del curso"
 				placeholder="Ingrese el nombre"
-				required
-			/>
-			<Input
-				bind:value={formSortOrder}
-				name="sort_order"
-				type="number"
-				label="Orden"
-				placeholder="0"
 				required
 			/>
 		</div>

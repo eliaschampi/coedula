@@ -15,8 +15,6 @@
 		Fieldset,
 		InfoItem,
 		Input,
-		List,
-		ListItem,
 		PageHeader,
 		PageSidebar,
 		Select,
@@ -135,7 +133,6 @@
 		data.cycleDegreeOptions.find((option) => option.code === filterCycleDegreeCode) ?? null
 	);
 
-	const selectedDegreeLabel = $derived(selectedDegreeOption?.label ?? 'Sin grado activo');
 	const selectedDegreeChipLabel = $derived(
 		selectedDegreeOption?.degree_name
 			? formatAcademicDegreeLabel(selectedDegreeOption.degree_name)
@@ -151,9 +148,6 @@
 	);
 	const inactiveEnrollments = $derived(
 		data.enrollments.filter((enrollment) => enrollment.status === 'inactive').length
-	);
-	const currentCohortCaption = $derived(
-		`${selectedDegreeLabel} · ${formatGroupCode(filterGroupCode)}`
 	);
 
 	function getActionError(result: { data?: Record<string, unknown> }): string | null {
@@ -423,16 +417,14 @@
 		>
 			{#snippet sidebar()}
 				<div class="lumi-page-sidebar__section">
-					<div class="enrollments-sidebar__hero">
-						<p class="lumi-page-sidebar__label">Vista actual</p>
-						<h2 class="enrollments-sidebar__title">{selectedCycleLabel}</h2>
-						<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-							<Chip color="secondary" size="sm">{selectedDegreeChipLabel}</Chip>
-							<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
-							{#if filterSearchQuery.trim()}
-								<Chip color="primary" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
-							{/if}
-						</div>
+					<div
+						class="lumi-filter-summary lumi-filter-summary--compact lumi-filter-summary--secondary"
+					>
+						<p class="lumi-filter-summary__eyebrow">Vista actual</p>
+						<h2 class="lumi-filter-summary__title">{selectedCycleLabel}</h2>
+						<p class="lumi-filter-summary__subtitle">
+							Ajusta ciclo, grado y grupo desde este panel.
+						</p>
 					</div>
 				</div>
 
@@ -512,19 +504,16 @@
 
 				<Card spaced>
 					<div class="lumi-stack lumi-stack--md">
-						<div class="enrollments-page__spotlight">
-							<div class="enrollments-page__spotlight-copy">
-								<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Panel operativo</p>
-								<h2 class="enrollments-page__spotlight-title">{selectedCycleLabel}</h2>
-								<p class="enrollments-page__spotlight-subtitle">
-									{currentCohortCaption}
-									{#if filterSearchQuery.trim()}
-										· Búsqueda activa: "{filterSearchQuery.trim()}"
-									{/if}
+						<div class="lumi-filter-summary lumi-filter-summary--secondary">
+							<div class="lumi-filter-summary__copy">
+								<p class="lumi-filter-summary__eyebrow">Panel operativo</p>
+								<h2 class="lumi-filter-summary__title">{selectedCycleLabel}</h2>
+								<p class="lumi-filter-summary__subtitle">
+									Matrículas activas, finalizadas e inactivas para la vista seleccionada.
 								</p>
 							</div>
 
-							<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+							<div class="lumi-filter-summary__meta">
 								<Chip color="secondary" size="sm">{selectedDegreeChipLabel}</Chip>
 								<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
 								{#if filterSearchQuery.trim()}
@@ -570,7 +559,7 @@
 										</div>
 									</td>
 									<td class="lumi-min-w--xl">
-										<div class="enrollment-student-cell">
+										<div class="lumi-person-cell">
 											<Avatar text={enrollment.student_full_name} size="sm" color="primary" />
 											<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
 												<span class="lumi-font--medium">{enrollment.student_full_name}</span>
@@ -721,8 +710,8 @@
 					/>
 
 					{#if selectedStudentPreview}
-						<div class="enrollment-student-preview">
-							<div class="enrollment-student-preview__identity">
+						<div class="lumi-selected-panel">
+							<div class="lumi-selected-panel__identity">
 								<Avatar
 									src={selectedStudentPreview.photo_url || ''}
 									text={selectedStudentPreview.full_name}
@@ -755,20 +744,20 @@
 					{#if studentSearchLoading}
 						<p class="lumi-text--sm lumi-text--muted">Buscando alumnos…</p>
 					{:else if studentSearchQuery.trim().length >= 2 && studentSearchResults.length > 0}
-						<List size="sm">
+						<div class="lumi-result-list" role="listbox" aria-label="Resultados de alumnos">
 							{#each studentSearchResults as student (student.code)}
-								<ListItem
-									clickable
-									title={student.full_name}
-									subtitle={`${student.student_number} · ${student.dni || 'Sin DNI'}`}
+								<button
+									type="button"
+									class="lumi-result-option"
+									role="option"
+									aria-selected={formStudentCode === student.code}
+									aria-label={`Seleccionar ${student.full_name}`}
 									onclick={() => selectStudent(student)}
 								>
-									{#snippet avatar()}
-										<Avatar src={student.photo_url || ''} text={student.full_name} />
-									{/snippet}
-								</ListItem>
+									<span class="lumi-result-option__label">{student.full_name}</span>
+								</button>
 							{/each}
-						</List>
+						</div>
 					{:else if studentSearchQuery.trim().length >= 2 && !selectedStudentPreview}
 						<p class="lumi-text--sm lumi-text--muted">
 							No hay coincidencias. Revisa primero el panel de alumnos si necesitas registrar una
@@ -906,97 +895,13 @@
 </Dialog>
 
 <style>
-	.enrollments-sidebar__hero {
-		display: grid;
-		gap: var(--lumi-space-sm);
-		padding: var(--lumi-space-lg);
-		border-radius: var(--lumi-radius-2xl);
-		background:
-			linear-gradient(
-				145deg,
-				color-mix(in srgb, var(--lumi-color-primary) 8%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-secondary) 8%, transparent) 68%,
-				color-mix(in srgb, var(--lumi-color-info) 6%, transparent) 100%
-			),
-			color-mix(in srgb, var(--lumi-color-surface) 92%, transparent);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		box-shadow: var(--lumi-shadow-sm);
-	}
-
-	.enrollments-sidebar__title,
-	.enrollments-page__spotlight-title {
-		margin: 0;
-		color: var(--lumi-color-text);
-	}
-
-	.enrollments-sidebar__title {
-		font-size: var(--lumi-font-size-xl);
-	}
-
-	.enrollments-page__spotlight-subtitle {
-		margin: 0;
-		font-size: var(--lumi-font-size-sm);
-		color: var(--lumi-color-text-muted);
-	}
-
 	.enrollments-page__stats-grid {
 		--lumi-grid-columns: repeat(4, minmax(0, 1fr));
 	}
 
-	.enrollments-page__spotlight,
-	.enrollment-student-preview,
-	.enrollment-student-preview__identity {
-		display: flex;
-	}
-
-	.enrollments-page__spotlight {
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: var(--lumi-space-md);
-		padding: var(--lumi-space-lg);
-		border-radius: var(--lumi-radius-2xl);
-		background:
-			linear-gradient(
-				140deg,
-				color-mix(in srgb, var(--lumi-color-primary) 6%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-info) 8%, transparent) 100%
-			),
-			color-mix(in srgb, var(--lumi-color-surface) 82%, var(--lumi-color-background-hover) 18%);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-	}
-
-	.enrollments-page__spotlight-copy {
-		display: grid;
-		gap: var(--lumi-space-2xs);
-	}
-
-	.enrollment-student-preview {
-		justify-content: space-between;
-		align-items: center;
-		gap: var(--lumi-space-md);
-		padding: var(--lumi-space-md);
-		border-radius: var(--lumi-radius-xl);
-		background:
-			linear-gradient(
-				135deg,
-				color-mix(in srgb, var(--lumi-color-info) 6%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-primary) 8%, transparent) 100%
-			),
-			var(--lumi-color-surface);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-	}
-
-	.enrollment-student-preview__identity,
-	.enrollment-student-cell,
 	.enrollment-assignment-cell,
 	.enrollment-assignment-cell__chips {
 		display: flex;
-	}
-
-	.enrollment-student-preview__identity,
-	.enrollment-student-cell {
-		align-items: center;
-		gap: var(--lumi-space-md);
 	}
 
 	.enrollment-assignment-cell,
@@ -1019,12 +924,6 @@
 	@media (max-width: 768px) {
 		.enrollments-page__stats-grid {
 			--lumi-grid-columns: 1fr;
-		}
-
-		.enrollments-page__spotlight,
-		.enrollment-student-preview {
-			flex-direction: column;
-			align-items: flex-start;
 		}
 
 		.enrollment-form-grid {

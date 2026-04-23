@@ -46,27 +46,15 @@
 	type EvaluationRow = PageData['evaluations'][number];
 
 	const { data }: { data: PageData } = $props();
-	const getInitialFilters = () => ({
-		cycleCode: data.selectedCycleCode,
-		cycleDegreeCode: data.selectedCycleDegreeCode,
-		groupCode: data.selectedGroupCode as GroupCode
-	});
-	const getInitialFormSelection = () => ({
-		cycleCode: data.selectedCycleCode,
-		cycleDegreeCode: data.selectedCycleDegreeCode,
-		groupCode: data.selectedGroupCode as GroupCode
-	});
-	const initialFilters = getInitialFilters();
-	const initialFormSelection = getInitialFormSelection();
 
 	const canRead = $derived(can('evaluations:read'));
 	const canCreate = $derived(can('evaluations:create'));
 	const canUpdate = $derived(can('evaluations:update'));
 	const canDelete = $derived(can('evaluations:delete'));
 
-	let filterCycleCode = $state<string | null>(initialFilters.cycleCode);
-	let filterCycleDegreeCode = $state<string | null>(initialFilters.cycleDegreeCode);
-	let filterGroupCode = $state<GroupCode>(initialFilters.groupCode);
+	const filterCycleCode = $derived(data.selectedCycleCode);
+	const filterCycleDegreeCode = $derived(data.selectedCycleDegreeCode);
+	const filterGroupCode = $derived(data.selectedGroupCode as GroupCode);
 	let showFilterDialog = $state(false);
 	let showModal = $state(false);
 	let showDeleteModal = $state(false);
@@ -76,9 +64,9 @@
 	let selectedEvaluation = $state<EvaluationRow | null>(null);
 
 	let formName = $state('');
-	let formCycleCode = $state<string | null>(initialFormSelection.cycleCode);
-	let formCycleDegreeCode = $state<string | null>(initialFormSelection.cycleDegreeCode);
-	let formGroupCode = $state<GroupCode>(initialFormSelection.groupCode);
+	let formCycleCode = $state<string | null>(null);
+	let formCycleDegreeCode = $state<string | null>(null);
+	let formGroupCode = $state<GroupCode>('A');
 	let formEvalDate = $state('');
 	let formSections = $state<EvaluationSectionFormItem[]>([]);
 	let selectedCourseCode = $state<string | null>(null);
@@ -334,14 +322,6 @@
 	function applyDialogSelection(selection: EvaluationSelectionValue): void {
 		void goto(resolve(buildEvaluationSelectionUrl('/evaluations', selection, false) as '/'));
 	}
-
-	$effect(() => {
-		if (!showModal) {
-			filterCycleCode = data.selectedCycleCode;
-			filterCycleDegreeCode = data.selectedCycleDegreeCode;
-			filterGroupCode = data.selectedGroupCode as GroupCode;
-		}
-	});
 </script>
 
 <div class="lumi-stack lumi-stack--md">
@@ -377,31 +357,27 @@
 		{/snippet}
 	</PageHeader>
 
-	<Card spaced class="evaluation-page__context-card">
-		<div
-			class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-		>
-			<div class="lumi-stack lumi-stack--2xs">
-				<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Vista actual</p>
-				<h2 class="lumi-margin--none">{currentCycleLabel}</h2>
-				<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-					{currentDegreeLabel} · {formatGroupCode(filterGroupCode)}
-				</p>
-			</div>
-
-			<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-				<Chip color="secondary" size="sm">{currentDegreeLabel}</Chip>
-				<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
-				<Chip color="primary" size="sm">{totalEvaluations} evaluaciones</Chip>
-				{#if configuredEvaluations > 0}
-					<Chip color="success" size="sm">{configuredEvaluations} con claves</Chip>
-				{/if}
-				{#if pendingKeysEvaluations > 0}
-					<Chip color="warning" size="sm">{pendingKeysEvaluations} pendientes</Chip>
-				{/if}
-			</div>
+	<div class="lumi-filter-summary lumi-filter-summary--secondary">
+		<div class="lumi-filter-summary__copy">
+			<p class="lumi-filter-summary__eyebrow">Vista actual</p>
+			<h2 class="lumi-filter-summary__title">{currentCycleLabel}</h2>
+			<p class="lumi-filter-summary__subtitle">
+				Evaluaciones del contexto seleccionado, listas para claves, proceso y resultados.
+			</p>
 		</div>
-	</Card>
+
+		<div class="lumi-filter-summary__meta">
+			<Chip color="secondary" size="sm">{currentDegreeLabel}</Chip>
+			<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
+			<Chip color="primary" size="sm">{totalEvaluations} evaluaciones</Chip>
+			{#if configuredEvaluations > 0}
+				<Chip color="success" size="sm">{configuredEvaluations} con claves</Chip>
+			{/if}
+			{#if pendingKeysEvaluations > 0}
+				<Chip color="warning" size="sm">{pendingKeysEvaluations} pendientes</Chip>
+			{/if}
+		</div>
+	</div>
 
 	<Card spaced>
 		<div class="lumi-stack lumi-stack--md">
@@ -452,8 +428,8 @@
 					{/snippet}
 				</EmptyState>
 			{:else}
-				<div class="evaluation-page__table-header">
-					<div class="lumi-stack lumi-stack--2xs">
+				<div class="lumi-section-toolbar">
+					<div class="lumi-section-toolbar__copy">
 						<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Listado</p>
 						<h2 class="lumi-margin--none">Evaluaciones registradas</h2>
 					</div>
@@ -657,10 +633,8 @@
 
 			<Fieldset legend="Secciones de la evaluación">
 				<div class="lumi-stack lumi-stack--sm">
-					<div
-						class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-					>
-						<div class="lumi-stack lumi-stack--2xs">
+					<div class="lumi-section-toolbar">
+						<div class="lumi-section-toolbar__copy">
 							<span class="lumi-font--medium">
 								{formSections.length} cursos · {totalQuestions} preguntas
 							</span>
@@ -668,7 +642,7 @@
 								Límite máximo: {MAX_EVALUATION_QUESTIONS} preguntas por evaluación
 							</span>
 						</div>
-						<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+						<div class="lumi-section-toolbar__actions">
 							<Chip color="primary" size="sm">{formSections.length} secciones</Chip>
 							<Chip
 								color={totalQuestions >= MAX_EVALUATION_QUESTIONS ? 'warning' : 'success'}
@@ -832,17 +806,3 @@
 		</Button>
 	{/snippet}
 </Dialog>
-
-<style>
-	:global(.evaluation-page__context-card) {
-		border-color: color-mix(in srgb, var(--lumi-color-primary) 16%, var(--lumi-color-border));
-	}
-
-	.evaluation-page__table-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--lumi-space-sm);
-		flex-wrap: wrap;
-	}
-</style>

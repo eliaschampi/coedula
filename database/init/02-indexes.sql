@@ -26,7 +26,6 @@ CREATE UNIQUE INDEX drive_files_active_name_scope_uq ON public.drive_files (
 
 -- Academic catalog
 CREATE INDEX academic_degrees_sort_order_idx ON public.academic_degrees (sort_order, name);
-CREATE INDEX courses_sort_order_idx ON public.courses (sort_order, name);
 CREATE INDEX academic_cycles_branch_date_idx ON public.academic_cycles (branch_code, start_date DESC, end_date DESC);
 CREATE INDEX academic_cycles_title_idx ON public.academic_cycles (title, modality);
 CREATE INDEX academic_cycles_active_idx ON public.academic_cycles (is_active, start_date DESC);

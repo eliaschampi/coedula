@@ -15,7 +15,7 @@
 		type TableRow
 	} from '$lib/components';
 	import { can } from '$lib/stores/permissions';
-	import { formatAcademicDegreeLabel, formatEducationDate, formatGroupCode } from '$lib/utils';
+	import { formatEducationDate, formatGroupCode } from '$lib/utils';
 	import type { GroupCode } from '$lib/types/education';
 	import EvaluationSelectorDialog from '../_components/EvaluationSelectorDialog.svelte';
 	import {
@@ -30,9 +30,9 @@
 
 	const canUpdate = $derived(can('evaluations:update'));
 	const currentEvaluation = $derived(data.selectedEvaluation);
+	const filterCycleDegreeCode = $derived(data.selectedCycleDegreeCode);
+	const filterGroupCode = $derived(data.selectedGroupCode as GroupCode);
 
-	let filterCycleDegreeCode = $state<string | null>(null);
-	let filterGroupCode = $state<GroupCode>('A');
 	let resultsSearchQuery = $state('');
 	let showFilterDialog = $state(false);
 
@@ -119,11 +119,6 @@
 	function applyDialogSelection(selection: EvaluationSelectionValue): void {
 		void goto(resolve(buildEvaluationSelectionUrl('/evaluations/results', selection) as '/'));
 	}
-
-	$effect(() => {
-		filterCycleDegreeCode = data.selectedCycleDegreeCode;
-		filterGroupCode = data.selectedGroupCode as GroupCode;
-	});
 </script>
 
 <div class="lumi-stack lumi-stack--md">
@@ -135,20 +130,15 @@
 		{#snippet actions()}
 			<Dropdown position="bottom-end" aria-label="Acciones de resultados">
 				{#snippet triggerContent()}
-					<Button type="filled" color="primary" icon="moreVertical">Acciones</Button>
+					<Button type="flat" color="primary" icon="moreVertical" />
 				{/snippet}
 
 				{#snippet content()}
-					<DropdownItem
-						icon="slidersHorizontal"
-						color="info"
-						onclick={() => (showFilterDialog = true)}
-					>
+					<DropdownItem icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
 						Seleccionar evaluación
 					</DropdownItem>
 					<DropdownItem
 						icon="download"
-						color="info"
 						onclick={exportDetailedResults}
 						disabled={!currentEvaluation || data.results.length === 0}
 					>
@@ -156,59 +146,50 @@
 					</DropdownItem>
 					<DropdownItem icon="userRound" onclick={openStudentResults}>Por alumno</DropdownItem>
 					{#if currentEvaluation && canUpdate}
-						<DropdownItem icon="imagePlus" color="info" onclick={openProcessPage}>
-							Procesar hojas
-						</DropdownItem>
+						<DropdownItem icon="imagePlus" onclick={openProcessPage}>Procesar hojas</DropdownItem>
 					{/if}
-					<DropdownItem icon="arrowLeft" onclick={() => void goto(resolve('/evaluations' as '/'))}>
-						Volver
-					</DropdownItem>
 				{/snippet}
 			</Dropdown>
+			<Button
+				type="border"
+				icon="arrowLeft"
+				onclick={() => void goto(resolve('/evaluations' as '/'))}
+			/>
 		{/snippet}
 	</PageHeader>
 
-	<Card spaced class="evaluation-results__context-card">
-		<div
-			class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-		>
-			<div class="lumi-stack lumi-stack--2xs">
-				<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Evaluación activa</p>
-				<h2 class="lumi-margin--none">
-					{currentEvaluation?.name ?? 'Selecciona una evaluación con claves'}
-				</h2>
+	<div class="lumi-filter-summary">
+		<div class="lumi-filter-summary__copy">
+			<p class="lumi-filter-summary__eyebrow">Evaluación activa</p>
+			<h2 class="lumi-filter-summary__title">
+				{currentEvaluation?.name ?? 'Selecciona una evaluación con claves'}
+			</h2>
+			<p class="lumi-filter-summary__subtitle">
 				{#if currentEvaluation}
-					<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-						{currentEvaluation.cycle_title} ·
-						{formatAcademicDegreeLabel(currentEvaluation.degree_name)} ·
-						{formatGroupCode(currentEvaluation.group_code)} ·
-						{formatEducationDate(currentEvaluation.eval_date)}
-					</p>
+					{currentEvaluation.cycle_title} · {formatEducationDate(currentEvaluation.eval_date)}
 				{:else}
-					<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-						Usa el selector para abrir una evaluación ya configurada.
-					</p>
+					Usa el selector para abrir una evaluación ya configurada.
 				{/if}
-			</div>
-
-			<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-				{#if filterCycleDegreeCode}
-					<Chip color="secondary" size="sm">
-						{data.cycleDegreeOptions.find((option) => option.code === filterCycleDegreeCode)?.label}
-					</Chip>
-				{/if}
-				<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
-				{#if currentEvaluation}
-					<Chip color="primary" size="sm">{totalResults} resultados</Chip>
-					{#if totalResults > 0}
-						<Chip color="success" size="sm">{approvedResults} aprobados</Chip>
-						<Chip color="secondary" size="sm">Mejor {bestScore.toFixed(2)}</Chip>
-						<Chip color="warning" size="sm">Promedio {averageScore.toFixed(2)}</Chip>
-					{/if}
-				{/if}
-			</div>
+			</p>
 		</div>
-	</Card>
+
+		<div class="lumi-filter-summary__meta">
+			{#if filterCycleDegreeCode}
+				<Chip color="secondary" size="sm">
+					{data.cycleDegreeOptions.find((option) => option.code === filterCycleDegreeCode)?.label}
+				</Chip>
+			{/if}
+			<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
+			{#if currentEvaluation}
+				<Chip color="primary" size="sm">{totalResults} resultados</Chip>
+				{#if totalResults > 0}
+					<Chip color="success" size="sm">{approvedResults} aprobados</Chip>
+					<Chip color="secondary" size="sm">Mejor {bestScore.toFixed(2)}</Chip>
+					<Chip color="warning" size="sm">Promedio {averageScore.toFixed(2)}</Chip>
+				{/if}
+			{/if}
+		</div>
+	</div>
 
 	{#if !currentEvaluation}
 		<Card spaced>
@@ -257,7 +238,7 @@
 	{:else}
 		<Card spaced>
 			<div class="lumi-stack lumi-stack--md">
-				<div class="evaluation-results__toolbar">
+				<div class="lumi-toolbar-field">
 					<Input
 						bind:value={resultsSearchQuery}
 						label="Buscar alumno"
@@ -340,20 +321,3 @@
 	applyLabel="Ver resultados"
 	onapply={applyDialogSelection}
 />
-
-<style>
-	:global(.evaluation-results__context-card) {
-		border-color: color-mix(in srgb, var(--lumi-color-primary) 16%, var(--lumi-color-border));
-	}
-
-	.evaluation-results__toolbar {
-		display: grid;
-		grid-template-columns: minmax(0, 320px);
-	}
-
-	@media (max-width: 640px) {
-		.evaluation-results__toolbar {
-			grid-template-columns: 1fr;
-		}
-	}
-</style>

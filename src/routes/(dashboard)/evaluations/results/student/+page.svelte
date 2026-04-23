@@ -8,11 +8,9 @@
 		Card,
 		Chip,
 		EmptyState,
-		InfoItem,
 		Input,
 		PageHeader,
 		Select,
-		StatCard,
 		Table,
 		type TableRow
 	} from '$lib/components';
@@ -134,14 +132,12 @@
 				type="border"
 				icon="arrowLeft"
 				onclick={() => void goto(resolve('/evaluations/results' as '/'))}
-			>
-				Volver
-			</Button>
+			/>
 		{/snippet}
 	</PageHeader>
 
 	<Card spaced>
-		<div class="evaluation-student-results__selector">
+		<div class="lumi-toolbar-field">
 			<Select
 				value={data.student?.code ?? null}
 				label="Alumno"
@@ -161,85 +157,44 @@
 			icon="graduationCap"
 		/>
 	{:else}
-		<Card>
-			<div class="evaluation-student-results__hero">
-				<div class="evaluation-student-results__identity">
-					<Avatar
-						src={data.student.photo_url
-							? buildStudentPhotoUrl(data.student.photo_url, 'preview')
-							: ''}
-						text={data.student.full_name}
-						size="xl"
-						color="primary"
-					/>
-					<div class="lumi-stack lumi-stack--2xs">
-						<div class="evaluation-student-results__title-row">
-							<h2 class="evaluation-student-results__name">{data.student.full_name}</h2>
-							<Chip color={data.student.is_active ? 'success' : 'danger'} size="sm">
-								{data.student.is_active ? 'Activo' : 'Inactivo'}
-							</Chip>
-						</div>
-						<p class="evaluation-student-results__code">{data.student.student_number}</p>
-						<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-							{#if data.student.current_cycle_title}
-								<Chip color="secondary" size="sm">{data.student.current_cycle_title}</Chip>
-							{/if}
-							{#if data.student.current_degree_name}
-								<Chip color="info" size="sm">
-									{formatAcademicDegreeLabel(data.student.current_degree_name)}
-								</Chip>
-							{/if}
-						</div>
-					</div>
-				</div>
-
-				<div class="evaluation-student-results__meta">
-					<InfoItem icon="creditCard" label="DNI" value={data.student.dni || 'Sin DNI'} />
-					<InfoItem
-						icon="building"
-						label="Sede actual"
-						value={data.student.current_branch_name || 'Sin sede activa'}
-					/>
-					<InfoItem
-						icon="history"
-						label="Matrículas"
-						value={String(data.student.enrollments_count)}
-					/>
+		<div class="lumi-filter-summary lumi-filter-summary--secondary">
+			<div class="lumi-person-cell">
+				<Avatar
+					src={data.student.photo_url
+						? buildStudentPhotoUrl(data.student.photo_url, 'preview')
+						: ''}
+					text={data.student.full_name}
+					size="xl"
+					color="primary"
+				/>
+				<div class="lumi-filter-summary__copy">
+					<p class="lumi-filter-summary__eyebrow">Alumno activo</p>
+					<h2 class="lumi-filter-summary__title">{data.student.full_name}</h2>
+					<p class="lumi-filter-summary__subtitle">
+						{data.student.student_number} · {data.student.current_branch_name || 'Sin sede activa'}
+					</p>
 				</div>
 			</div>
-		</Card>
 
-		<div
-			class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md evaluation-student-results__stats-grid"
-		>
-			<StatCard
-				title="Evaluaciones"
-				value={String(totalResults)}
-				icon="badgeCheck"
-				color="primary"
-				subtitle="Resultados guardados en el historial"
-			/>
-			<StatCard
-				title="Aprobadas"
-				value={String(approvedResults)}
-				icon="checkCircle"
-				color="success"
-				subtitle="Notas iguales o mayores a 10.5"
-			/>
-			<StatCard
-				title="Promedio"
-				value={averageScore.toFixed(2)}
-				icon="chartBar"
-				color="info"
-				subtitle="Promedio global del alumno"
-			/>
-			<StatCard
-				title="Mejor nota"
-				value={bestScore.toFixed(2)}
-				icon="award"
-				color="secondary"
-				subtitle="Máximo puntaje alcanzado"
-			/>
+			<div class="lumi-filter-summary__meta">
+				<Chip color={data.student.is_active ? 'success' : 'danger'} size="sm">
+					{data.student.is_active ? 'Activo' : 'Inactivo'}
+				</Chip>
+				{#if data.student.current_cycle_title}
+					<Chip color="secondary" size="sm">{data.student.current_cycle_title}</Chip>
+				{/if}
+				{#if data.student.current_degree_name}
+					<Chip color="info" size="sm">
+						{formatAcademicDegreeLabel(data.student.current_degree_name)}
+					</Chip>
+				{/if}
+				<Chip color="primary" size="sm">{totalResults} evaluaciones</Chip>
+				<Chip color="success" size="sm">{approvedResults} aprobadas</Chip>
+				<Chip color="warning" size="sm">Promedio {averageScore.toFixed(2)}</Chip>
+				<Chip color="secondary" size="sm">Mejor {bestScore.toFixed(2)}</Chip>
+				<Chip color="info" size="sm">{data.student.enrollments_count} matrículas</Chip>
+				<Chip color="primary" size="sm">{data.student.dni || 'Sin DNI'}</Chip>
+			</div>
 		</div>
 
 		{#if data.results.length === 0}
@@ -251,7 +206,7 @@
 		{:else}
 			<Card spaced>
 				<div class="lumi-stack lumi-stack--md">
-					<div class="evaluation-student-results__toolbar">
+					<div class="lumi-toolbar-field">
 						<Input
 							bind:value={resultsSearchQuery}
 							label="Buscar evaluación"
@@ -315,81 +270,3 @@
 		{/if}
 	{/if}
 </div>
-
-<style>
-	.evaluation-student-results__selector {
-		display: grid;
-		grid-template-columns: minmax(0, 420px);
-	}
-
-	.evaluation-student-results__hero {
-		display: grid;
-		grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
-		gap: var(--lumi-space-lg);
-		align-items: start;
-	}
-
-	.evaluation-student-results__identity {
-		display: flex;
-		gap: var(--lumi-space-md);
-		align-items: center;
-	}
-
-	.evaluation-student-results__title-row {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: var(--lumi-space-xs);
-	}
-
-	.evaluation-student-results__name,
-	.evaluation-student-results__code {
-		margin: 0;
-	}
-
-	.evaluation-student-results__code {
-		color: var(--lumi-color-text-muted);
-		font-size: var(--lumi-font-size-sm);
-	}
-
-	.evaluation-student-results__meta {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--lumi-space-sm);
-	}
-
-	.evaluation-student-results__stats-grid {
-		--lumi-grid-columns: repeat(4, minmax(0, 1fr));
-	}
-
-	.evaluation-student-results__toolbar {
-		display: grid;
-		grid-template-columns: minmax(0, 320px);
-	}
-
-	@media (max-width: 1100px) {
-		.evaluation-student-results__hero {
-			grid-template-columns: 1fr;
-		}
-
-		.evaluation-student-results__stats-grid {
-			--lumi-grid-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-
-	@media (max-width: 700px) {
-		.evaluation-student-results__selector,
-		.evaluation-student-results__toolbar,
-		.evaluation-student-results__meta {
-			grid-template-columns: 1fr;
-		}
-
-		.evaluation-student-results__identity {
-			align-items: flex-start;
-		}
-
-		.evaluation-student-results__stats-grid {
-			--lumi-grid-columns: 1fr;
-		}
-	}
-</style>

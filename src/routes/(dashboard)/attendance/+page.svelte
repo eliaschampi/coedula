@@ -14,8 +14,6 @@
 		EmptyState,
 		Fieldset,
 		Input,
-		List,
-		ListItem,
 		PageHeader,
 		PageSidebar,
 		Select,
@@ -148,6 +146,18 @@
 		const form = document.getElementById(formId);
 		if (form instanceof HTMLFormElement) {
 			form.requestSubmit();
+		}
+	}
+
+	function confirmCompleteMissing(): void {
+		if (!canCompleteMissing) return;
+
+		const confirmed = window.confirm(
+			`Se registrarán como falta las ${pendingCount} asistencia(s) pendientes de la vista actual. ¿Continuar?`
+		);
+
+		if (confirmed) {
+			submitForm('complete-attendance-form');
 		}
 	}
 
@@ -293,23 +303,15 @@
 					aria-label="Abrir filtros de asistencia"
 				/>
 				<Button
-					type="border"
-					color="info"
+					type="flat"
+					color="secondary"
 					icon="creditCard"
 					onclick={() => void goto(resolve('/attendance/scan' as '/'))}
-				>
-					Escanear QR
-				</Button>
-				<Button type="filled" color="primary" icon="plus" onclick={() => openCreateModal()}>
-					Registrar asistencia
-				</Button>
+				/>
+				<Button type="gradient" color="primary" icon="plus" onclick={() => openCreateModal()}
+				></Button>
 				{#if canCompleteMissing}
-					<Button
-						type="flat"
-						color="warning"
-						icon="badgeCheck"
-						onclick={() => submitForm('complete-attendance-form')}
-					>
+					<Button type="flat" color="warning" icon="badgeCheck" onclick={confirmCompleteMissing}>
 						Completar faltas
 					</Button>
 				{/if}
@@ -358,21 +360,14 @@
 		>
 			{#snippet sidebar()}
 				<div class="lumi-page-sidebar__section">
-					<div class="attendance-sidebar__hero">
-						<p class="lumi-page-sidebar__label">Resumen del día</p>
-						<h2 class="attendance-sidebar__title">{selectedCycleLabel}</h2>
-						<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-							<Chip color="primary" size="sm" icon="calendar">{selectedDateLabel}</Chip>
-							<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
-							<Chip color={getEnrollmentTurnColor(filterTurn)} size="sm">
-								{selectedTurnLabel}
-							</Chip>
-							{#if filterSearchQuery.trim()}
-								<Chip color="secondary" size="sm" icon="search">
-									{filterSearchQuery.trim()}
-								</Chip>
-							{/if}
-						</div>
+					<div
+						class="lumi-filter-summary lumi-filter-summary--compact lumi-filter-summary--warning"
+					>
+						<p class="lumi-filter-summary__eyebrow">Resumen del día</p>
+						<h2 class="lumi-filter-summary__title">{selectedCycleLabel}</h2>
+						<p class="lumi-filter-summary__subtitle">
+							Ajusta fecha, turno y grupo desde este panel.
+						</p>
 					</div>
 				</div>
 
@@ -407,19 +402,16 @@
 					/>
 				</div>
 
-				<div class="lumi-page-sidebar__section">
-					<p class="lumi-page-sidebar__label">Acciones</p>
-					<div class="lumi-stack lumi-stack--xs">
-						<Button
-							type="filled"
-							color="primary"
-							icon="search"
-							onclick={applyFiltersAndCloseSidebar}
-						>
-							Aplicar filtros
-						</Button>
-						<Button type="border" onclick={clearFilters}>Limpiar</Button>
-					</div>
+				<div class="lumi-page-sidebar__section lumi-stack lumi-stack--xs">
+					<Button
+						type="gradient"
+						color="primary"
+						icon="search"
+						onclick={applyFiltersAndCloseSidebar}
+					>
+						Aplicar filtros
+					</Button>
+					<Button type="border" onclick={clearFilters}>Limpiar</Button>
 				</div>
 			{/snippet}
 		</PageSidebar>
@@ -428,22 +420,28 @@
 			<div class="lumi-stack lumi-stack--sm">
 				<Card spaced>
 					<div class="lumi-stack lumi-stack--md">
-						<div class="attendance-page__spotlight">
-							<div class="attendance-page__spotlight-copy">
-								<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Resumen operativo</p>
-								<h2 class="attendance-page__spotlight-title">{selectedCycleLabel}</h2>
-								<p class="attendance-page__spotlight-subtitle">
-									{selectedDegreeLabel} · {formatGroupCode(filterGroupCode)} · {selectedDateLabel}
+						<div class="lumi-filter-summary lumi-filter-summary--warning">
+							<div class="lumi-filter-summary__copy">
+								<p class="lumi-filter-summary__eyebrow">Resumen operativo</p>
+								<h2 class="lumi-filter-summary__title">{selectedCycleLabel}</h2>
+								<p class="lumi-filter-summary__subtitle">
+									Control diario de asistencia para la vista seleccionada.
 								</p>
 							</div>
 
-							<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+							<div class="lumi-filter-summary__meta">
+								<Chip color="secondary" size="sm">{selectedDegreeLabel}</Chip>
 								<Chip color="primary" size="sm" icon="calendar">{selectedDateLabel}</Chip>
 								<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
 								<Chip color={getEnrollmentTurnColor(filterTurn)} size="sm">
 									{selectedTurnLabel}
 								</Chip>
 								<Chip color="warning" size="sm" icon="clock">{pendingCount} pendientes</Chip>
+								{#if filterSearchQuery.trim()}
+									<Chip color="secondary" size="sm" icon="search">
+										{filterSearchQuery.trim()}
+									</Chip>
+								{/if}
 							</div>
 						</div>
 
@@ -484,7 +482,7 @@
 										</div>
 									</td>
 									<td class="lumi-min-w--xl">
-										<div class="attendance-page__student-cell">
+										<div class="lumi-person-cell">
 											<Avatar
 												src={attendanceRow.student_photo_url || ''}
 												text={attendanceRow.student_full_name}
@@ -558,14 +556,12 @@
 												{/if}
 												<DropdownItem
 													icon="history"
-													color="info"
 													onclick={() => openStudentAttendance(attendanceRow.student_code)}
 												>
 													Ver historial
 												</DropdownItem>
 												<DropdownItem
 													icon="eye"
-													color="info"
 													disabled={!canReadStudents}
 													onclick={() => openStudentProfile(attendanceRow.student_code)}
 												>
@@ -646,8 +642,8 @@
 						/>
 
 						{#if selectedManualRow}
-							<div class="attendance-page__selected-row">
-								<div class="attendance-page__student-cell">
+							<div class="lumi-selected-panel">
+								<div class="lumi-selected-panel__identity">
 									<Avatar
 										src={selectedManualRow.student_photo_url || ''}
 										text={selectedManualRow.student_full_name}
@@ -667,28 +663,25 @@
 								</Button>
 							</div>
 						{:else if manualSearchQuery.trim().length > 0}
-							<List size="sm">
-								{#each filteredMissingCandidates.slice(0, 8) as candidate (candidate.enrollment_code)}
-									<ListItem
-										clickable
-										title={candidate.student_full_name}
-										subtitle={`${candidate.student_number} · ${candidate.student_dni || 'Sin DNI'}`}
+							<div class="lumi-result-list" role="listbox" aria-label="Alumnos pendientes">
+								{#each filteredMissingCandidates as candidate (candidate.enrollment_code)}
+									<button
+										type="button"
+										class="lumi-result-option"
+										role="option"
+										aria-selected={formEnrollmentCode === candidate.enrollment_code}
+										aria-label={`Seleccionar ${candidate.student_full_name}`}
 										onclick={() => selectManualRow(candidate)}
 									>
-										{#snippet avatar()}
-											<Avatar
-												src={candidate.student_photo_url || ''}
-												text={candidate.student_full_name}
-											/>
-										{/snippet}
-									</ListItem>
+										<span class="lumi-result-option__label">{candidate.student_full_name}</span>
+									</button>
 								{/each}
-							</List>
+							</div>
 						{/if}
 					</div>
 				{:else if selectedManualRow}
-					<div class="attendance-page__selected-row">
-						<div class="attendance-page__student-cell">
+					<div class="lumi-selected-panel">
+						<div class="lumi-selected-panel__identity">
 							<Avatar
 								src={selectedManualRow.student_photo_url || ''}
 								text={selectedManualRow.student_full_name}
@@ -750,93 +743,11 @@
 </Dialog>
 
 <style>
-	.attendance-sidebar__hero {
-		display: grid;
-		gap: var(--lumi-space-sm);
-		padding: var(--lumi-space-lg);
-		border-radius: var(--lumi-radius-2xl);
-		background:
-			linear-gradient(
-				145deg,
-				color-mix(in srgb, var(--lumi-color-primary) 8%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-info) 8%, transparent) 68%,
-				color-mix(in srgb, var(--lumi-color-warning) 6%, transparent) 100%
-			),
-			color-mix(in srgb, var(--lumi-color-surface) 92%, transparent);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		box-shadow: var(--lumi-shadow-sm);
-	}
-
-	.attendance-sidebar__title,
-	.attendance-page__spotlight-title {
-		margin: 0;
-		color: var(--lumi-color-text);
-	}
-
-	.attendance-sidebar__title {
-		font-size: var(--lumi-font-size-xl);
-	}
-
-	.attendance-page__spotlight-subtitle {
-		margin: 0;
-		font-size: var(--lumi-font-size-sm);
-		color: var(--lumi-color-text-muted);
-	}
-
-	.attendance-page__spotlight {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: var(--lumi-space-md);
-		padding: var(--lumi-space-lg);
-		border-radius: var(--lumi-radius-2xl);
-		background:
-			linear-gradient(
-				140deg,
-				color-mix(in srgb, var(--lumi-color-primary) 6%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-warning) 8%, transparent) 100%
-			),
-			color-mix(in srgb, var(--lumi-color-surface) 84%, var(--lumi-color-background-hover) 16%);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-	}
-
-	.attendance-page__spotlight-copy {
-		display: grid;
-		gap: var(--lumi-space-2xs);
-	}
-
-	.attendance-page__student-cell,
-	.attendance-page__selected-row {
-		display: flex;
-		align-items: center;
-		gap: var(--lumi-space-md);
-	}
-
-	.attendance-page__selected-row {
-		justify-content: space-between;
-		padding: var(--lumi-space-md);
-		border-radius: var(--lumi-radius-xl);
-		background:
-			linear-gradient(
-				135deg,
-				color-mix(in srgb, var(--lumi-color-info) 6%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-primary) 8%, transparent) 100%
-			),
-			var(--lumi-color-surface);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-	}
-
 	.attendance-page__observation {
 		color: var(--lumi-color-text-muted);
 	}
 
 	@media (max-width: 768px) {
-		.attendance-page__spotlight,
-		.attendance-page__selected-row {
-			flex-direction: column;
-			align-items: flex-start;
-		}
-
 		.attendance-page__form-grid {
 			grid-template-columns: 1fr;
 		}

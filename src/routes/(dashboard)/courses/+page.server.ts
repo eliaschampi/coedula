@@ -3,19 +3,6 @@ import { fail } from '@sveltejs/kit';
 import { readFormField } from '$lib/utils/formData';
 import { isUuid } from '$lib/utils/validation';
 
-function parseSortOrder(value: string): number {
-	if (!value) {
-		throw new Error('El orden es obligatorio');
-	}
-
-	const parsed = Number.parseInt(value, 10);
-	if (!Number.isFinite(parsed) || parsed < 0) {
-		throw new Error('El orden debe ser un número válido mayor o igual a 0');
-	}
-
-	return parsed;
-}
-
 export const load: PageServerLoad = async ({ locals, depends }) => {
 	depends('courses:load');
 
@@ -26,7 +13,6 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 	const courses = await locals.db
 		.selectFrom('courses')
 		.selectAll()
-		.orderBy('sort_order', 'asc')
 		.orderBy('name', 'asc')
 		.execute();
 
@@ -45,7 +31,6 @@ export const actions: Actions = {
 		try {
 			const formData = await request.formData();
 			const name = readFormField(formData, 'name');
-			const sortOrder = parseSortOrder(readFormField(formData, 'sort_order'));
 
 			if (!name) {
 				return fail(400, { error: 'El nombre es obligatorio' });
@@ -54,8 +39,7 @@ export const actions: Actions = {
 			await locals.db
 				.insertInto('courses')
 				.values({
-					name,
-					sort_order: sortOrder
+					name
 				})
 				.execute();
 
@@ -75,7 +59,6 @@ export const actions: Actions = {
 			const formData = await request.formData();
 			const courseCode = readFormField(formData, 'code');
 			const name = readFormField(formData, 'name');
-			const sortOrder = parseSortOrder(readFormField(formData, 'sort_order'));
 
 			if (!courseCode || !isUuid(courseCode)) {
 				return fail(400, { error: 'El curso seleccionado no es válido' });
@@ -88,8 +71,7 @@ export const actions: Actions = {
 			const result = await locals.db
 				.updateTable('courses')
 				.set({
-					name,
-					sort_order: sortOrder
+					name
 				})
 				.where('code', '=', courseCode)
 				.executeTakeFirst();

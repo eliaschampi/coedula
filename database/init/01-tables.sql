@@ -98,13 +98,11 @@ CREATE TABLE public.academic_degrees (
 CREATE TABLE public.courses (
   code UUID NOT NULL DEFAULT gen_random_uuid(),
   name VARCHAR(120) NOT NULL,
-  sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT courses_pk PRIMARY KEY (code),
   CONSTRAINT courses_name_uq UNIQUE (name),
-  CONSTRAINT courses_name_check CHECK (char_length(trim(name)) > 0),
-  CONSTRAINT courses_sort_order_check CHECK (sort_order >= 0)
+  CONSTRAINT courses_name_check CHECK (char_length(trim(name)) > 0)
 );
 
 -- Academic cycles

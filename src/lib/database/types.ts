@@ -116,7 +116,6 @@ export interface Courses {
 	code: Generated<string>;
 	created_at: Generated<Timestamp>;
 	name: string;
-	sort_order: Generated<number>;
 	updated_at: Generated<Timestamp>;
 }
 

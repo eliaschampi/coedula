@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -11,7 +12,6 @@
 		EmptyState,
 		NumberInput,
 		PageHeader,
-		StatCard,
 		Switch,
 		Tabs,
 		Textarea
@@ -32,12 +32,10 @@
 	import type { PageData } from './$types';
 
 	const { data }: { data: PageData } = $props();
-	const getInitialActiveSectionCode = () => data.sections[0]?.code ?? '';
-	const initialActiveSectionCode = getInitialActiveSectionCode();
 
 	const canUpdate = $derived(can('evaluations:update'));
 
-	let activeSectionCode = $state(initialActiveSectionCode);
+	let activeSectionCode = $state(untrack(() => data.sections[0]?.code ?? ''));
 	let errorMessage = $state('');
 	let pasteDialogOpen = $state(false);
 	let pasteContent = $state('');
@@ -62,6 +60,12 @@
 		data.sections.find((section) => section.code === activeSectionCode) ?? null
 	);
 	const activeQuestions = $derived(sectionQuestions[activeSectionCode] ?? []);
+	const activeAnsweredQuestions = $derived(
+		activeQuestions.filter((question) => question.correct_key).length
+	);
+	const activeSectionCompletion = $derived(
+		activeSection ? Math.round((activeAnsweredQuestions * 100) / activeSection.question_count) : 0
+	);
 	const sectionTabs = $derived(
 		data.sections.map((section) => ({
 			value: section.code,
@@ -261,8 +265,8 @@
 
 <div class="lumi-stack lumi-stack--md">
 	<PageHeader
-		title={`Claves · ${data.evaluation.name}`}
-		subtitle={`${data.evaluation.cycle_title} · ${formatAcademicDegreeLabel(data.evaluation.degree_name)} · ${formatGroupCode(data.evaluation.group_code)} · ${formatEducationDate(data.evaluation.eval_date)}`}
+		title="Claves de evaluación"
+		subtitle="Configura la secuencia OMR por curso con una vista más compacta y rápida."
 		icon="key"
 	>
 		{#snippet actions()}
@@ -283,43 +287,35 @@
 		{/snippet}
 	</PageHeader>
 
-	<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md">
-		<StatCard
-			title="Progreso"
-			value={`${Math.round(completionPercentage)}%`}
-			icon="badgeCheck"
-			color={isComplete ? 'success' : 'primary'}
-			subtitle={`${answeredQuestions} de ${totalQuestions} preguntas completas`}
-		/>
-		<StatCard
-			title="Cursos"
-			value={String(data.sections.length)}
-			icon="bookOpenCheck"
-			color="secondary"
-			subtitle="Secciones registradas en esta evaluación"
-		/>
-		<StatCard
-			title="Preguntas"
-			value={String(totalQuestions)}
-			icon="listChecks"
-			color="info"
-			subtitle="Total global según la estructura definida"
-		/>
-		<StatCard
-			title="Estado"
-			value={isComplete ? 'Lista' : 'Pendiente'}
-			icon={isComplete ? 'checkCircle' : 'clock'}
-			color={isComplete ? 'success' : 'warning'}
-			subtitle={isComplete ? 'La evaluación ya tiene todas sus claves' : 'Aún faltan respuestas'}
-		/>
+	<div class="lumi-filter-summary lumi-filter-summary--secondary">
+		<div class="lumi-filter-summary__copy">
+			<p class="lumi-filter-summary__eyebrow">Secuencia activa</p>
+			<h2 class="lumi-filter-summary__title">{data.evaluation.name}</h2>
+			<p class="lumi-filter-summary__subtitle">
+				{data.evaluation.cycle_title} · {formatAcademicDegreeLabel(data.evaluation.degree_name)} ·
+				{formatGroupCode(data.evaluation.group_code)} ·
+				{formatEducationDate(data.evaluation.eval_date)}
+			</p>
+		</div>
+
+		<div class="lumi-filter-summary__meta">
+			<Chip color={isComplete ? 'success' : 'primary'} size="sm">
+				{Math.round(completionPercentage)}% completo
+			</Chip>
+			<Chip color="info" size="sm">
+				{answeredQuestions}/{totalQuestions} claves
+			</Chip>
+			<Chip color="secondary" size="sm">{data.sections.length} cursos</Chip>
+			<Chip color={isComplete ? 'success' : 'warning'} size="sm">
+				{isComplete ? 'Lista' : 'Pendiente'}
+			</Chip>
+		</div>
 	</div>
 
 	<Card spaced>
 		<div class="lumi-stack lumi-stack--md">
-			<div
-				class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-			>
-				<div class="lumi-stack lumi-stack--2xs">
+			<div class="lumi-section-toolbar">
+				<div class="lumi-section-toolbar__copy">
 					<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Secuencia global</p>
 					<h2 class="lumi-margin--none">
 						{answeredQuestions} / {totalQuestions} preguntas con clave asignada
@@ -329,7 +325,7 @@
 					</p>
 				</div>
 
-				<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+				<div class="lumi-section-toolbar__actions">
 					<Button type="border" size="sm" icon="copy" onclick={copyAllKeys} disabled={!isComplete}>
 						Copiar
 					</Button>
@@ -423,60 +419,40 @@
 				<Tabs bind:value={activeSectionCode} tabs={sectionTabs} color="primary" />
 
 				{#if activeSection}
-					<Card spaced>
+					<section class="evaluation-keys__section-panel">
 						<div class="lumi-stack lumi-stack--md">
-							<div
-								class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-							>
-								<div class="lumi-stack lumi-stack--2xs">
+							<div class="lumi-section-toolbar">
+								<div class="lumi-section-toolbar__copy">
 									<h3 class="lumi-margin--none">{activeSection.course_name}</h3>
 									<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
 										Orden {activeSection.order_in_eval} · {activeSection.question_count} preguntas
 									</p>
 								</div>
 								<Chip color="primary" size="sm">
-									{(activeQuestions.filter((question) => question.correct_key).length /
-										activeSection.question_count) *
-										100 || 0}
-									% completado
+									{activeSectionCompletion}% completado
 								</Chip>
 							</div>
 
-							<div class="lumi-stack lumi-stack--sm">
+							<div class="evaluation-keys__question-list lumi-scrollbar">
 								{#each activeQuestions as question (question.order_in_eval)}
 									{@const localIndex = getLocalEvaluationQuestionIndex(
 										question.order_in_eval,
 										activeSection.code,
 										sectionStarts
 									)}
-									<Card spaced>
-										<div class="lumi-stack lumi-stack--sm">
-											<div
-												class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-											>
-												<div
-													class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap lumi-align-items--center"
-												>
-													<span class="lumi-font--medium">Pregunta {localIndex}</span>
-													<Chip color="info" size="sm">
-														Global {question.order_in_eval}
-													</Chip>
-													{#if question.correct_key}
-														<Chip color="success" size="sm">
-															Clave {question.correct_key}
-														</Chip>
-													{/if}
-												</div>
-												<Switch
-													checked={question.omitable}
-													label="Omitible"
-													disabled={!canUpdate}
-													onchange={(checked) =>
-														updateOmitable(activeSection.code, question, checked)}
-												/>
+									<div class="evaluation-keys__question-row">
+										<div class="evaluation-keys__question-main">
+											<div class="evaluation-keys__question-title">
+												<span class="lumi-font--medium">Pregunta {localIndex}</span>
+												<Chip color="info" size="sm">Global {question.order_in_eval}</Chip>
+												{#if question.correct_key}
+													<Chip color="success" size="sm">Clave {question.correct_key}</Chip>
+												{:else}
+													<Chip color="warning" size="sm">Pendiente</Chip>
+												{/if}
 											</div>
 
-											<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+											<div class="evaluation-keys__answer-group">
 												{#each EVALUATION_ANSWER_KEYS as key (key)}
 													<Button
 														type={question.correct_key === key ? 'filled' : 'border'}
@@ -489,34 +465,34 @@
 													</Button>
 												{/each}
 											</div>
+										</div>
 
-											<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
-												<div class="lumi-stack lumi-stack--2xs">
-													<span class="lumi-text--xs lumi-text--muted">Ponderación</span>
-													<NumberInput
-														value={question.score_percent}
-														min={0}
-														max={1}
-														step={0.05}
-														disabled={!canUpdate}
-														onchange={(value) => updateScore(activeSection.code, question, value)}
-													/>
-												</div>
-												<div class="lumi-stack lumi-stack--2xs">
-													<span class="lumi-text--xs lumi-text--muted">Estado</span>
-													<Chip color={question.correct_key ? 'success' : 'warning'} size="sm">
-														{question.correct_key
-															? `Clave configurada (${question.correct_key})`
-															: 'Pendiente'}
-													</Chip>
-												</div>
+										<div class="evaluation-keys__question-controls">
+											<Switch
+												checked={question.omitable}
+												label="Omitible"
+												disabled={!canUpdate}
+												onchange={(checked) =>
+													updateOmitable(activeSection.code, question, checked)}
+											/>
+
+											<div class="evaluation-keys__score-field">
+												<span class="lumi-text--xs lumi-text--muted">Ponderación</span>
+												<NumberInput
+													value={question.score_percent}
+													min={0}
+													max={1}
+													step={0.05}
+													disabled={!canUpdate}
+													onchange={(value) => updateScore(activeSection.code, question, value)}
+												/>
 											</div>
 										</div>
-									</Card>
+									</div>
 								{/each}
 							</div>
 						</div>
-					</Card>
+					</section>
 				{/if}
 			{/if}
 		</div>
@@ -544,3 +520,95 @@
 		<Button type="filled" color="primary" onclick={applyPastedKeys}>Aplicar</Button>
 	{/snippet}
 </Dialog>
+
+<style>
+	.evaluation-keys__section-panel {
+		padding: var(--lumi-space-md);
+		border: var(--lumi-border-width-thin) solid var(--lumi-color-border-light);
+		border-radius: var(--lumi-radius-xl);
+		background:
+			linear-gradient(
+				145deg,
+				color-mix(in srgb, var(--lumi-color-primary) 5%, transparent) 0%,
+				color-mix(in srgb, var(--lumi-color-info) 4%, transparent) 100%
+			),
+			color-mix(in srgb, var(--lumi-color-surface) 92%, transparent);
+	}
+
+	.evaluation-keys__question-list {
+		display: grid;
+		gap: var(--lumi-space-xs);
+		max-block-size: 52rem;
+		overflow-y: auto;
+		padding-right: var(--lumi-space-2xs);
+	}
+
+	.evaluation-keys__question-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(14rem, auto);
+		align-items: center;
+		gap: var(--lumi-space-md);
+		padding: var(--lumi-space-sm) var(--lumi-space-md);
+		border: var(--lumi-border-width-thin) solid var(--lumi-color-border-light);
+		border-radius: var(--lumi-radius-lg);
+		background: color-mix(in srgb, var(--lumi-color-surface) 86%, var(--lumi-color-background) 14%);
+	}
+
+	.evaluation-keys__question-main,
+	.evaluation-keys__question-title,
+	.evaluation-keys__answer-group,
+	.evaluation-keys__question-controls {
+		display: flex;
+		align-items: center;
+		gap: var(--lumi-space-xs);
+		min-width: 0;
+	}
+
+	.evaluation-keys__question-main {
+		flex-wrap: wrap;
+	}
+
+	.evaluation-keys__question-title {
+		flex: 1 1 13rem;
+		flex-wrap: wrap;
+	}
+
+	.evaluation-keys__answer-group,
+	.evaluation-keys__question-controls {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+
+	.evaluation-keys__score-field {
+		display: grid;
+		gap: var(--lumi-space-2xs);
+		min-width: 8rem;
+	}
+
+	@media (max-width: 900px) {
+		.evaluation-keys__question-row {
+			grid-template-columns: 1fr;
+			align-items: stretch;
+		}
+
+		.evaluation-keys__answer-group,
+		.evaluation-keys__question-controls {
+			justify-content: flex-start;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.evaluation-keys__question-row {
+			padding: var(--lumi-space-sm);
+		}
+
+		.evaluation-keys__question-controls {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+
+		.evaluation-keys__score-field {
+			width: 100%;
+		}
+	}
+</style>

@@ -29,7 +29,6 @@
 	import {
 		base64ToEvaluationImageFile,
 		buildStudentPhotoUrl,
-		formatAcademicDegreeLabel,
 		formatEducationDate,
 		formatGroupCode,
 		validateEvaluationImageProportion
@@ -828,47 +827,38 @@
 		{/snippet}
 	</PageHeader>
 
-	<Card spaced class="evaluation-process__context-card">
-		<div
-			class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-		>
-			<div class="lumi-stack lumi-stack--2xs">
-				<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Evaluación activa</p>
-				<h2 class="lumi-margin--none">
-					{currentEvaluation?.name ?? 'Selecciona una evaluación para empezar'}
-				</h2>
+	<div class="lumi-filter-summary">
+		<div class="lumi-filter-summary__copy">
+			<p class="lumi-filter-summary__eyebrow">Evaluación activa</p>
+			<h2 class="lumi-filter-summary__title">
+				{currentEvaluation?.name ?? 'Selecciona una evaluación para empezar'}
+			</h2>
+			<p class="lumi-filter-summary__subtitle">
 				{#if currentEvaluation}
-					<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-						{currentEvaluation.cycle_title} ·
-						{formatAcademicDegreeLabel(currentEvaluation.degree_name)} ·
-						{formatGroupCode(currentEvaluation.group_code)} ·
-						{formatEducationDate(currentEvaluation.eval_date)}
-					</p>
+					{currentEvaluation.cycle_title} · {formatEducationDate(currentEvaluation.eval_date)}
 				{:else}
-					<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-						Elige una evaluación con claves y luego carga las hojas del lote.
-					</p>
+					Elige una evaluación con claves y luego carga las hojas del lote.
 				{/if}
-			</div>
-
-			<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-				{#if filterCycleDegreeCode}
-					<Chip color="secondary" size="sm">
-						{data.cycleDegreeOptions.find((option) => option.code === filterCycleDegreeCode)?.label}
-					</Chip>
-				{/if}
-				<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
-				{#if currentEvaluation}
-					<Chip color="primary" size="sm">{data.questions.length} preguntas</Chip>
-					<Chip color="warning" size="sm">{processablePendingEntries.length} pendientes</Chip>
-					<Chip color="success" size="sm">{data.savedResultsCount} guardados</Chip>
-				{/if}
-				{#if fileEntries.length > 0}
-					<Chip color="secondary" size="sm">{fileEntries.length} hojas en lote</Chip>
-				{/if}
-			</div>
+			</p>
 		</div>
-	</Card>
+
+		<div class="lumi-filter-summary__meta">
+			{#if filterCycleDegreeCode}
+				<Chip color="secondary" size="sm">
+					{data.cycleDegreeOptions.find((option) => option.code === filterCycleDegreeCode)?.label}
+				</Chip>
+			{/if}
+			<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
+			{#if currentEvaluation}
+				<Chip color="primary" size="sm">{data.questions.length} preguntas</Chip>
+				<Chip color="warning" size="sm">{processablePendingEntries.length} pendientes</Chip>
+				<Chip color="success" size="sm">{data.savedResultsCount} guardados</Chip>
+			{/if}
+			{#if fileEntries.length > 0}
+				<Chip color="secondary" size="sm">{fileEntries.length} hojas en lote</Chip>
+			{/if}
+		</div>
+	</div>
 
 	{#if !currentEvaluation}
 		<Card spaced>
@@ -892,10 +882,8 @@
 	{:else}
 		<Card spaced>
 			<div class="lumi-stack lumi-stack--md">
-				<div
-					class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-				>
-					<div class="lumi-stack lumi-stack--2xs">
+				<div class="lumi-section-toolbar">
+					<div class="lumi-section-toolbar__copy">
 						<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Lote actual</p>
 						<h2 class="lumi-margin--none">Carga, corrige y procesa</h2>
 						<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
@@ -903,7 +891,7 @@
 						</p>
 					</div>
 
-					<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+					<div class="lumi-section-toolbar__actions">
 						<input
 							bind:this={uploadInput}
 							type="file"
@@ -1093,7 +1081,7 @@
 									<span>Acciones</span>
 								</div>
 
-								<div class="evaluation-process__list-shell">
+								<div class="evaluation-process__list-shell lumi-scrollbar">
 									{#each fileEntries as entry (entry.id)}
 										{@const status = getEntryStatus(entry)}
 										<div
@@ -1343,10 +1331,6 @@
 />
 
 <style>
-	:global(.evaluation-process__context-card) {
-		border-color: color-mix(in srgb, var(--lumi-color-primary) 16%, var(--lumi-color-border));
-	}
-
 	.evaluation-process__file-input {
 		display: none;
 	}

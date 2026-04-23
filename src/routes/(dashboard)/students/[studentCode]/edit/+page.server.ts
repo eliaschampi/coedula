@@ -85,7 +85,9 @@ export const actions: Actions = {
 				uploadedPhoto = await saveStudentPhotoFile({
 					db: locals.db,
 					userCode: locals.user.code,
-					file: photoFile
+					file: photoFile,
+					studentName: `${payload.firstName} ${payload.lastName}`,
+					studentDni: payload.dni
 				});
 				payload.photoUrl = uploadedPhoto.photoUrl;
 			}

@@ -144,12 +144,32 @@ function extractStudentPhotoCode(photoUrl: string | null | undefined): string | 
 	return fileCode && isUuid(fileCode) ? fileCode : null;
 }
 
+function buildStudentPhotoDriveName(input: {
+	studentDni?: string;
+	studentName?: string;
+	fileId: string;
+	extension: string;
+}): string {
+	const rawLabel = input.studentDni?.trim() || input.studentName?.trim() || 'alumno';
+	const cleanedLabel = Array.from(rawLabel)
+		.map((char) => {
+			if (char.charCodeAt(0) < 32) return ' ';
+			return ['<', '>', ':', '"', '/', '\\', '|', '?', '*'].includes(char) ? ' ' : char;
+		})
+		.join('');
+	const safeIdentityLabel = normalizeDriveName(cleanedLabel).slice(0, 120) || 'alumno';
+
+	return normalizeDriveName(`${safeIdentityLabel}-${input.fileId.slice(0, 8)}${input.extension}`);
+}
+
 export async function saveStudentPhotoFile(input: {
 	db: Database;
 	userCode: string;
 	file: File;
+	studentName?: string;
+	studentDni?: string;
 }): Promise<SavedStudentPhoto> {
-	const { db, file, userCode } = input;
+	const { db, file, studentDni, studentName, userCode } = input;
 
 	if (file.size === 0) {
 		throw new Error('La imagen está vacía');
@@ -188,7 +208,12 @@ export async function saveStudentPhotoFile(input: {
 	const extension = getSafeDriveExtension(file.name);
 	const storagePath = `blob/student-photos/${cycleFolderCode}/${fileId}${extension}`;
 	const fullPath = getDriveAbsolutePath(storagePath);
-	const finalName = normalizeDriveName(`student-photo-${fileId}${extension}`);
+	const finalName = buildStudentPhotoDriveName({
+		studentDni,
+		studentName,
+		fileId,
+		extension
+	});
 	const nameError = validateDriveName(finalName);
 
 	if (nameError) {

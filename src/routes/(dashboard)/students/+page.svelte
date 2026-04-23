@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { goto, invalidate } from '$app/navigation';
-	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import {
 		Alert,
 		Avatar,
 		Button,
 		Card,
 		Chip,
-		Dialog,
 		Dropdown,
 		DropdownItem,
 		EmptyState,
@@ -18,49 +16,19 @@
 		StatCard
 	} from '$lib/components';
 	import { can } from '$lib/stores/permissions';
-	import { showToast } from '$lib/stores/Toast';
 	import { buildStudentPhotoUrl, formatEnrollmentStatus } from '$lib/utils';
 	import type { PageData } from './$types';
-
-	type StudentRow = PageData['students'][number];
 
 	const { data }: { data: PageData } = $props();
 
 	const canRead = $derived(can('students:read'));
 	const canCreate = $derived(can('students:create'));
 	const canUpdate = $derived(can('students:update'));
-	const canDelete = $derived(can('students:delete'));
 	const canReadAttendance = $derived(can('attendance:read'));
-
-	let showDeleteModal = $state(false);
-	let selectedStudent = $state<StudentRow | null>(null);
-
-	function getActionError(result: { data?: Record<string, unknown> }): string | null {
-		const error = result.data?.error;
-		return typeof error === 'string' && error.length > 0 ? error : null;
-	}
-
-	function submitForm(formId: string): void {
-		const form = document.getElementById(formId);
-		if (form instanceof HTMLFormElement) {
-			form.requestSubmit();
-		}
-	}
 
 	function openEditPage(studentCode: string): void {
 		if (!canUpdate) return;
 		void goto(resolve(`/students/${studentCode}/edit` as '/'));
-	}
-
-	function openDeleteModal(student: StudentRow): void {
-		if (!canDelete) return;
-		selectedStudent = student;
-		showDeleteModal = true;
-	}
-
-	function closeDeleteModal(): void {
-		showDeleteModal = false;
-		selectedStudent = null;
 	}
 
 	function openStudentProfile(studentCode: string): void {
@@ -219,14 +187,6 @@
 												>
 													Editar alumno
 												</DropdownItem>
-												<DropdownItem
-													icon="trash"
-													color="danger"
-													onclick={() => openDeleteModal(student)}
-													disabled={!canDelete}
-												>
-													Eliminar alumno
-												</DropdownItem>
 											{/snippet}
 										</Dropdown>
 									</div>
@@ -262,40 +222,6 @@
 		</div>
 	</Card>
 </div>
-
-<Dialog bind:open={showDeleteModal} title="Eliminar alumno" size="sm">
-	<form
-		id="delete-student-form"
-		method="POST"
-		action="?/delete"
-		use:enhance={() => {
-			return async ({ result }) => {
-				if (result.type === 'success') {
-					showToast('Alumno eliminado exitosamente', 'success');
-					await invalidate('students:load');
-					closeDeleteModal();
-				} else if (result.type === 'failure') {
-					showToast(getActionError(result) ?? 'No se pudo eliminar el alumno', 'error');
-				}
-			};
-		}}
-	>
-		{#if selectedStudent}
-			<input type="hidden" name="code" value={selectedStudent.code} />
-			<p class="lumi-text--sm">
-				¿Deseas eliminar a <strong>{selectedStudent.full_name}</strong>? Esta acción solo está
-				disponible si no tiene matrículas históricas.
-			</p>
-		{/if}
-	</form>
-
-	{#snippet footer()}
-		<Button type="border" onclick={closeDeleteModal}>Cancelar</Button>
-		<Button type="filled" color="danger" onclick={() => submitForm('delete-student-form')}>
-			Eliminar
-		</Button>
-	{/snippet}
-</Dialog>
 
 <style>
 	.student-summary-grid {

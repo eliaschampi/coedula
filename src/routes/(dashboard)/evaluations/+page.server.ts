@@ -65,12 +65,7 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	const [cycles, allCycleDegreeOptions, courses] = await Promise.all([
 		EducationRepository.listCycleOptions(locals.db),
 		EducationRepository.listCycleDegreeOptions(locals.db),
-		locals.db
-			.selectFrom('courses')
-			.select(['code', 'name', 'sort_order'])
-			.orderBy('sort_order', 'asc')
-			.orderBy('name', 'asc')
-			.execute()
+		locals.db.selectFrom('courses').select(['code', 'name']).orderBy('name', 'asc').execute()
 	]);
 
 	const selectedCycleCode =

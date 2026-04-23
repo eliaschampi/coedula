@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import {
 		Alert,
@@ -8,6 +9,8 @@
 		Card,
 		Chip,
 		Dialog,
+		Dropdown,
+		DropdownItem,
 		DriveFilePreview,
 		EmptyState,
 		Icon,
@@ -57,7 +60,11 @@
 	let searchResults = $state<DriveFileItem[]>([]);
 	let searchSelectedRows = $state<TableRow[]>([]);
 	let attachingFiles = $state(false);
+	let showDeleteModal = $state(false);
+	let deleteErrorMessage = $state('');
 
+	const canUpdate = $derived(can('students:update'));
+	const canDelete = $derived(can('students:delete'));
 	const canReadEnrollments = $derived(data.canReadEnrollments);
 	const canReadDrive = $derived(data.canReadDrive);
 	const canReadAttendance = $derived(can('attendance:read'));
@@ -94,6 +101,34 @@
 		{ value: 'history', label: 'Matrículas', icon: 'history' },
 		{ value: 'attachments', label: 'Adjuntos', icon: 'paperclip' }
 	];
+
+	function getActionError(result: { data?: Record<string, unknown> }): string | null {
+		const error = result.data?.error;
+		return typeof error === 'string' && error.length > 0 ? error : null;
+	}
+
+	function submitForm(formId: string): void {
+		const form = document.getElementById(formId);
+		if (form instanceof HTMLFormElement) {
+			form.requestSubmit();
+		}
+	}
+
+	function openEditPage(): void {
+		if (!canUpdate) return;
+		void goto(resolve(`/students/${data.student.code}/edit` as '/'));
+	}
+
+	function openDeleteModal(): void {
+		if (!canDelete) return;
+		deleteErrorMessage = '';
+		showDeleteModal = true;
+	}
+
+	function closeDeleteModal(): void {
+		showDeleteModal = false;
+		deleteErrorMessage = '';
+	}
 
 	function handleGenerateCard(): void {
 		window.open(`/api/students/${data.student.code}/card`, '_blank', 'noopener,noreferrer');
@@ -309,32 +344,25 @@
 		icon="graduationCap"
 	>
 		{#snippet actions()}
-			{#if canGenerateCard}
-				<Button type="filled" color="primary" icon="creditCard" onclick={handleGenerateCard}>
-					Generar carnet
-				</Button>
-			{/if}
 			<Button
 				type="border"
-				color="info"
-				icon="history"
-				onclick={openAttendanceReport}
-				disabled={!canReadAttendance}
-			>
-				Ver asistencia
-			</Button>
-			<Button
-				type="border"
-				color="primary"
-				icon="badgeCheck"
-				onclick={openEvaluationResults}
-				disabled={!canReadEvaluations}
-			>
-				Ver resultados
-			</Button>
-			<Button type="border" icon="arrowLeft" onclick={() => void goto(resolve('/students' as '/'))}>
-				Volver
-			</Button>
+				icon="arrowLeft"
+				onclick={() => void goto(resolve('/students' as '/'))}
+			/>
+			<Dropdown position="bottom-end" aria-label="Acciones del alumno">
+				{#snippet triggerContent()}
+					<Button type="flat" icon="moreVertical" aria-label="Abrir acciones del alumno" />
+				{/snippet}
+
+				{#snippet content()}
+					<DropdownItem icon="edit" onclick={openEditPage} disabled={!canUpdate}>
+						Editar alumno
+					</DropdownItem>
+					<DropdownItem icon="trash" color="danger" onclick={openDeleteModal} disabled={!canDelete}>
+						Eliminar alumno
+					</DropdownItem>
+				{/snippet}
+			</Dropdown>
 		{/snippet}
 	</PageHeader>
 
@@ -438,6 +466,34 @@
 							</Chip>
 						</InfoItem>
 					</div>
+					{#snippet footer()}
+						{#if canGenerateCard}
+							<Button
+								type="gradient"
+								color="success"
+								icon="creditCard"
+								onclick={handleGenerateCard}
+							/>
+						{/if}
+						<Button
+							type="border"
+							color="warning"
+							icon="history"
+							onclick={openAttendanceReport}
+							disabled={!canReadAttendance}
+						>
+							Asistencia
+						</Button>
+						<Button
+							type="border"
+							color="primary"
+							icon="badgeCheck"
+							onclick={openEvaluationResults}
+							disabled={!canReadEvaluations}
+						>
+							Evaluaciones
+						</Button>
+					{/snippet}
 				</Card>
 
 				<Card title="Observaciones" subtitle="Notas visibles para próximas áreas">
@@ -628,6 +684,44 @@
 		{/if}
 	</Tabs>
 </div>
+
+<Dialog bind:open={showDeleteModal} title="Eliminar alumno" size="sm">
+	<form
+		id="delete-student-form"
+		method="POST"
+		action="?/delete"
+		use:enhance={() => {
+			return async ({ result }) => {
+				if (result.type === 'success') {
+					showToast('Alumno eliminado exitosamente', 'success');
+					await goto(resolve('/students' as '/'));
+					return;
+				}
+
+				if (result.type === 'failure') {
+					deleteErrorMessage = getActionError(result) ?? 'No se pudo eliminar el alumno';
+				}
+			};
+		}}
+	>
+		{#if deleteErrorMessage}
+			<Alert type="danger" closable onclose={() => (deleteErrorMessage = '')}>
+				{deleteErrorMessage}
+			</Alert>
+		{/if}
+		<p class="lumi-margin--none lumi-text--sm">
+			¿Deseas eliminar a <strong>{data.student.full_name}</strong>? Esta acción solo está disponible
+			si no tiene matrículas históricas.
+		</p>
+	</form>
+
+	{#snippet footer()}
+		<Button type="border" onclick={closeDeleteModal}>Cancelar</Button>
+		<Button type="filled" color="danger" onclick={() => submitForm('delete-student-form')}>
+			Eliminar
+		</Button>
+	{/snippet}
+</Dialog>
 
 <Dialog bind:open={showAttachDialog} title="Buscar archivos en Drive" size="lg" scrollable>
 	<div class="lumi-stack lumi-stack--md">
