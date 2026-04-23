@@ -202,10 +202,7 @@
 											{/snippet}
 
 											{#snippet content()}
-												<DropdownItem
-													icon="eye"
-													onclick={() => openStudentProfile(student.code)}
-												>
+												<DropdownItem icon="eye" onclick={() => openStudentProfile(student.code)}>
 													Ver perfil
 												</DropdownItem>
 												<DropdownItem

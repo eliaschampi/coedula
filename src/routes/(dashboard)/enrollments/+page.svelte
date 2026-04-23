@@ -456,27 +456,23 @@
 				</div>
 
 				<div class="lumi-page-sidebar__section">
-					<p class="lumi-page-sidebar__label">Buscar dentro del grupo</p>
 					<Input
 						bind:value={filterSearchQuery}
 						label="Alumno, DNI o matrícula"
-						placeholder="Escribe para filtrar matrículas"
+						placeholder="Escribe para buscar dentro del grupo"
 					/>
 				</div>
 
-				<div class="lumi-page-sidebar__section">
-					<p class="lumi-page-sidebar__label">Acciones</p>
-					<div class="lumi-stack lumi-stack--xs">
-						<Button
-							type="filled"
-							color="primary"
-							icon="search"
-							onclick={applyFiltersAndCloseSidebar}
-						>
-							Aplicar filtros
-						</Button>
-						<Button type="border" onclick={clearFilters}>Limpiar</Button>
-					</div>
+				<div class="lumi-page-sidebar__section lumi-stack lumi-stack--xs">
+					<Button
+						type="gradient"
+						color="primary"
+						icon="search"
+						onclick={applyFiltersAndCloseSidebar}
+					>
+						Aplicar filtros
+					</Button>
+					<Button type="border" onclick={clearFilters}>Limpiar</Button>
 				</div>
 			{/snippet}
 		</PageSidebar>

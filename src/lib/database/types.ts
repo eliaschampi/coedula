@@ -171,17 +171,54 @@ export interface CycleOverview {
 	updated_at: Timestamp | null;
 }
 
-export interface DashboardEducationSummary {
-	active_branches: number | null;
-	active_cycles: number | null;
-	active_enrollments: number | null;
-	active_students: number | null;
-	active_teachers: number | null;
+export interface DashboardCoursePerformanceTrend {
+	average_score: Numeric | null;
+	course_code: string | null;
+	created_at: Timestamp | null;
+	cycle_degree_code: string | null;
+	eval_code: string | null;
+	eval_date: Timestamp | null;
+	eval_name: string | null;
+	group_code: string | null;
 }
 
-export interface DashboardEnrollmentStatusSummary {
-	status: string | null;
-	total: number | null;
+export interface DashboardEnrollmentsByCycle {
+	branch_code: string | null;
+	cycle_code: string | null;
+	cycle_title: string | null;
+	enrollment_count: number | null;
+	start_date: Timestamp | null;
+}
+
+export interface DashboardGeneralPerformanceTrend {
+	average_score: Numeric | null;
+	created_at: Timestamp | null;
+	cycle_degree_code: string | null;
+	eval_code: string | null;
+	eval_date: Timestamp | null;
+	eval_name: string | null;
+	group_code: string | null;
+}
+
+export interface DashboardRecentBranchStudents {
+	branch_code: string | null;
+	created_at: Timestamp | null;
+	cycle_title: string | null;
+	degree_name: string | null;
+	full_name: string | null;
+	group_code: string | null;
+	student_code: string | null;
+	student_number: string | null;
+}
+
+export interface DashboardStudentScoreRanking {
+	average_score: Numeric | null;
+	cycle_degree_code: string | null;
+	group_code: string | null;
+	roll_code: string | null;
+	student_code: string | null;
+	student_full_name: string | null;
+	total_evaluations: number | null;
 }
 
 export interface DriveFiles {
@@ -320,13 +357,6 @@ export interface EvalSections {
 	question_count: number;
 }
 
-export interface Migrations {
-	batch: number;
-	executed_at: Generated<Timestamp>;
-	id: string;
-	name: string;
-}
-
 export interface Permissions {
 	action: string;
 	code: Generated<string>;
@@ -441,8 +471,11 @@ export interface DB {
 	cycle_degree_overview: CycleDegreeOverview;
 	cycle_degrees: CycleDegrees;
 	cycle_overview: CycleOverview;
-	dashboard_education_summary: DashboardEducationSummary;
-	dashboard_enrollment_status_summary: DashboardEnrollmentStatusSummary;
+	dashboard_course_performance_trend: DashboardCoursePerformanceTrend;
+	dashboard_enrollments_by_cycle: DashboardEnrollmentsByCycle;
+	dashboard_general_performance_trend: DashboardGeneralPerformanceTrend;
+	dashboard_recent_branch_students: DashboardRecentBranchStudents;
+	dashboard_student_score_ranking: DashboardStudentScoreRanking;
 	drive_files: DriveFiles;
 	enrollment_overview: EnrollmentOverview;
 	enrollments: Enrollments;
@@ -452,7 +485,6 @@ export interface DB {
 	eval_results: EvalResults;
 	eval_sections: EvalSections;
 	evals: Evals;
-	migrations: Migrations;
 	permissions: Permissions;
 	student_drive_links: StudentDriveLinks;
 	student_overview: StudentOverview;

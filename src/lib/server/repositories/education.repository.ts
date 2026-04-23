@@ -6,11 +6,6 @@ import type {
 	AcademicDegreeCatalogItem,
 	CycleDegreeOption,
 	CycleOption,
-	EducationDashboardStatusPoint,
-	EducationDashboardSummary,
-	EducationDashboardTrendPoint,
-	EducationRecentEnrollmentItem,
-	EducationUpcomingCycleItem,
 	EnrollmentOverview,
 	EnrollmentStatus,
 	EnrollmentTurn,
@@ -19,11 +14,6 @@ import type {
 	StudentOption,
 	StudentOverview
 } from '$lib/types/education';
-
-const DAY_LABEL_FORMATTER = new Intl.DateTimeFormat('es-PE', {
-	day: '2-digit',
-	month: 'short'
-});
 
 interface CycleUpsertInput {
 	cycleCode?: string;
@@ -69,11 +59,6 @@ interface EnrollmentUpsertInput {
 }
 
 type DatabaseExecutor = Kysely<DB> | Transaction<DB>;
-
-interface TrendRow {
-	day_key: string;
-	total_count: number | string;
-}
 
 const CANONICAL_DEGREE_NAMES = ['Unico', '1ro', '2do', '3ro', '4to', '5to', '6to'] as const;
 
@@ -824,153 +809,6 @@ export class EducationRepository {
 			.executeTakeFirst();
 
 		return Number(result.numDeletedRows ?? 0) > 0;
-	}
-
-	static async loadDashboardSummary(db: Database): Promise<EducationDashboardSummary> {
-		const [branches, activeCycles, activeStudents, activeEnrollments] = await Promise.all([
-			db
-				.selectFrom('branches')
-				.select((eb) => eb.fn.countAll().as('total'))
-				.executeTakeFirst(),
-			db
-				.selectFrom('academic_cycles')
-				.select((eb) => eb.fn.countAll().as('total'))
-				.where('is_active', '=', true)
-				.executeTakeFirst(),
-			db
-				.selectFrom('students')
-				.select((eb) => eb.fn.countAll().as('total'))
-				.where('is_active', '=', true)
-				.executeTakeFirst(),
-			db
-				.selectFrom('enrollments')
-				.select((eb) => eb.fn.countAll().as('total'))
-				.where('status', '=', 'active')
-				.executeTakeFirst()
-		]);
-
-		return {
-			branches: toNumber(branches?.total),
-			activeCycles: toNumber(activeCycles?.total),
-			activeStudents: toNumber(activeStudents?.total),
-			activeEnrollments: toNumber(activeEnrollments?.total)
-		};
-	}
-
-	static async loadEnrollmentTrend(
-		db: Database,
-		rangeDays = 30
-	): Promise<EducationDashboardTrendPoint[]> {
-		const result = await sql<TrendRow>`
-			WITH date_series AS (
-				SELECT (CURRENT_DATE - (${rangeDays}::integer - 1 - offs))::date AS day_date
-				FROM generate_series(0, ${rangeDays}::integer - 1) AS gs(offs)
-			),
-			enrollment_agg AS (
-				SELECT
-					e.created_at::date AS created_date,
-					COUNT(*)::integer AS total_count
-				FROM public.enrollments e
-				WHERE e.created_at::date >= CURRENT_DATE - (${rangeDays}::integer - 1)
-				GROUP BY e.created_at::date
-			)
-			SELECT
-				TO_CHAR(ds.day_date, 'YYYY-MM-DD') AS day_key,
-				COALESCE(ea.total_count, 0) AS total_count
-			FROM date_series ds
-			LEFT JOIN enrollment_agg ea ON ea.created_date = ds.day_date
-			ORDER BY ds.day_date ASC
-		`.execute(db);
-
-		return result.rows.map((row) => ({
-			key: row.day_key,
-			label: DAY_LABEL_FORMATTER.format(new Date(`${row.day_key}T12:00:00Z`)),
-			value: toNumber(row.total_count)
-		}));
-	}
-
-	static async loadEnrollmentStatusSeries(db: Database): Promise<EducationDashboardStatusPoint[]> {
-		const rows = await db
-			.selectFrom('enrollments')
-			.select(['status', sql<number>`count(*)`.as('total')])
-			.groupBy('status')
-			.execute();
-
-		const statusMap = new Map<EnrollmentStatus, number>();
-		rows.forEach((row) => {
-			statusMap.set(row.status as EnrollmentStatus, toNumber(row.total));
-		});
-
-		return [
-			{
-				key: 'active',
-				label: 'Activas',
-				value: statusMap.get('active') ?? 0,
-				color: 'var(--lumi-color-success)'
-			},
-			{
-				key: 'finalized',
-				label: 'Finalizadas',
-				value: statusMap.get('finalized') ?? 0,
-				color: 'var(--lumi-color-info)'
-			},
-			{
-				key: 'inactive',
-				label: 'Inactivas',
-				value: statusMap.get('inactive') ?? 0,
-				color: 'var(--lumi-color-warning)'
-			}
-		];
-	}
-
-	static async loadRecentEnrollments(
-		db: Database,
-		limit = 8
-	): Promise<EducationRecentEnrollmentItem[]> {
-		const rows = await db
-			.selectFrom('enrollment_overview')
-			.select([
-				'code',
-				'enrollment_number',
-				'student_full_name',
-				'student_number',
-				'cycle_title',
-				'degree_name',
-				'group_code',
-				'turn',
-				'status',
-				'created_at',
-				'pay_cost'
-			])
-			.orderBy('created_at', 'desc')
-			.limit(limit)
-			.execute();
-
-		return rows.map((row) => ({
-			...(row as Omit<EducationRecentEnrollmentItem, 'pay_cost'>),
-			pay_cost: toNumber(row.pay_cost)
-		}));
-	}
-
-	static async loadUpcomingCycles(db: Database, limit = 5): Promise<EducationUpcomingCycleItem[]> {
-		const rows = await db
-			.selectFrom('cycle_overview')
-			.select([
-				'code',
-				'title',
-				'branch_name',
-				'modality',
-				'start_date',
-				'end_date',
-				'active_enrollment_count',
-				'degree_count'
-			])
-			.where(sql<boolean>`end_date >= CURRENT_DATE`)
-			.orderBy('start_date', 'asc')
-			.limit(limit)
-			.execute();
-
-		return rows as EducationUpcomingCycleItem[];
 	}
 
 	static normalizeCycleInput(input: CycleUpsertInput): CycleUpsertInput {

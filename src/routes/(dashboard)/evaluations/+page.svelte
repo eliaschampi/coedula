@@ -353,9 +353,8 @@
 		{#snippet actions()}
 			<Dropdown position="bottom-end" aria-label="Acciones de evaluaciones">
 				{#snippet triggerContent()}
-					<Button type="flat" color="primary" icon="moreVertical"/>
+					<Button type="flat" color="primary" icon="moreVertical" />
 				{/snippet}
-
 				{#snippet content()}
 					<DropdownItem icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
 						Seleccionar vista

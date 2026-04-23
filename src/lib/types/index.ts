@@ -159,12 +159,15 @@ export interface ToastState {
 }
 
 export type {
+	DashboardBranchOption,
 	DashboardColor,
-	DashboardEducationPanel,
+	DashboardCourseOption,
+	DashboardCycleOption,
+	DashboardDegreeOption,
+	DashboardGroupOption,
 	DashboardHomeData,
-	DashboardMetric,
-	DashboardPanels,
-	DashboardQuickAction,
+	DashboardRecentStudentItem,
+	DashboardSelection,
 	DashboardSeriesPoint,
-	DashboardStats
+	DashboardStudentRankingItem
 } from './dashboard';

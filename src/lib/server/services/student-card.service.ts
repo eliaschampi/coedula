@@ -250,14 +250,13 @@ function drawQrAndRollCode(
 
 	const dniFontSize = 13;
 	const rollCodeText = data.rollCode.split('').join(' ');
-	const rollCodeWidth = boldFont.widthOfTextAtSize(rollCodeText, dniFontSize);
 
 	const pillCenterX = pxX(1040);
 	const pillCenterY = CARD_HEIGHT / 2;
 
 	page.drawText(rollCodeText, {
 		x: pillCenterX + dniFontSize * 0.35,
-		y: pillCenterY - rollCodeWidth / 2,
+		y: pillCenterY - 10,
 		font: boldFont,
 		size: dniFontSize,
 		color: COLORS.text,

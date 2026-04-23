@@ -122,10 +122,10 @@ export type { StatCardProps } from './StatCard';
 export { StatCard } from './StatCard';
 export type { DashboardChartProps, DashboardChartValueFormat } from './DashboardChart';
 export { DashboardChart } from './DashboardChart';
+export type { DashboardBarChartProps } from './DashboardBarChart';
+export { DashboardBarChart } from './DashboardBarChart';
 export type { DashboardSectionProps } from './DashboardSection';
 export { DashboardSection } from './DashboardSection';
-export type { DonutSegment } from './DashboardDonutChart';
-export { DashboardDonutChart } from './DashboardDonutChart';
 export type { QuickAccessCardProps } from './QuickAccessCard';
 export { QuickAccessCard } from './QuickAccessCard';
 

@@ -1,21 +1,6 @@
-import type {
-	EducationDashboardStatusPoint,
-	EducationDashboardSummary,
-	EducationRecentEnrollmentItem,
-	EducationUpcomingCycleItem
-} from './education';
+import type { DateValue, GroupCode } from './education';
 
 export type DashboardColor = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info';
-
-export interface DashboardMetric {
-	key: string;
-	title: string;
-	value: number | string;
-	icon: string;
-	color: DashboardColor;
-	subtitle?: string;
-	href?: string;
-}
 
 export interface DashboardSeriesPoint {
 	key: string;
@@ -23,42 +8,79 @@ export interface DashboardSeriesPoint {
 	value: number;
 }
 
-export interface DashboardQuickAction {
-	key: string;
+export interface DashboardBranchOption {
+	code: string;
+	name: string;
+	users: string[];
+}
+
+export interface DashboardCycleOption {
+	code: string;
+	branch_code: string;
 	title: string;
-	description: string;
-	icon: string;
-	color: DashboardColor;
-	href: string;
-	permission: string;
+	modality: string;
+	start_date: DateValue;
+	end_date: DateValue;
 }
 
-export interface DashboardEducationPanel {
-	summary: EducationDashboardSummary;
-	metrics: DashboardMetric[];
-	enrollmentTrend: DashboardSeriesPoint[];
-	statusBreakdown: EducationDashboardStatusPoint[];
-	recentEnrollments: EducationRecentEnrollmentItem[];
-	upcomingCycles: EducationUpcomingCycleItem[];
-	quickActions: DashboardQuickAction[];
+export interface DashboardDegreeOption {
+	code: string;
+	cycle_code: string;
+	degree_code: string;
+	degree_name: string;
+	degree_short_name: string | null;
+	degree_sort_order: number;
+	label: string;
 }
 
-export interface DashboardPanels {
-	education: DashboardEducationPanel | null;
+export interface DashboardGroupOption {
+	value: GroupCode;
+	label: string;
 }
 
-export interface DashboardStats {
-	branches: number;
-	cycles: number;
-	students: number;
-	enrollments: number;
+export interface DashboardCourseOption {
+	value: string;
+	label: string;
+}
+
+export interface DashboardRecentStudentItem {
+	code: string;
+	student_number: string;
+	full_name: string;
+	cycle_title: string;
+	degree_name: string;
+	group_code: GroupCode;
+	created_at: DateValue;
+}
+
+export interface DashboardStudentRankingItem {
+	student_code: string;
+	roll_code: string;
+	student_full_name: string;
+	average_score: number;
+	total_evaluations: number;
+}
+
+export interface DashboardSelection {
+	branchCode: string | null;
+	cycleCode: string | null;
+	cycleDegreeCode: string | null;
+	groupCode: GroupCode | null;
+	courseCode: string;
 }
 
 export interface DashboardHomeData {
 	title: string;
 	generatedAt: string;
 	canViewDashboard: boolean;
-	stats: DashboardStats;
-	panels: DashboardPanels;
-	quickActions: DashboardQuickAction[];
+	branches: DashboardBranchOption[];
+	cycles: DashboardCycleOption[];
+	degrees: DashboardDegreeOption[];
+	groups: DashboardGroupOption[];
+	courses: DashboardCourseOption[];
+	selection: DashboardSelection;
+	enrollmentsByCycle: DashboardSeriesPoint[];
+	recentStudents: DashboardRecentStudentItem[];
+	studentRanking: DashboardStudentRankingItem[];
+	performanceTrend: DashboardSeriesPoint[];
 }

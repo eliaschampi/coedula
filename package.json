@@ -21,6 +21,7 @@
 		"db:reset": "bash database/dev/setup.sh reset",
 		"db:rebuild": "bash database/dev/setup.sh reset --yes",
 		"db:init": "tsx database/dev/migrate.ts init",
+		"db:migrate": "tsx database/dev/migrate.ts migrate",
 		"db:check": "tsx database/dev/migrate.ts check",
 		"db:generate": "kysely-codegen --config-file kysely.config.ts"
 	},

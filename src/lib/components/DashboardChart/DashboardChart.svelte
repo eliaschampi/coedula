@@ -7,6 +7,7 @@
 		color = 'primary',
 		height = 220,
 		valueFormat = 'number',
+		xLabelMaxLength = 12,
 		emptyMessage = 'No hay datos suficientes para mostrar este gráfico.',
 		'aria-label': ariaLabel = 'Gráfico del dashboard',
 		class: className = ''
@@ -36,7 +37,9 @@
 	const plotH = $derived(chartH - PADDING.top - PADDING.bottom);
 
 	const maxValue = $derived(Math.max(...data.map((p) => p.value), 1));
-	const niceMax = $derived(ceilNice(maxValue));
+	const niceMax = $derived(
+		valueFormat === 'score' ? Math.max(20, ceilNice(maxValue)) : ceilNice(maxValue)
+	);
 
 	function ceilNice(v: number): number {
 		if (v <= 0) return 10;
@@ -123,10 +126,23 @@
 				maximumFractionDigits: 0
 			}).format(v);
 		}
+		if (valueFormat === 'score') {
+			return new Intl.NumberFormat('es-PE', {
+				maximumFractionDigits: 1
+			}).format(v);
+		}
 		return new Intl.NumberFormat('es-PE', {
 			maximumFractionDigits: 0,
 			notation: v >= 1000 ? 'compact' : 'standard'
 		}).format(v);
+	}
+
+	function formatAxisLabel(label: string): string {
+		if (label.length <= xLabelMaxLength) {
+			return label;
+		}
+
+		return `${label.slice(0, Math.max(1, xLabelMaxLength - 3))}...`;
 	}
 
 	// ── Tooltip ─────────────────────────────────────────────────────────────
@@ -169,6 +185,12 @@
 				style: 'currency',
 				currency: 'PEN',
 				minimumFractionDigits: 2
+			}).format(v);
+		}
+		if (valueFormat === 'score') {
+			return new Intl.NumberFormat('es-PE', {
+				minimumFractionDigits: 2,
+				maximumFractionDigits: 2
 			}).format(v);
 		}
 		return new Intl.NumberFormat('es-PE').format(v);
@@ -225,7 +247,7 @@
 			<!-- X axis labels -->
 			{#each xLabels as xl (xl.label)}
 				<text x={xl.x} y={chartH - 6} text-anchor="middle" class="lumi-line-chart__label">
-					{xl.label}
+					{formatAxisLabel(xl.label)}
 				</text>
 			{/each}
 

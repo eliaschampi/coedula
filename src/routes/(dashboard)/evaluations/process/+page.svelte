@@ -1472,10 +1472,9 @@
 
 		.evaluation-process__list-head,
 		.evaluation-process__file-row {
-			grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.8fr) minmax(
-					0,
-					0.8fr
-				) auto;
+			grid-template-columns:
+				minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.8fr) minmax(0, 0.8fr)
+				auto;
 		}
 	}
 
