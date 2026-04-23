@@ -6,12 +6,10 @@
 		Chip,
 		Dialog,
 		EmptyState,
-		Input,
 		Select
 	} from '$lib/components';
 	import type { GroupCode } from '$lib/types/education';
-	import { formatAcademicDegreeLabel, formatEducationDate, formatGroupCode, GROUP_CODE_OPTIONS } from '$lib/utils';
-	import type { EvaluationOverview } from '$lib/types/evaluation';
+	import { formatEducationDate, formatGroupCode, GROUP_CODE_OPTIONS } from '$lib/utils';
 	import type { EvaluationSelectionValue } from './selection';
 
 	interface CycleItem {
@@ -23,7 +21,12 @@
 		code: string;
 		cycle_code: string;
 		label: string;
-		degree_name?: string | null;
+	}
+
+	interface EvaluationDialogItem {
+		code: string;
+		name: string;
+		eval_date: string;
 	}
 
 	interface Props {
@@ -35,7 +38,6 @@
 		initialCycleCode: string | null;
 		initialCycleDegreeCode: string | null;
 		initialGroupCode: GroupCode;
-		initialSearchQuery?: string;
 		initialEvaluationCode?: string | null;
 		configuredOnly?: boolean;
 		evaluationRequired?: boolean;
@@ -53,7 +55,6 @@
 		initialCycleCode,
 		initialCycleDegreeCode,
 		initialGroupCode,
-		initialSearchQuery = '',
 		initialEvaluationCode = null,
 		configuredOnly = false,
 		evaluationRequired = false,
@@ -65,9 +66,8 @@
 	let cycleCode = $state<string | null>(null);
 	let cycleDegreeCode = $state<string | null>(null);
 	let groupCode = $state<GroupCode>('A');
-	let searchQuery = $state('');
 	let selectedEvaluationCode = $state<string | null>(null);
-	let evaluations = $state<EvaluationOverview[]>([]);
+	let evaluations = $state<EvaluationDialogItem[]>([]);
 	let isLoading = $state(false);
 	let loadError = $state('');
 	let lastOpenState = $state(false);
@@ -116,7 +116,7 @@
 			cycleCode,
 			cycleDegreeCode,
 			groupCode,
-			searchQuery,
+			searchQuery: '',
 			evaluationCode: selectedEvaluationCode
 		});
 		closeDialog();
@@ -143,7 +143,6 @@
 				`cycle=${encodeURIComponent(cycleCode)}`,
 				`degree=${encodeURIComponent(cycleDegreeCode)}`,
 				`group=${encodeURIComponent(groupCode)}`,
-				`search=${encodeURIComponent(searchQuery.trim())}`,
 				configuredOnly ? 'configuredOnly=true' : ''
 			]
 				.filter(Boolean)
@@ -151,7 +150,7 @@
 
 			const response = await fetch(`/api/evaluations/search?${query}`, { signal });
 			const payload = (await response.json().catch(() => ({}))) as {
-				items?: EvaluationOverview[];
+				items?: EvaluationDialogItem[];
 				error?: string;
 			};
 
@@ -183,7 +182,6 @@
 			cycleCode = initialCycleCode;
 			cycleDegreeCode = initialCycleDegreeCode;
 			groupCode = initialGroupCode;
-			searchQuery = initialSearchQuery;
 			selectedEvaluationCode = initialEvaluationCode;
 		}
 
@@ -199,7 +197,6 @@
 			cycleCode ?? '',
 			cycleDegreeCode ?? '',
 			groupCode,
-			searchQuery.trim(),
 			configuredOnly ? 'configured' : 'all'
 		].join(':');
 		void requestKey;
@@ -246,12 +243,6 @@
 					options={GROUP_CODE_OPTIONS}
 					clearable={false}
 				/>
-				<Input
-					bind:value={searchQuery}
-					label="Buscar evaluación"
-					placeholder="Nombre o fecha"
-					icon="search"
-				/>
 			</div>
 		</Card>
 
@@ -268,9 +259,6 @@
 					</Chip>
 				{/if}
 				<Chip color="info" size="sm">{formatGroupCode(groupCode)}</Chip>
-				{#if searchQuery.trim()}
-					<Chip color="warning" size="sm" icon="search">{searchQuery.trim()}</Chip>
-				{/if}
 			</div>
 			<p class="lumi-margin--none lumi-text--xs lumi-text--muted">
 				{isLoading ? 'Buscando evaluaciones…' : `${evaluations.length} evaluación(es) encontradas`}
@@ -319,25 +307,8 @@
 								<div class="evaluation-selector__item-text">
 									<strong>{evaluation.name}</strong>
 									<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-										{evaluation.cycle_title} ·
-										{formatAcademicDegreeLabel(evaluation.degree_name)} ·
-										{formatGroupCode(evaluation.group_code)} ·
 										{formatEducationDate(evaluation.eval_date)}
 									</p>
-								</div>
-
-								<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-									<Chip color="secondary" size="sm">
-										{evaluation.section_count} secciones
-									</Chip>
-									<Chip color="info" size="sm">
-										{evaluation.planned_question_count} preguntas
-									</Chip>
-									{#if evaluation.has_questions}
-										<Chip color="success" size="sm">Con claves</Chip>
-									{:else}
-										<Chip color="warning" size="sm">Sin claves</Chip>
-									{/if}
 								</div>
 							</div>
 
@@ -362,7 +333,7 @@
 <style>
 	.evaluation-selector__filters {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: var(--lumi-space-md);
 	}
 
@@ -496,7 +467,7 @@
 
 	@media (max-width: 720px) {
 		.evaluation-selector__filters {
-			grid-template-columns: 1fr;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 
 		.evaluation-selector__item {
@@ -505,6 +476,12 @@
 
 		.evaluation-selector__item-action {
 			justify-self: flex-start;
+		}
+	}
+
+	@media (max-width: 560px) {
+		.evaluation-selector__filters {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>

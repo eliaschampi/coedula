@@ -10,6 +10,8 @@
 		Button,
 		Card,
 		Chip,
+		Dropdown,
+		DropdownItem,
 		EmptyState,
 		Input,
 		PageHeader,
@@ -54,7 +56,6 @@
 	let filterCycleCode = $state<string | null>(null);
 	let filterCycleDegreeCode = $state<string | null>(null);
 	let filterGroupCode = $state<GroupCode>('A');
-	let filterSearchQuery = $state('');
 	let showFilterDialog = $state(false);
 	let uploadInput = $state<HTMLInputElement | null>(null);
 	let fileEntries = $state<ProcessFileEntry[]>([]);
@@ -275,7 +276,7 @@
 					cycleCode: filterCycleCode,
 					cycleDegreeCode: filterCycleDegreeCode,
 					groupCode: filterGroupCode,
-					searchQuery: filterSearchQuery,
+					searchQuery: '',
 					evaluationCode: currentEvaluation.code
 				}) as '/'
 			)
@@ -759,7 +760,6 @@
 		filterCycleCode = data.selectedCycleCode;
 		filterCycleDegreeCode = data.selectedCycleDegreeCode;
 		filterGroupCode = data.selectedGroupCode as GroupCode;
-		filterSearchQuery = data.searchQuery;
 	});
 
 	$effect(() => {
@@ -798,23 +798,29 @@
 				<Button type="border" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
 					Seleccionar evaluación
 				</Button>
-				<Button type="border" icon="arrowLeft" onclick={() => goto(resolve('/evaluations' as '/'))}>
-					Volver
-				</Button>
-				{#if currentEvaluation}
-					<Button
-						type="border"
-						icon="key"
-						onclick={() =>
-							goto(resolve(`/evaluations/${currentEvaluation.code}/keys` as '/'))
-						}
-					>
-						Ver claves
-					</Button>
-					<Button type="border" icon="badgeCheck" onclick={openResultsPage}>
-						Ver resultados
-					</Button>
-				{/if}
+				<Dropdown position="bottom-end" aria-label="Más acciones de procesamiento">
+					{#snippet triggerContent()}
+						<Button type="border" icon="moreVertical">Acciones</Button>
+					{/snippet}
+
+					<DropdownItem icon="arrowLeft" onclick={() => goto(resolve('/evaluations' as '/'))}>
+						Volver
+					</DropdownItem>
+					{#if currentEvaluation}
+						<DropdownItem
+							icon="key"
+							color="info"
+							onclick={() =>
+								goto(resolve(`/evaluations/${currentEvaluation.code}/keys` as '/'))
+							}
+						>
+							Ver claves
+						</DropdownItem>
+						<DropdownItem icon="badgeCheck" color="info" onclick={openResultsPage}>
+							Ver resultados
+						</DropdownItem>
+					{/if}
+				</Dropdown>
 			</div>
 		{/snippet}
 	</PageHeader>
@@ -854,9 +860,6 @@
 				{/if}
 				{#if fileEntries.length > 0}
 					<Chip color="secondary" size="sm">{fileEntries.length} hojas en lote</Chip>
-				{/if}
-				{#if filterSearchQuery.trim()}
-					<Chip color="warning" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
 				{/if}
 			</div>
 		</div>
@@ -905,15 +908,6 @@
 							onclick={triggerFilePicker}
 						>
 							Cargar hojas
-						</Button>
-						<Button
-							type="border"
-							color="danger"
-							icon="trash"
-							disabled={fileEntries.length === 0 || isProcessingBatch || isSavingBatch}
-							onclick={clearFiles}
-						>
-							Limpiar lote
 						</Button>
 						<Button
 							type="filled"
@@ -967,16 +961,28 @@
 								Guardar válidos
 							</Button>
 						</form>
-						<Button
-							type="border"
-							color="danger"
-							icon="trash"
-							disabled={data.savedResultsCount === 0 || isDeletingSavedResults}
-							loading={isDeletingSavedResults}
-							onclick={() => void clearSavedResults()}
-						>
-							Limpiar guardados
-						</Button>
+						<Dropdown position="bottom-end" aria-label="Acciones del lote">
+							{#snippet triggerContent()}
+								<Button type="border" icon="moreVertical">Más</Button>
+							{/snippet}
+
+							<DropdownItem
+								icon="trash"
+								color="danger"
+								onclick={clearFiles}
+								disabled={fileEntries.length === 0 || isProcessingBatch || isSavingBatch}
+							>
+								Limpiar lote
+							</DropdownItem>
+							<DropdownItem
+								icon="trash"
+								color="danger"
+								onclick={() => void clearSavedResults()}
+								disabled={data.savedResultsCount === 0 || isDeletingSavedResults}
+							>
+								Limpiar guardados
+							</DropdownItem>
+						</Dropdown>
 					</div>
 				</div>
 
@@ -1297,7 +1303,6 @@
 	initialCycleCode={data.selectedCycleCode}
 	initialCycleDegreeCode={data.selectedCycleDegreeCode}
 	initialGroupCode={data.selectedGroupCode as GroupCode}
-	initialSearchQuery={data.searchQuery}
 	initialEvaluationCode={data.selectedEvaluationCode}
 	configuredOnly
 	evaluationRequired

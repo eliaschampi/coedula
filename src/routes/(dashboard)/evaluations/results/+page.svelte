@@ -6,6 +6,8 @@
 		Button,
 		Card,
 		Chip,
+		Dropdown,
+		DropdownItem,
 		EmptyState,
 		Input,
 		PageHeader,
@@ -32,7 +34,6 @@
 
 	let filterCycleDegreeCode = $state<string | null>(null);
 	let filterGroupCode = $state<GroupCode>('A');
-	let filterSearchQuery = $state('');
 	let resultsSearchQuery = $state('');
 	let showFilterDialog = $state(false);
 
@@ -97,7 +98,7 @@
 					cycleCode: data.selectedCycleCode,
 					cycleDegreeCode: data.selectedCycleDegreeCode,
 					groupCode: data.selectedGroupCode as GroupCode,
-					searchQuery: data.searchQuery,
+					searchQuery: '',
 					evaluationCode: currentEvaluation.code
 				}) as '/'
 			)
@@ -123,7 +124,6 @@
 	$effect(() => {
 		filterCycleDegreeCode = data.selectedCycleDegreeCode;
 		filterGroupCode = data.selectedGroupCode as GroupCode;
-		filterSearchQuery = data.searchQuery;
 	});
 </script>
 
@@ -138,14 +138,6 @@
 				<Button type="border" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
 					Seleccionar evaluación
 				</Button>
-				<Button type="border" icon="userRound" onclick={openStudentResults}>
-					Por alumno
-				</Button>
-				{#if currentEvaluation && canUpdate}
-					<Button type="border" icon="imagePlus" onclick={openProcessPage}>
-						Procesar hojas
-					</Button>
-				{/if}
 				<Button
 					type="filled"
 					color="primary"
@@ -155,13 +147,21 @@
 				>
 					Exportar CSV
 				</Button>
-				<Button
-					type="border"
-					icon="arrowLeft"
-					onclick={() => void goto(resolve('/evaluations' as '/'))}
-				>
-					Volver
-				</Button>
+				<Dropdown position="bottom-end" aria-label="Más acciones de resultados">
+					{#snippet triggerContent()}
+						<Button type="border" icon="moreVertical">Acciones</Button>
+					{/snippet}
+
+					<DropdownItem icon="userRound" onclick={openStudentResults}>Por alumno</DropdownItem>
+					{#if currentEvaluation && canUpdate}
+						<DropdownItem icon="imagePlus" color="info" onclick={openProcessPage}>
+							Procesar hojas
+						</DropdownItem>
+					{/if}
+					<DropdownItem icon="arrowLeft" onclick={() => void goto(resolve('/evaluations' as '/'))}>
+						Volver
+					</DropdownItem>
+				</Dropdown>
 			</div>
 		{/snippet}
 	</PageHeader>
@@ -201,9 +201,6 @@
 						<Chip color="secondary" size="sm">Mejor {bestScore.toFixed(2)}</Chip>
 						<Chip color="warning" size="sm">Promedio {averageScore.toFixed(2)}</Chip>
 					{/if}
-				{/if}
-				{#if filterSearchQuery.trim()}
-					<Chip color="warning" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
 				{/if}
 			</div>
 		</div>
@@ -324,7 +321,6 @@
 	initialCycleCode={data.selectedCycleCode}
 	initialCycleDegreeCode={data.selectedCycleDegreeCode}
 	initialGroupCode={data.selectedGroupCode as GroupCode}
-	initialSearchQuery={data.searchQuery}
 	initialEvaluationCode={data.selectedEvaluationCode}
 	configuredOnly
 	evaluationRequired

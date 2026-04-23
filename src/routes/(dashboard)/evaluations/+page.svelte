@@ -49,8 +49,7 @@
 	const getInitialFilters = () => ({
 		cycleCode: data.selectedCycleCode,
 		cycleDegreeCode: data.selectedCycleDegreeCode,
-		groupCode: data.selectedGroupCode as GroupCode,
-		searchQuery: data.searchQuery
+		groupCode: data.selectedGroupCode as GroupCode
 	});
 	const getInitialFormSelection = () => ({
 		cycleCode: data.selectedCycleCode,
@@ -68,7 +67,6 @@
 	let filterCycleCode = $state<string | null>(initialFilters.cycleCode);
 	let filterCycleDegreeCode = $state<string | null>(initialFilters.cycleDegreeCode);
 	let filterGroupCode = $state<GroupCode>(initialFilters.groupCode);
-	let filterSearchQuery = $state(initialFilters.searchQuery);
 	let showFilterDialog = $state(false);
 	let showModal = $state(false);
 	let showDeleteModal = $state(false);
@@ -169,35 +167,31 @@
 	}
 
 	function openProcessPage(evaluationCode?: string): void {
-		const entries = [
-			filterCycleCode ? `cycle=${encodeURIComponent(filterCycleCode)}` : '',
-			filterCycleDegreeCode ? `degree=${encodeURIComponent(filterCycleDegreeCode)}` : '',
-			filterGroupCode ? `group=${encodeURIComponent(filterGroupCode)}` : '',
-			filterSearchQuery.trim() ? `search=${encodeURIComponent(filterSearchQuery.trim())}` : '',
-			evaluationCode ? `evaluation=${encodeURIComponent(evaluationCode)}` : ''
-		].filter(Boolean);
-
 		void goto(
-			resolve(`/evaluations/process${entries.length > 0 ? `?${entries.join('&')}` : ''}` as '/')
+			resolve(
+				buildEvaluationSelectionUrl('/evaluations/process', {
+					cycleCode: filterCycleCode,
+					cycleDegreeCode: filterCycleDegreeCode,
+					groupCode: filterGroupCode,
+					searchQuery: '',
+					evaluationCode: evaluationCode ?? null
+				}) as '/'
+			)
 		);
 	}
 
 	function openResultsPage(evaluationCode?: string): void {
-		const entries = [
-			filterCycleCode ? `cycle=${encodeURIComponent(filterCycleCode)}` : '',
-			filterCycleDegreeCode ? `degree=${encodeURIComponent(filterCycleDegreeCode)}` : '',
-			filterGroupCode ? `group=${encodeURIComponent(filterGroupCode)}` : '',
-			filterSearchQuery.trim() ? `search=${encodeURIComponent(filterSearchQuery.trim())}` : '',
-			evaluationCode ? `evaluation=${encodeURIComponent(evaluationCode)}` : ''
-		].filter(Boolean);
-
 		void goto(
-			resolve(`/evaluations/results${entries.length > 0 ? `?${entries.join('&')}` : ''}` as '/')
+			resolve(
+				buildEvaluationSelectionUrl('/evaluations/results', {
+					cycleCode: filterCycleCode,
+					cycleDegreeCode: filterCycleDegreeCode,
+					groupCode: filterGroupCode,
+					searchQuery: '',
+					evaluationCode: evaluationCode ?? null
+				}) as '/'
+			)
 		);
-	}
-
-	function clearFilters(): void {
-		void goto(resolve('/evaluations' as '/'));
 	}
 
 	function handleFormCycleChange(value: string | number | object | null): void {
@@ -346,7 +340,6 @@
 			filterCycleCode = data.selectedCycleCode;
 			filterCycleDegreeCode = data.selectedCycleDegreeCode;
 			filterGroupCode = data.selectedGroupCode as GroupCode;
-			filterSearchQuery = data.searchQuery;
 		}
 	});
 </script>
@@ -362,21 +355,6 @@
 				<Button type="border" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
 					Seleccionar vista
 				</Button>
-				{#if filterSearchQuery.trim()}
-					<Button type="flat" icon="x" onclick={clearFilters}>Limpiar</Button>
-				{/if}
-				<Button
-					type="border"
-					color="info"
-					icon="imagePlus"
-					onclick={() => openProcessPage()}
-					disabled={!canUpdate || configuredEvaluations === 0}
-				>
-					Procesar hojas
-				</Button>
-				<Button type="border" color="primary" icon="badgeCheck" onclick={() => openResultsPage()}>
-					Ver resultados
-				</Button>
 				<Button
 					type="filled"
 					color="primary"
@@ -386,6 +364,23 @@
 				>
 					Nueva evaluación
 				</Button>
+				<Dropdown position="bottom-end" aria-label="Más acciones de evaluaciones">
+					{#snippet triggerContent()}
+						<Button type="border" icon="moreVertical">Acciones</Button>
+					{/snippet}
+
+					<DropdownItem
+						icon="imagePlus"
+						color="info"
+						onclick={() => openProcessPage()}
+						disabled={!canUpdate || configuredEvaluations === 0}
+					>
+						Procesar hojas
+					</DropdownItem>
+					<DropdownItem icon="badgeCheck" color="info" onclick={() => openResultsPage()}>
+						Ver resultados
+					</DropdownItem>
+				</Dropdown>
 			</div>
 		{/snippet}
 	</PageHeader>
@@ -399,9 +394,6 @@
 				<h2 class="lumi-margin--none">{currentCycleLabel}</h2>
 				<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
 					{currentDegreeLabel} · {formatGroupCode(filterGroupCode)}
-					{#if filterSearchQuery.trim()}
-						· búsqueda "{filterSearchQuery.trim()}"
-					{/if}
 				</p>
 			</div>
 
@@ -414,9 +406,6 @@
 				{/if}
 				{#if pendingKeysEvaluations > 0}
 					<Chip color="warning" size="sm">{pendingKeysEvaluations} pendientes</Chip>
-				{/if}
-				{#if filterSearchQuery.trim()}
-					<Chip color="warning" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
 				{/if}
 			</div>
 		</div>
@@ -585,7 +574,6 @@
 	initialCycleCode={data.selectedCycleCode}
 	initialCycleDegreeCode={data.selectedCycleDegreeCode}
 	initialGroupCode={data.selectedGroupCode as GroupCode}
-	initialSearchQuery={data.searchQuery}
 	applyLabel="Ver evaluaciones"
 	onapply={applyDialogSelection}
 />
