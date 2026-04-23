@@ -65,8 +65,6 @@ import {
 	EyeClosed,
 	File as FileIcon,
 	FileText,
-	FlipHorizontal,
-	FlipVertical,
 	Folder,
 	FolderPlus,
 	Grid2x2,
@@ -136,7 +134,9 @@ import {
 	ZoomIn,
 	ZoomOut,
 	ChartPie,
-	ShoppingCart
+	ShoppingCart,
+	FlipHorizontal2,
+	FlipVertical2
 } from '@lucide/svelte';
 
 // ─── Registry ──────────────────────────────────────────────────
@@ -179,8 +179,8 @@ const _registry = {
 	refresh: RefreshCcw,
 	refreshCw: RefreshCw,
 	rotateCcw: RotateCcw,
-	flipHorizontal: FlipHorizontal,
-	flipVertical: FlipVertical,
+	flipHorizontal: FlipHorizontal2,
+	flipVertical: FlipVertical2,
 	play: Play,
 	zoomIn: ZoomIn,
 	zoomOut: ZoomOut,

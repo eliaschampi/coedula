@@ -961,7 +961,10 @@ export class EvaluationRepository {
 		const questionCodeSet = new Set(questions.map((question) => question.code));
 		const answerQuestionCodes = new Set(input.answers.map((answer) => answer.question_code));
 
-		if (input.answers.length !== questions.length || answerQuestionCodes.size !== questions.length) {
+		if (
+			input.answers.length !== questions.length ||
+			answerQuestionCodes.size !== questions.length
+		) {
 			throw new Error('La cantidad de respuestas no coincide con la evaluación seleccionada');
 		}
 
@@ -1211,7 +1214,9 @@ export class EvaluationRepository {
 			sections: sectionRows.map((item) =>
 				mapEvaluationResultSectionDetail(item as EvaluationResultSectionRow)
 			),
-			answers: answerRows.map((item) => mapEvaluationProcessedAnswer(item as EvaluationResultAnswerRow))
+			answers: answerRows.map((item) =>
+				mapEvaluationProcessedAnswer(item as EvaluationResultAnswerRow)
+			)
 		};
 	}
 

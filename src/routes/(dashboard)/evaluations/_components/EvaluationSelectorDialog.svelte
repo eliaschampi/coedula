@@ -1,13 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import {
-		Button,
-		Card,
-		Chip,
-		Dialog,
-		EmptyState,
-		Select
-	} from '$lib/components';
+	import { Button, Card, Chip, Dialog, EmptyState, Select } from '$lib/components';
 	import type { GroupCode } from '$lib/types/education';
 	import { formatEducationDate, formatGroupCode, GROUP_CODE_OPTIONS } from '$lib/utils';
 	import type { EvaluationSelectionValue } from './selection';
@@ -96,10 +89,13 @@
 
 	function handleCycleChange(value: string | number | object | null): void {
 		cycleCode = value ? String(value) : null;
-		const nextDegreeOptions = cycleDegreeOptions.filter((option) => option.cycle_code === cycleCode);
-		cycleDegreeCode = nextDegreeOptions.find((option) => option.code === cycleDegreeCode)?.code
-			?? nextDegreeOptions[0]?.code
-			?? null;
+		const nextDegreeOptions = cycleDegreeOptions.filter(
+			(option) => option.cycle_code === cycleCode
+		);
+		cycleDegreeCode =
+			nextDegreeOptions.find((option) => option.code === cycleDegreeCode)?.code ??
+			nextDegreeOptions[0]?.code ??
+			null;
 	}
 
 	function closeDialog(): void {
@@ -170,8 +166,7 @@
 
 			evaluations = [];
 			selectedEvaluationCode = null;
-			loadError =
-				error instanceof Error ? error.message : 'No se pudieron cargar las evaluaciones';
+			loadError = error instanceof Error ? error.message : 'No se pudieron cargar las evaluaciones';
 		} finally {
 			isLoading = false;
 		}
@@ -213,7 +208,7 @@
 	});
 </script>
 
-<Dialog bind:open size="lg" title={title} scrollable onclose={closeDialog}>
+<Dialog bind:open size="lg" {title} scrollable onclose={closeDialog}>
 	<div class="lumi-stack lumi-stack--md">
 		<div class="lumi-stack lumi-stack--2xs">
 			<p class="lumi-margin--none lumi-text--sm lumi-text--muted">{description}</p>
@@ -255,7 +250,8 @@
 				{/if}
 				{#if cycleDegreeCode}
 					<Chip color="secondary" size="sm">
-						{cycleDegreeOptions.find((option) => option.code === cycleDegreeCode)?.label ?? 'Sin grado'}
+						{cycleDegreeOptions.find((option) => option.code === cycleDegreeCode)?.label ??
+							'Sin grado'}
 					</Chip>
 				{/if}
 				<Chip color="info" size="sm">{formatGroupCode(groupCode)}</Chip>
@@ -323,7 +319,13 @@
 
 		<div class="evaluation-selector__footer">
 			<Button type="border" onclick={closeDialog}>Cancelar</Button>
-			<Button type="filled" color="primary" icon="check" disabled={!canApply} onclick={applySelection}>
+			<Button
+				type="filled"
+				color="primary"
+				icon="check"
+				disabled={!canApply}
+				onclick={applySelection}
+			>
 				{applyLabel}
 			</Button>
 		</div>
@@ -347,12 +349,11 @@
 
 	:global(.evaluation-selector__alert) {
 		border-color: color-mix(in srgb, var(--lumi-color-danger) 28%, var(--lumi-color-border));
-		background:
-			linear-gradient(
-				180deg,
-				color-mix(in srgb, var(--lumi-color-danger) 10%, var(--lumi-color-surface)) 0%,
-				var(--lumi-color-surface) 100%
-			);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--lumi-color-danger) 10%, var(--lumi-color-surface)) 0%,
+			var(--lumi-color-surface) 100%
+		);
 	}
 
 	.evaluation-selector__loading {
@@ -392,12 +393,11 @@
 		padding: var(--lumi-space-md);
 		border-radius: var(--lumi-radius-xl);
 		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		background:
-			linear-gradient(
-				180deg,
-				color-mix(in srgb, var(--lumi-color-surface) 94%, var(--lumi-color-primary) 6%) 0%,
-				var(--lumi-color-surface) 100%
-			);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--lumi-color-surface) 94%, var(--lumi-color-primary) 6%) 0%,
+			var(--lumi-color-surface) 100%
+		);
 		cursor: pointer;
 		text-align: left;
 		transition:

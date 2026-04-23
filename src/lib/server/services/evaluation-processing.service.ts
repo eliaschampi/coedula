@@ -146,7 +146,9 @@ function calculateScores(
 	let generalCorrectWeightedSum = 0;
 	let generalTotalWeightedSum = 0;
 
-	for (const question of [...questions].sort((left, right) => left.order_in_eval - right.order_in_eval)) {
+	for (const question of [...questions].sort(
+		(left, right) => left.order_in_eval - right.order_in_eval
+	)) {
 		const studentAnswer = resolveStudentAnswer(question);
 		const isBlank = studentAnswer === null;
 		const isMultiple = studentAnswer === 'error_multiple';
@@ -300,9 +302,7 @@ export class EvaluationProcessingService {
 			}
 
 			if (getBase64ImageSize(imageData) > MAX_IMAGE_SIZE_BYTES) {
-				throw new Error(
-					`La imagen ${index + 1} excede ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)} MB`
-				);
+				throw new Error(`La imagen ${index + 1} excede ${MAX_IMAGE_SIZE_BYTES / (1024 * 1024)} MB`);
 			}
 
 			return { id, imageData, rollCode };
@@ -358,7 +358,9 @@ export class EvaluationProcessingService {
 				const finalRollCode = (item.rollCode ?? omrResult.studentCode ?? '').trim();
 
 				if (!ROLL_CODE_PATTERN.test(finalRollCode)) {
-					results.push(createItemErrorResponse(item.id, 'VALIDATION_ERROR', undefined, finalRollCode));
+					results.push(
+						createItemErrorResponse(item.id, 'VALIDATION_ERROR', undefined, finalRollCode)
+					);
 					continue;
 				}
 
@@ -485,12 +487,16 @@ export class EvaluationProcessingService {
 				}));
 
 				if (
-					answers.some((answer) => !answer.question_code || !questionCodeSet.has(answer.question_code))
+					answers.some(
+						(answer) => !answer.question_code || !questionCodeSet.has(answer.question_code)
+					)
 				) {
 					throw new Error('Se detectaron respuestas que no pertenecen a la evaluación');
 				}
 
-				if (new Set(answers.map((answer) => answer.question_code)).size !== context.questions.length) {
+				if (
+					new Set(answers.map((answer) => answer.question_code)).size !== context.questions.length
+				) {
 					throw new Error('Se detectaron respuestas duplicadas o incompletas');
 				}
 

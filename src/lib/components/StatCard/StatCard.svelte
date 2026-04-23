@@ -76,5 +76,4 @@
 		font-size: var(--lumi-font-size-sm);
 		color: var(--lumi-color-text-muted);
 	}
-
 </style>

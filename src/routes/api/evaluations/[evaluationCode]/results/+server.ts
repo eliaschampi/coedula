@@ -5,7 +5,10 @@ import { isUuid } from '$lib/utils/validation';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
 	if (!(await locals.can('evaluations:read'))) {
-		return json({ error: 'No tienes permisos para consultar resultados de evaluaciones' }, { status: 403 });
+		return json(
+			{ error: 'No tienes permisos para consultar resultados de evaluaciones' },
+			{ status: 403 }
+		);
 	}
 
 	const evaluationCode = params.evaluationCode?.trim() ?? '';
@@ -25,7 +28,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 export const DELETE: RequestHandler = async ({ params, request, locals }) => {
 	if (!(await locals.can('evaluations:update'))) {
-		return json({ error: 'No tienes permisos para eliminar resultados de evaluaciones' }, { status: 403 });
+		return json(
+			{ error: 'No tienes permisos para eliminar resultados de evaluaciones' },
+			{ status: 403 }
+		);
 	}
 
 	const evaluationCode = params.evaluationCode?.trim() ?? '';

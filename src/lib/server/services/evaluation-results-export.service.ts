@@ -20,7 +20,10 @@ function escapeCsvValue(value: string | number | null | undefined): string {
 	return `"${text.replaceAll('"', '""')}"`;
 }
 
-function buildCsv(headers: string[], rows: Array<Record<string, string | number | null | undefined>>): string {
+function buildCsv(
+	headers: string[],
+	rows: Array<Record<string, string | number | null | undefined>>
+): string {
 	const serializedRows = rows.map((row) =>
 		headers.map((header) => escapeCsvValue(row[header])).join(CSV_DELIMITER)
 	);

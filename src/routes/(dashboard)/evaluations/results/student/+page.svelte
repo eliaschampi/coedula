@@ -80,7 +80,9 @@
 			return;
 		}
 
-		void goto(resolve(`/evaluations/results/student?student=${encodeURIComponent(studentCode)}` as '/'));
+		void goto(
+			resolve(`/evaluations/results/student?student=${encodeURIComponent(studentCode)}` as '/')
+		);
 	}
 
 	function openResultDetail(resultCode: string): void {
@@ -126,9 +128,7 @@
 				>
 					Exportar PDF
 				</Button>
-				<Button type="border" icon="user" onclick={openStudentProfile}>
-					Ver perfil
-				</Button>
+				<Button type="border" icon="user" onclick={openStudentProfile}>Ver perfil</Button>
 			{/if}
 			<Button
 				type="border"
@@ -165,7 +165,9 @@
 			<div class="evaluation-student-results__hero">
 				<div class="evaluation-student-results__identity">
 					<Avatar
-						src={data.student.photo_url ? buildStudentPhotoUrl(data.student.photo_url, 'preview') : ''}
+						src={data.student.photo_url
+							? buildStudentPhotoUrl(data.student.photo_url, 'preview')
+							: ''}
 						text={data.student.full_name}
 						size="xl"
 						color="primary"
@@ -207,7 +209,9 @@
 			</div>
 		</Card>
 
-		<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md evaluation-student-results__stats-grid">
+		<div
+			class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md evaluation-student-results__stats-grid"
+		>
 			<StatCard
 				title="Evaluaciones"
 				value={String(totalResults)}

@@ -67,7 +67,9 @@
 
 	function openStudentHistory(): void {
 		void goto(
-			resolve(`/evaluations/results/student?student=${encodeURIComponent(result.student.code)}` as '/')
+			resolve(
+				`/evaluations/results/student?student=${encodeURIComponent(result.student.code)}` as '/'
+			)
 		);
 	}
 </script>
@@ -96,7 +98,9 @@
 		<div class="evaluation-result-detail__hero">
 			<div class="evaluation-result-detail__identity">
 				<Avatar
-					src={result.student.photo_url ? buildStudentPhotoUrl(result.student.photo_url, 'preview') : ''}
+					src={result.student.photo_url
+						? buildStudentPhotoUrl(result.student.photo_url, 'preview')
+						: ''}
 					text={result.student.full_name}
 					size="xl"
 					color="primary"
@@ -124,7 +128,11 @@
 			</div>
 
 			<div class="evaluation-result-detail__meta-grid">
-				<InfoItem icon="calendar" label="Fecha evaluación" value={formatEducationDate(result.evaluation.eval_date)} />
+				<InfoItem
+					icon="calendar"
+					label="Fecha evaluación"
+					value={formatEducationDate(result.evaluation.eval_date)}
+				/>
 				<InfoItem icon="building" label="Ciclo" value={result.evaluation.cycle_title} />
 				<InfoItem
 					icon="bookOpenCheck"
@@ -132,13 +140,19 @@
 					value={`${formatAcademicDegreeLabel(result.evaluation.degree_name)} · ${formatGroupCode(result.evaluation.group_code)}`}
 				/>
 				<InfoItem icon="creditCard" label="Matrícula" value={result.enrollment.enrollment_number} />
-				<InfoItem icon="clock" label="Calculado" value={formatEducationDate(result.calculated_at)} />
+				<InfoItem
+					icon="clock"
+					label="Calculado"
+					value={formatEducationDate(result.calculated_at)}
+				/>
 				<InfoItem icon="hash" label="DNI" value={result.student.dni || 'Sin DNI'} />
 			</div>
 		</div>
 	</Card>
 
-	<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md evaluation-result-detail__stats-grid">
+	<div
+		class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md evaluation-result-detail__stats-grid"
+	>
 		<StatCard
 			title="Correctas"
 			value={String(result.general.correct_count)}

@@ -15,14 +15,13 @@
 		type TableRow
 	} from '$lib/components';
 	import { can } from '$lib/stores/permissions';
-	import {
-		formatAcademicDegreeLabel,
-		formatEducationDate,
-		formatGroupCode
-	} from '$lib/utils';
+	import { formatAcademicDegreeLabel, formatEducationDate, formatGroupCode } from '$lib/utils';
 	import type { GroupCode } from '$lib/types/education';
 	import EvaluationSelectorDialog from '../_components/EvaluationSelectorDialog.svelte';
-	import { buildEvaluationSelectionUrl, type EvaluationSelectionValue } from '../_components/selection';
+	import {
+		buildEvaluationSelectionUrl,
+		type EvaluationSelectionValue
+	} from '../_components/selection';
 	import type { PageData } from './$types';
 
 	type ResultRow = PageData['results'][number];
@@ -140,7 +139,11 @@
 				{/snippet}
 
 				{#snippet content()}
-					<DropdownItem icon="slidersHorizontal" color="info" onclick={() => (showFilterDialog = true)}>
+					<DropdownItem
+						icon="slidersHorizontal"
+						color="info"
+						onclick={() => (showFilterDialog = true)}
+					>
 						Seleccionar evaluación
 					</DropdownItem>
 					<DropdownItem
@@ -166,7 +169,9 @@
 	</PageHeader>
 
 	<Card spaced class="evaluation-results__context-card">
-		<div class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap">
+		<div
+			class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
+		>
 			<div class="lumi-stack lumi-stack--2xs">
 				<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Evaluación activa</p>
 				<h2 class="lumi-margin--none">
@@ -213,7 +218,12 @@
 				icon="clipboardPenLine"
 			>
 				{#snippet actions()}
-					<Button type="filled" color="primary" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
+					<Button
+						type="filled"
+						color="primary"
+						icon="slidersHorizontal"
+						onclick={() => (showFilterDialog = true)}
+					>
 						Seleccionar evaluación
 					</Button>
 				{/snippet}
@@ -228,7 +238,11 @@
 			>
 				{#snippet actions()}
 					<div class="lumi-flex lumi-flex--gap-sm lumi-flex--wrap">
-						<Button type="border" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
+						<Button
+							type="border"
+							icon="slidersHorizontal"
+							onclick={() => (showFilterDialog = true)}
+						>
 							Cambiar evaluación
 						</Button>
 						{#if canUpdate}

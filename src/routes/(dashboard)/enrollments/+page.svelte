@@ -501,14 +501,14 @@
 					<StatCard
 						title="Finalizadas"
 						value={String(finalizedEnrollments)}
-						icon="flag"
+						icon="graduationCap"
 						color="info"
 						subtitle="Cierres ya consolidados"
 					/>
 					<StatCard
 						title="Inactivas"
 						value={String(inactiveEnrollments)}
-						icon="pauseCircle"
+						icon="x"
 						color="warning"
 						subtitle="Casos en espera o suspendidos"
 					/>

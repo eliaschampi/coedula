@@ -353,11 +353,11 @@
 		{#snippet actions()}
 			<Dropdown position="bottom-end" aria-label="Acciones de evaluaciones">
 				{#snippet triggerContent()}
-					<Button type="filled" color="primary" icon="moreVertical">Acciones</Button>
+					<Button type="flat" color="primary" icon="moreVertical"/>
 				{/snippet}
 
 				{#snippet content()}
-					<DropdownItem icon="slidersHorizontal" color="info" onclick={() => (showFilterDialog = true)}>
+					<DropdownItem icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
 						Seleccionar vista
 					</DropdownItem>
 					<DropdownItem icon="plus" onclick={openCreateModal} disabled={!canCreate}>
@@ -365,13 +365,12 @@
 					</DropdownItem>
 					<DropdownItem
 						icon="imagePlus"
-						color="info"
 						onclick={() => openProcessPage()}
 						disabled={!canUpdate || configuredEvaluations === 0}
 					>
 						Procesar hojas
 					</DropdownItem>
-					<DropdownItem icon="badgeCheck" color="info" onclick={() => openResultsPage()}>
+					<DropdownItem icon="badgeCheck" onclick={() => openResultsPage()}>
 						Ver resultados
 					</DropdownItem>
 				{/snippet}

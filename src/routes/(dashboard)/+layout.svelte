@@ -183,19 +183,6 @@
 			</SidebarItem>
 		{/if}
 
-		{#if canReadEvaluations}
-			<SidebarItem
-				href="/evaluations"
-				active={page.url.pathname.startsWith('/evaluations')}
-				collapsed={sidebarCollapsed}
-			>
-				{#snippet icon()}
-					<Icon icon="clipboardPenLine" size="20px" />
-				{/snippet}
-				Evaluaciones
-			</SidebarItem>
-		{/if}
-
 		{#if canReadStudents}
 			<SidebarItem
 				href="/students"
@@ -219,6 +206,19 @@
 					<Icon icon="userCheck" size="20px" />
 				{/snippet}
 				Matrículas
+			</SidebarItem>
+		{/if}
+
+		{#if canReadEvaluations}
+			<SidebarItem
+				href="/evaluations"
+				active={page.url.pathname.startsWith('/evaluations')}
+				collapsed={sidebarCollapsed}
+			>
+				{#snippet icon()}
+					<Icon icon="clipboardPenLine" size="20px" />
+				{/snippet}
+				Evaluaciones
 			</SidebarItem>
 		{/if}
 

@@ -15,7 +15,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	}
 
 	try {
-		const { filename, content } = await generateDetailedEvaluationResultsCsv(locals.db, evaluationCode);
+		const { filename, content } = await generateDetailedEvaluationResultsCsv(
+			locals.db,
+			evaluationCode
+		);
 
 		return new Response(content, {
 			headers: {

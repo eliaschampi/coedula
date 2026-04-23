@@ -39,12 +39,14 @@ export const load: PageServerLoad = async ({ locals, url, depends }) => {
 
 	const evaluations =
 		selectedCycleCode && selectedCycleDegreeCode
-			? (await EvaluationRepository.listEvaluationsByFilters(locals.db, {
-					cycleCode: selectedCycleCode,
-					cycleDegreeCode: selectedCycleDegreeCode,
-					groupCode: selectedGroupCode,
-					search: searchQuery
-				})).filter((evaluation) => evaluation.has_questions)
+			? (
+					await EvaluationRepository.listEvaluationsByFilters(locals.db, {
+						cycleCode: selectedCycleCode,
+						cycleDegreeCode: selectedCycleDegreeCode,
+						groupCode: selectedGroupCode,
+						search: searchQuery
+					})
+				).filter((evaluation) => evaluation.has_questions)
 			: [];
 
 	const selectedEvaluationCode =

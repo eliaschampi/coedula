@@ -60,7 +60,7 @@
 	});
 </script>
 
-<Dialog bind:open size="lg" title="Detalle del procesamiento" scrollable onclose={onclose}>
+<Dialog bind:open size="lg" title="Detalle del procesamiento" scrollable {onclose}>
 	{#if result}
 		<div class="lumi-stack lumi-stack--md">
 			<div class="lumi-stack lumi-stack--2xs">
@@ -86,19 +86,25 @@
 				<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md">
 					<Card spaced class="evaluation-process-dialog__metric">
 						<p class="evaluation-process-dialog__metric-label">Correctas</p>
-						<strong class="evaluation-process-dialog__metric-value evaluation-process-dialog__metric-value--success">
+						<strong
+							class="evaluation-process-dialog__metric-value evaluation-process-dialog__metric-value--success"
+						>
 							{result.scores.general.correct_count}
 						</strong>
 					</Card>
 					<Card spaced class="evaluation-process-dialog__metric">
 						<p class="evaluation-process-dialog__metric-label">Incorrectas</p>
-						<strong class="evaluation-process-dialog__metric-value evaluation-process-dialog__metric-value--danger">
+						<strong
+							class="evaluation-process-dialog__metric-value evaluation-process-dialog__metric-value--danger"
+						>
 							{result.scores.general.incorrect_count}
 						</strong>
 					</Card>
 					<Card spaced class="evaluation-process-dialog__metric">
 						<p class="evaluation-process-dialog__metric-label">En blanco</p>
-						<strong class="evaluation-process-dialog__metric-value evaluation-process-dialog__metric-value--warning">
+						<strong
+							class="evaluation-process-dialog__metric-value evaluation-process-dialog__metric-value--warning"
+						>
 							{result.scores.general.blank_count}
 						</strong>
 					</Card>

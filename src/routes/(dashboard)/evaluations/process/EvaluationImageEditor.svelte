@@ -58,7 +58,9 @@
 		return `transform: ${transform}; transform-origin: center;`;
 	});
 	const canRevert = $derived(baseImageUrl !== imageUrl && !processing);
-	const canSave = $derived(Boolean(pendingOperation) && (!cropMode || Boolean(cropFrame)) && !processing);
+	const canSave = $derived(
+		Boolean(pendingOperation) && (!cropMode || Boolean(cropFrame)) && !processing
+	);
 	const statusLabel = $derived.by(() => {
 		if (status === 'processing') return 'Procesando';
 		if (status === 'success') return 'Procesada';
@@ -259,14 +261,12 @@
 		dragOffset = null;
 	}
 
-	function calculateCrop():
-		| {
-				x: number;
-				y: number;
-				width: number;
-				height: number;
-		  }
-		| null {
+	function calculateCrop(): {
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	} | null {
 		if (!cropFrame || !containerRef || !naturalWidth || !naturalHeight) {
 			return null;
 		}
@@ -321,7 +321,7 @@
 								vertical: flipY
 							}
 						: undefined,
-				crop: pendingOperation === 'crop' ? calculateCrop() ?? undefined : undefined
+				crop: pendingOperation === 'crop' ? (calculateCrop() ?? undefined) : undefined
 			});
 
 			baseImageUrl = result;
@@ -390,10 +390,22 @@
 
 	<div class="evaluation-image-editor__toolbar">
 		<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-			<Button type="border" size="sm" icon="rotateCcw" disabled={cropMode || processing} onclick={() => rotate(false)}>
+			<Button
+				type="border"
+				size="sm"
+				icon="rotateCcw"
+				disabled={cropMode || processing}
+				onclick={() => rotate(false)}
+			>
 				Girar izq.
 			</Button>
-			<Button type="border" size="sm" icon="refreshCw" disabled={cropMode || processing} onclick={() => rotate(true)}>
+			<Button
+				type="border"
+				size="sm"
+				icon="refreshCw"
+				disabled={cropMode || processing}
+				onclick={() => rotate(true)}
+			>
 				Girar der.
 			</Button>
 			<Button
@@ -533,12 +545,11 @@
 		border-radius: var(--lumi-radius-lg);
 		border: var(--lumi-border-width-thin) solid
 			color-mix(in srgb, var(--lumi-color-danger) 30%, var(--lumi-color-border));
-		background:
-			linear-gradient(
-				180deg,
-				color-mix(in srgb, var(--lumi-color-danger) 12%, var(--lumi-color-surface)) 0%,
-				var(--lumi-color-surface) 100%
-			);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--lumi-color-danger) 12%, var(--lumi-color-surface)) 0%,
+			var(--lumi-color-surface) 100%
+		);
 		color: var(--lumi-color-danger);
 	}
 

@@ -35,7 +35,10 @@
 		validateEvaluationImageProportion
 	} from '$lib/utils';
 	import EvaluationSelectorDialog from '../_components/EvaluationSelectorDialog.svelte';
-	import { buildEvaluationSelectionUrl, type EvaluationSelectionValue } from '../_components/selection';
+	import {
+		buildEvaluationSelectionUrl,
+		type EvaluationSelectionValue
+	} from '../_components/selection';
 	import EvaluationImageEditor from './EvaluationImageEditor.svelte';
 	import EvaluationProcessDetailsDialog from './EvaluationProcessDetailsDialog.svelte';
 	import type { PageData } from './$types';
@@ -76,12 +79,10 @@
 	const canUpdate = $derived(can('evaluations:update'));
 	const currentEvaluation = $derived(data.selectedEvaluation);
 	const selectedFile = $derived(
-		selectedFileId ? fileEntries.find((entry) => entry.id === selectedFileId) ?? null : null
+		selectedFileId ? (fileEntries.find((entry) => entry.id === selectedFileId) ?? null) : null
 	);
 	const pendingEntries = $derived(fileEntries.filter((entry) => entry.status === 'pending'));
-	const processablePendingEntries = $derived(
-		pendingEntries.filter((entry) => entry.formatValid)
-	);
+	const processablePendingEntries = $derived(pendingEntries.filter((entry) => entry.formatValid));
 	const successEntries = $derived(fileEntries.filter((entry) => entry.status === 'success'));
 	const unresolvedEntries = $derived(
 		successEntries.filter((entry) => !entry.result?.enrollment_code)
@@ -109,9 +110,7 @@
 
 		const invalidFormatCount = fileEntries.filter((entry) => !entry.formatValid).length;
 		if (invalidFormatCount > 0) {
-			messages.push(
-				`${invalidFormatCount} hoja(s) tienen una proporción diferente a A5 vertical.`
-			);
+			messages.push(`${invalidFormatCount} hoja(s) tienen una proporción diferente a A5 vertical.`);
 		}
 
 		if (unresolvedEntries.length > 0) {
@@ -225,7 +224,10 @@
 		return entry?.result?.roll_code ?? entry?.error?.roll_code ?? '';
 	}
 
-	function getActionError(result: { type?: string; data?: Record<string, unknown> }): string | null {
+	function getActionError(result: {
+		type?: string;
+		data?: Record<string, unknown>;
+	}): string | null {
 		const error = result.data?.error;
 		return typeof error === 'string' && error.trim().length > 0 ? error.trim() : null;
 	}
@@ -243,10 +245,7 @@
 		return codes.filter((value): value is string => typeof value === 'string' && value.length > 0);
 	}
 
-	function extractSaveErrors(result: {
-		type?: string;
-		data?: Record<string, unknown>;
-	}): string[] {
+	function extractSaveErrors(result: { type?: string; data?: Record<string, unknown> }): string[] {
 		const errors = result.data?.errors;
 
 		if (!Array.isArray(errors)) {
@@ -356,7 +355,9 @@
 		});
 	}
 
-	async function validateImageFormat(file: File): Promise<{ formatValid: boolean; formatName: string }> {
+	async function validateImageFormat(
+		file: File
+	): Promise<{ formatValid: boolean; formatName: string }> {
 		if (!browser) {
 			return { formatValid: true, formatName: 'A5 Vertical' };
 		}
@@ -491,7 +492,8 @@
 				validation.formatValid ? 'success' : 'warning'
 			);
 		} catch (error) {
-			const message = error instanceof Error ? error.message : 'No se pudo guardar el ajuste de imagen';
+			const message =
+				error instanceof Error ? error.message : 'No se pudo guardar el ajuste de imagen';
 			showToast(message, 'error');
 		}
 	}
@@ -784,7 +786,6 @@
 			lastRollSyncKey = syncKey;
 		}
 	});
-
 </script>
 
 <div class="lumi-stack lumi-stack--md">
@@ -800,7 +801,11 @@
 				{/snippet}
 
 				{#snippet content()}
-					<DropdownItem icon="slidersHorizontal" color="info" onclick={() => (showFilterDialog = true)}>
+					<DropdownItem
+						icon="slidersHorizontal"
+						color="info"
+						onclick={() => (showFilterDialog = true)}
+					>
 						Seleccionar evaluación
 					</DropdownItem>
 					<DropdownItem icon="arrowLeft" onclick={() => goto(resolve('/evaluations' as '/'))}>
@@ -810,9 +815,7 @@
 						<DropdownItem
 							icon="key"
 							color="info"
-							onclick={() =>
-								goto(resolve(`/evaluations/${currentEvaluation.code}/keys` as '/'))
-							}
+							onclick={() => goto(resolve(`/evaluations/${currentEvaluation.code}/keys` as '/'))}
 						>
 							Ver claves
 						</DropdownItem>
@@ -826,7 +829,9 @@
 	</PageHeader>
 
 	<Card spaced class="evaluation-process__context-card">
-		<div class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap">
+		<div
+			class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
+		>
 			<div class="lumi-stack lumi-stack--2xs">
 				<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Evaluación activa</p>
 				<h2 class="lumi-margin--none">
@@ -873,7 +878,12 @@
 				icon="imagePlus"
 			>
 				{#snippet actions()}
-					<Button type="filled" color="primary" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
+					<Button
+						type="filled"
+						color="primary"
+						icon="slidersHorizontal"
+						onclick={() => (showFilterDialog = true)}
+					>
 						Seleccionar evaluación
 					</Button>
 				{/snippet}
@@ -882,7 +892,9 @@
 	{:else}
 		<Card spaced>
 			<div class="lumi-stack lumi-stack--md">
-				<div class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap">
+				<div
+					class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
+				>
 					<div class="lumi-stack lumi-stack--2xs">
 						<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Lote actual</p>
 						<h2 class="lumi-margin--none">Carga, corrige y procesa</h2>
@@ -942,7 +954,8 @@
 									}
 
 									if (result.type === 'failure') {
-										requestError = getActionError(result) ?? 'No se pudieron guardar todos los resultados';
+										requestError =
+											getActionError(result) ?? 'No se pudieron guardar todos los resultados';
 										saveErrors = extractSaveErrors(result);
 										showToast(requestError, 'warning');
 									}
@@ -1019,7 +1032,9 @@
 						{issueMessages[0]}
 						{#if issueMessages.length > 1}
 							<br />
-							<span class="lumi-text--xs">Además hay {issueMessages.length - 1} alerta(s) adicionales.</span>
+							<span class="lumi-text--xs"
+								>Además hay {issueMessages.length - 1} alerta(s) adicionales.</span
+							>
 						{/if}
 					</Alert>
 				{/if}
@@ -1058,7 +1073,9 @@
 					<div class="evaluation-process__layout">
 						<Card spaced class="evaluation-process__panel">
 							<div class="lumi-stack lumi-stack--sm">
-								<div class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap">
+								<div
+									class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
+								>
 									<div class="lumi-stack lumi-stack--2xs">
 										<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Hojas cargadas</p>
 										<h3 class="lumi-margin--none">Lote ordenado</h3>
@@ -1093,7 +1110,9 @@
 												}
 											}}
 										>
-											<div class="evaluation-process__file-cell evaluation-process__file-cell--main">
+											<div
+												class="evaluation-process__file-cell evaluation-process__file-cell--main"
+											>
 												<strong class="evaluation-process__file-title">{entry.file.name}</strong>
 												<span class="lumi-text--xs lumi-text--muted">{status.message}</span>
 											</div>
@@ -1109,8 +1128,7 @@
 															{entry.result?.roll_code ?? entry.error?.roll_code}
 														</Chip>
 													{/if}
-													{#if entry.result?.enrollment_code &&
-														duplicateEnrollmentCodes.has(entry.result.enrollment_code)}
+													{#if entry.result?.enrollment_code && duplicateEnrollmentCodes.has(entry.result.enrollment_code)}
 														<Chip color="warning" size="sm">Duplicada</Chip>
 													{/if}
 												</div>
@@ -1250,7 +1268,8 @@
 											</div>
 										{:else}
 											<Alert type="warning" closable={false}>
-												La hoja fue procesada, pero no se encontró una matrícula válida con el código
+												La hoja fue procesada, pero no se encontró una matrícula válida con el
+												código
 												{selectedFile.result.roll_code}.
 											</Alert>
 										{/if}
@@ -1268,7 +1287,12 @@
 										</div>
 
 										<div class="lumi-flex lumi-flex--gap-sm lumi-flex--wrap">
-											<Button type="border" color="info" icon="eye" onclick={() => (showDetailsDialog = true)}>
+											<Button
+												type="border"
+												color="info"
+												icon="eye"
+												onclick={() => (showDetailsDialog = true)}
+											>
 												Ver detalle
 											</Button>
 											{#if selectedFile.saved}
@@ -1283,7 +1307,8 @@
 										</Alert>
 									{:else}
 										<Alert type="info" closable={false}>
-											La hoja está lista para procesarse. Si el formato no coincide, ajusta la imagen primero.
+											La hoja está lista para procesarse. Si el formato no coincide, ajusta la
+											imagen primero.
 										</Alert>
 									{/if}
 								</div>
@@ -1366,12 +1391,11 @@
 		padding: var(--lumi-space-md);
 		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
 		border-radius: var(--lumi-radius-xl);
-		background:
-			linear-gradient(
-				180deg,
-				color-mix(in srgb, var(--lumi-color-surface) 96%, var(--lumi-color-primary) 4%) 0%,
-				var(--lumi-color-surface) 100%
-			);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--lumi-color-surface) 96%, var(--lumi-color-primary) 4%) 0%,
+			var(--lumi-color-surface) 100%
+		);
 		cursor: pointer;
 		transition:
 			transform var(--lumi-duration-fast) var(--lumi-easing-default),
@@ -1434,12 +1458,11 @@
 		padding: var(--lumi-space-md);
 		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
 		border-radius: var(--lumi-radius-xl);
-		background:
-			linear-gradient(
-				180deg,
-				color-mix(in srgb, var(--lumi-color-surface) 92%, var(--lumi-color-success) 8%) 0%,
-				var(--lumi-color-surface) 100%
-			);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--lumi-color-surface) 92%, var(--lumi-color-success) 8%) 0%,
+			var(--lumi-color-surface) 100%
+		);
 	}
 
 	@media (max-width: 1100px) {
@@ -1449,7 +1472,10 @@
 
 		.evaluation-process__list-head,
 		.evaluation-process__file-row {
-			grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.8fr) minmax(0, 0.8fr) auto;
+			grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.8fr) minmax(
+					0,
+					0.8fr
+				) auto;
 		}
 	}
 

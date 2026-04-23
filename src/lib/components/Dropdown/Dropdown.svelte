@@ -189,7 +189,7 @@
 	>
 		{#if triggerContent}
 			{@render triggerContent()}
-		{:else if children}
+		{:else if !content && children}
 			{@render children()}
 		{/if}
 	</div>

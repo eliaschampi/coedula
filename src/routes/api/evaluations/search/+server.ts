@@ -32,12 +32,13 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	});
 
 	return json({
-		items: (configuredOnly ? evaluations.filter((evaluation) => evaluation.has_questions) : evaluations).map(
-			(evaluation) => ({
-				code: evaluation.code,
-				name: evaluation.name,
-				eval_date: evaluation.eval_date
-			})
-		)
+		items: (configuredOnly
+			? evaluations.filter((evaluation) => evaluation.has_questions)
+			: evaluations
+		).map((evaluation) => ({
+			code: evaluation.code,
+			name: evaluation.name,
+			eval_date: evaluation.eval_date
+		}))
 	});
 };

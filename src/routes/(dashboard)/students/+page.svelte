@@ -204,14 +204,12 @@
 											{#snippet content()}
 												<DropdownItem
 													icon="eye"
-													color="info"
 													onclick={() => openStudentProfile(student.code)}
 												>
 													Ver perfil
 												</DropdownItem>
 												<DropdownItem
 													icon="history"
-													color="info"
 													onclick={() => openStudentAttendance(student.code)}
 													disabled={!canReadAttendance}
 												>

@@ -140,12 +140,13 @@ function buildSectionSummary(result: StudentEvaluationReportItem): string {
 		return 'Sin desglose por curso';
 	}
 
-	return entries
-		.map(([sectionName, score]) => `${sectionName}: ${score.toFixed(2)}`)
-		.join(' · ');
+	return entries.map(([sectionName, score]) => `${sectionName}: ${score.toFixed(2)}`).join(' · ');
 }
 
-function buildEntryLayout(result: StudentEvaluationReportItem, assets: PdfAssets): ReportEntryLayout {
+function buildEntryLayout(
+	result: StudentEvaluationReportItem,
+	assets: PdfAssets
+): ReportEntryLayout {
 	const dateLines = wrapText(
 		formatEducationDate(result.eval_date),
 		assets.font,
@@ -256,7 +257,13 @@ function createBasePage(pdf: PDFDocument, assets: PdfAssets): PDFPage {
 	return page;
 }
 
-function drawCenteredTitle(page: PDFPage, boldFont: PDFFont, title: string, y: number, size: number) {
+function drawCenteredTitle(
+	page: PDFPage,
+	boldFont: PDFFont,
+	title: string,
+	y: number,
+	size: number
+) {
 	const titleWidth = boldFont.widthOfTextAtSize(title, size);
 	const titleX = (PAGE_WIDTH - titleWidth) / 2;
 
@@ -312,7 +319,11 @@ function drawSummaryCard(page: PDFPage, context: ReportContext, assets: PdfAsset
 	const metrics: SummaryMetric[] = [
 		{ label: 'Evaluaciones', value: String(context.results.length), color: COLORS.info },
 		{ label: 'Promedio', value: context.averageScore.toFixed(2), color: COLORS.info },
-		{ label: 'Mejor nota', value: context.bestScore.toFixed(2), color: getScoreColor(context.bestScore) },
+		{
+			label: 'Mejor nota',
+			value: context.bestScore.toFixed(2),
+			color: getScoreColor(context.bestScore)
+		},
 		{ label: 'Aprobadas', value: String(context.approvedCount), color: COLORS.success }
 	];
 
@@ -398,7 +409,12 @@ function drawLines(
 	}
 }
 
-function drawEntryRow(page: PDFPage, assets: PdfAssets, result: StudentEvaluationReportItem, topY: number): number {
+function drawEntryRow(
+	page: PDFPage,
+	assets: PdfAssets,
+	result: StudentEvaluationReportItem,
+	topY: number
+): number {
 	const layout = buildEntryLayout(result, assets);
 	const rowBottomY = topY - layout.rowHeight;
 
