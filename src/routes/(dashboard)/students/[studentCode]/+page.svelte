@@ -28,12 +28,14 @@
 	import {
 		buildStudentPhotoUrl,
 		formatAcademicDegreeLabel,
+		formatPaymentStatus,
 		formatEducationCurrency,
 		formatEducationDate,
 		formatEducationDateRange,
 		formatEnrollmentStatus,
 		formatEnrollmentTurn,
-		formatGroupCode
+		formatGroupCode,
+		getPaymentStatusColor
 	} from '$lib/utils';
 	import {
 		formatFileSize,
@@ -67,10 +69,12 @@
 	const canDelete = $derived(can('students:delete'));
 	const canReadEnrollments = $derived(data.canReadEnrollments);
 	const canReadDrive = $derived(data.canReadDrive);
+	const canReadPayments = $derived(data.canReadPayments);
 	const canReadAttendance = $derived(can('attendance:read'));
 	const canReadEvaluations = $derived(can('evaluations:read'));
 	const canManageAttachments = $derived(data.canManageAttachments && data.canReadDrive);
 	const linkedRows = $derived(linkedFiles as unknown as TableRow[]);
+	const paymentRows = $derived(data.studentPayments as unknown as TableRow[]);
 	const canGenerateCard = $derived(
 		canReadEnrollments && data.enrollments.length > 0 && Boolean(data.student.dni?.trim())
 	);
@@ -99,6 +103,7 @@
 	const profileTabs = [
 		{ value: 'summary', label: 'Perfil', icon: 'userRound' },
 		{ value: 'history', label: 'Matrículas', icon: 'history' },
+		{ value: 'payments', label: 'Pagos', icon: 'wallet' },
 		{ value: 'attachments', label: 'Adjuntos', icon: 'paperclip' }
 	];
 
@@ -132,6 +137,10 @@
 
 	function handleGenerateCard(): void {
 		window.open(`/api/students/${data.student.code}/card`, '_blank', 'noopener,noreferrer');
+	}
+
+	function openPaymentTicket(paymentCode: string): void {
+		window.open(`/api/payments/${paymentCode}/ticket`, '_blank', 'noopener,noreferrer');
 	}
 
 	function openAttendanceReport(): void {
@@ -557,6 +566,59 @@
 							</div>
 						{/each}
 					</div>
+				{/if}
+			</Card>
+		{:else if activeTab === 'payments'}
+			<Card title="Historial de pagos" subtitle="Cobros vinculados directamente al alumno">
+				{#if !canReadPayments}
+					<Alert type="warning" closable>
+						No tienes permisos para consultar el historial de pagos.
+					</Alert>
+				{:else if data.studentPayments.length === 0}
+					<EmptyState
+						title="Sin pagos vinculados"
+						description="Cuando el alumno tenga cobros asociados, aparecerán aquí."
+						icon="wallet"
+					/>
+				{:else}
+					<Table data={paymentRows} hover pagination itemsPerPage={10}>
+						{#snippet thead()}
+							<th>Ingreso</th>
+							<th>Conceptos</th>
+							<th>Total</th>
+							<th>Estado</th>
+							<th>Acciones</th>
+						{/snippet}
+
+						{#snippet row({ row })}
+							{@const payment = row as unknown as PageData['studentPayments'][number]}
+							<td>
+								<div class="lumi-stack lumi-stack--2xs">
+									<span class="lumi-font--medium">{payment.payment_number}</span>
+									<span class="lumi-text--xs lumi-text--muted">
+										{formatEducationDate(payment.payment_date)}
+									</span>
+								</div>
+							</td>
+							<td>{payment.concept_summary}</td>
+							<td>{formatEducationCurrency(payment.total_amount)}</td>
+							<td>
+								<Chip color={getPaymentStatusColor(payment.status)} size="sm">
+									{formatPaymentStatus(payment.status)}
+								</Chip>
+							</td>
+							<td>
+								<Button
+									type="flat"
+									size="sm"
+									icon="eye"
+									onclick={() => openPaymentTicket(payment.code)}
+								>
+									Ticket
+								</Button>
+							</td>
+						{/snippet}
+					</Table>
 				{/if}
 			</Card>
 		{:else}

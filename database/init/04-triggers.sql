@@ -38,6 +38,26 @@ CREATE TRIGGER enrollments_updated_at_tg
 BEFORE UPDATE ON public.enrollments
 FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
 
+CREATE TRIGGER cashbox_days_updated_at_tg
+BEFORE UPDATE ON public.cashbox_days
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
+CREATE TRIGGER payments_updated_at_tg
+BEFORE UPDATE ON public.payments
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
+CREATE TRIGGER payment_items_updated_at_tg
+BEFORE UPDATE ON public.payment_items
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
+CREATE TRIGGER cash_outflows_updated_at_tg
+BEFORE UPDATE ON public.cash_outflows
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
+CREATE TRIGGER cashbox_movements_updated_at_tg
+BEFORE UPDATE ON public.cashbox_movements
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
 CREATE TRIGGER evals_updated_at_tg
 BEFORE UPDATE ON public.evals
 FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();

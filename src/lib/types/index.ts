@@ -171,3 +171,16 @@ export type {
 	DashboardSeriesPoint,
 	DashboardStudentRankingItem
 } from './dashboard';
+
+export type {
+	CashboxBranchOption,
+	CashboxDailySummary,
+	CashMovementType,
+	CashOutflowOverview,
+	CashOutflowStatus,
+	CashOutflowType,
+	PaymentConceptCode,
+	PaymentItem,
+	PaymentOverview,
+	PaymentStatus
+} from './finance';

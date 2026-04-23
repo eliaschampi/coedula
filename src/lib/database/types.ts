@@ -112,6 +112,102 @@ export interface Branches {
 	users: string[];
 }
 
+export interface CashboxDailySummary {
+	branch_code: string | null;
+	branch_name: string | null;
+	business_date: Timestamp | null;
+	cashbox_day_code: string | null;
+	cashier_full_name: string | null;
+	cashier_user_code: string | null;
+	closed_at: Timestamp | null;
+	closed_by_user_code: string | null;
+	closing_amount: Numeric | null;
+	created_at: Timestamp | null;
+	current_amount: Numeric | null;
+	expense_amount: Numeric | null;
+	income_amount: Numeric | null;
+	notes: string | null;
+	opened_by_user_code: string | null;
+	opening_amount: Numeric | null;
+	surrender_amount: Numeric | null;
+	updated_at: Timestamp | null;
+}
+
+export interface CashboxDays {
+	branch_code: string;
+	business_date: Timestamp;
+	cashier_user_code: string;
+	closed_at: Timestamp | null;
+	closed_by_user_code: string | null;
+	closing_amount: Numeric | null;
+	code: Generated<string>;
+	created_at: Generated<Timestamp>;
+	notes: string | null;
+	opened_by_user_code: string | null;
+	opening_amount: Generated<Numeric>;
+	updated_at: Generated<Timestamp>;
+}
+
+export interface CashboxMovements {
+	amount: Numeric;
+	branch_code: string;
+	business_date: Timestamp;
+	cashier_user_code: string;
+	code: Generated<string>;
+	created_at: Generated<Timestamp>;
+	direction: string;
+	movement_type: string;
+	note: string | null;
+	registered_by_user_code: string;
+	reversed_at: Timestamp | null;
+	reversed_by_user_code: string | null;
+	source_code: string;
+	source_type: string;
+	status: Generated<string>;
+	updated_at: Generated<Timestamp>;
+}
+
+export interface CashOutflowOverview {
+	amount: Numeric | null;
+	branch_code: string | null;
+	branch_name: string | null;
+	cashier_full_name: string | null;
+	cashier_user_code: string | null;
+	code: string | null;
+	concept: string | null;
+	created_at: Timestamp | null;
+	deleted_at: Timestamp | null;
+	deleted_by_user_code: string | null;
+	description: string | null;
+	outflow_date: Timestamp | null;
+	outflow_number: string | null;
+	outflow_type: string | null;
+	registered_by_full_name: string | null;
+	registered_by_user_code: string | null;
+	responsible_name: string | null;
+	status: string | null;
+	updated_at: Timestamp | null;
+}
+
+export interface CashOutflows {
+	amount: Numeric;
+	branch_code: string;
+	cashier_user_code: string;
+	code: Generated<string>;
+	concept: string;
+	created_at: Generated<Timestamp>;
+	deleted_at: Timestamp | null;
+	deleted_by_user_code: string | null;
+	description: string | null;
+	outflow_date: Generated<Timestamp>;
+	outflow_number: Generated<string>;
+	outflow_type: Generated<string>;
+	registered_by_user_code: string;
+	responsible_name: string | null;
+	status: Generated<string>;
+	updated_at: Generated<Timestamp>;
+}
+
 export interface Courses {
 	code: Generated<string>;
 	created_at: Generated<Timestamp>;
@@ -356,6 +452,66 @@ export interface EvalSections {
 	question_count: number;
 }
 
+export interface PaymentItems {
+	amount: Numeric;
+	code: Generated<string>;
+	concept_code: string;
+	concept_label: string;
+	created_at: Generated<Timestamp>;
+	detail: string | null;
+	payment_code: string;
+	position: number;
+	updated_at: Generated<Timestamp>;
+}
+
+export interface PaymentOverview {
+	branch_code: string | null;
+	branch_name: string | null;
+	cashier_full_name: string | null;
+	cashier_user_code: string | null;
+	code: string | null;
+	concept_summary: string | null;
+	created_at: Timestamp | null;
+	item_count: number | null;
+	observation: string | null;
+	payer_document: string | null;
+	payer_first_name: string | null;
+	payer_full_name: string | null;
+	payer_last_name: string | null;
+	payment_date: Timestamp | null;
+	payment_number: string | null;
+	registered_by_full_name: string | null;
+	registered_by_user_code: string | null;
+	status: string | null;
+	student_code: string | null;
+	student_full_name: string | null;
+	student_number: string | null;
+	total_amount: Numeric | null;
+	updated_at: Timestamp | null;
+	voided_at: Timestamp | null;
+	voided_by_user_code: string | null;
+}
+
+export interface Payments {
+	branch_code: string;
+	cashier_user_code: string;
+	code: Generated<string>;
+	created_at: Generated<Timestamp>;
+	observation: string | null;
+	payer_document: string | null;
+	payer_first_name: string;
+	payer_last_name: string;
+	payment_date: Generated<Timestamp>;
+	payment_number: Generated<string>;
+	registered_by_user_code: string;
+	status: Generated<string>;
+	student_code: string | null;
+	total_amount: Generated<Numeric>;
+	updated_at: Generated<Timestamp>;
+	voided_at: Timestamp | null;
+	voided_by_user_code: string | null;
+}
+
 export interface Permissions {
 	action: string;
 	code: Generated<string>;
@@ -466,6 +622,11 @@ export interface DB {
 	attendances: Attendances;
 	auth_login_rate_limits: AuthLoginRateLimits;
 	branches: Branches;
+	cash_outflow_overview: CashOutflowOverview;
+	cash_outflows: CashOutflows;
+	cashbox_daily_summary: CashboxDailySummary;
+	cashbox_days: CashboxDays;
+	cashbox_movements: CashboxMovements;
 	courses: Courses;
 	cycle_degree_overview: CycleDegreeOverview;
 	cycle_degrees: CycleDegrees;
@@ -484,6 +645,9 @@ export interface DB {
 	eval_results: EvalResults;
 	eval_sections: EvalSections;
 	evals: Evals;
+	payment_items: PaymentItems;
+	payment_overview: PaymentOverview;
+	payments: Payments;
 	permissions: Permissions;
 	student_drive_links: StudentDriveLinks;
 	student_overview: StudentOverview;

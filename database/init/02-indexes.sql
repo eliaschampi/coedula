@@ -56,6 +56,26 @@ CREATE INDEX enrollments_student_idx ON public.enrollments (student_code, create
 CREATE UNIQUE INDEX enrollments_roll_code_cycle_group_uq
   ON public.enrollments (cycle_degree_code, group_code, roll_code);
 
+-- Cashbox
+CREATE INDEX cashbox_days_scope_date_idx
+  ON public.cashbox_days (branch_code, cashier_user_code, business_date DESC);
+CREATE INDEX cashbox_days_closed_at_idx
+  ON public.cashbox_days (branch_code, cashier_user_code, closed_at DESC);
+CREATE INDEX payments_payment_date_idx
+  ON public.payments (branch_code, cashier_user_code, payment_date DESC, created_at DESC);
+CREATE INDEX payments_student_idx ON public.payments (student_code, payment_date DESC);
+CREATE INDEX payments_status_idx
+  ON public.payments (branch_code, cashier_user_code, status, payment_date DESC);
+CREATE INDEX payment_items_payment_idx ON public.payment_items (payment_code, position ASC);
+CREATE INDEX cash_outflows_date_idx
+  ON public.cash_outflows (branch_code, cashier_user_code, outflow_date DESC, created_at DESC);
+CREATE INDEX cash_outflows_type_status_idx
+  ON public.cash_outflows (branch_code, cashier_user_code, outflow_type, status, outflow_date DESC);
+CREATE INDEX cashbox_movements_business_date_idx
+  ON public.cashbox_movements (branch_code, cashier_user_code, business_date DESC, status, movement_type);
+CREATE INDEX cashbox_movements_status_idx
+  ON public.cashbox_movements (branch_code, cashier_user_code, status, created_at DESC);
+
 -- Evaluations
 CREATE INDEX evals_cycle_degree_group_date_idx
   ON public.evals (cycle_degree_code, group_code, eval_date DESC, created_at DESC);

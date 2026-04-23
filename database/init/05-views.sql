@@ -235,6 +235,130 @@ LEFT JOIN LATERAL (
   LIMIT 1
 ) AS current_enrollment ON TRUE;
 
+CREATE OR REPLACE VIEW public.payment_overview AS
+SELECT
+  p.code,
+  p.payment_number,
+  p.branch_code,
+  b.name AS branch_name,
+  p.cashier_user_code,
+  TRIM(COALESCE(cu.name, '') || ' ' || COALESCE(cu.last_name, '')) AS cashier_full_name,
+  p.student_code,
+  s.student_number,
+  CASE
+    WHEN p.student_code IS NOT NULL THEN (s.first_name || ' ' || s.last_name)
+    ELSE NULL
+  END AS student_full_name,
+  p.payer_first_name,
+  p.payer_last_name,
+  (p.payer_first_name || ' ' || p.payer_last_name) AS payer_full_name,
+  p.payer_document,
+  p.payment_date,
+  p.observation,
+  p.status,
+  p.total_amount,
+  p.registered_by_user_code,
+  TRIM(COALESCE(u.name, '') || ' ' || COALESCE(u.last_name, '')) AS registered_by_full_name,
+  p.voided_at,
+  p.voided_by_user_code,
+  p.created_at,
+  p.updated_at,
+  COALESCE(item_summary.item_count, 0) AS item_count,
+  COALESCE(item_summary.concept_summary, '') AS concept_summary
+FROM public.payments p
+INNER JOIN public.branches b ON b.code = p.branch_code
+INNER JOIN public.users cu ON cu.code = p.cashier_user_code
+LEFT JOIN public.students s ON s.code = p.student_code
+INNER JOIN public.users u ON u.code = p.registered_by_user_code
+LEFT JOIN LATERAL (
+  SELECT
+    COUNT(*)::INTEGER AS item_count,
+    STRING_AGG(pi.concept_label, ' · ' ORDER BY pi.position) AS concept_summary
+  FROM public.payment_items pi
+  WHERE pi.payment_code = p.code
+) AS item_summary ON TRUE;
+
+CREATE OR REPLACE VIEW public.cash_outflow_overview AS
+SELECT
+  co.code,
+  co.outflow_number,
+  co.branch_code,
+  b.name AS branch_name,
+  co.cashier_user_code,
+  TRIM(COALESCE(cu.name, '') || ' ' || COALESCE(cu.last_name, '')) AS cashier_full_name,
+  co.outflow_type,
+  co.outflow_date,
+  co.concept,
+  co.description,
+  co.amount,
+  co.responsible_name,
+  co.status,
+  co.registered_by_user_code,
+  TRIM(COALESCE(u.name, '') || ' ' || COALESCE(u.last_name, '')) AS registered_by_full_name,
+  co.deleted_at,
+  co.deleted_by_user_code,
+  co.created_at,
+  co.updated_at
+FROM public.cash_outflows co
+INNER JOIN public.branches b ON b.code = co.branch_code
+INNER JOIN public.users cu ON cu.code = co.cashier_user_code
+INNER JOIN public.users u ON u.code = co.registered_by_user_code;
+
+CREATE OR REPLACE VIEW public.cashbox_daily_summary AS
+WITH all_scopes AS (
+  SELECT branch_code, cashier_user_code, business_date
+  FROM public.cashbox_days
+  UNION
+  SELECT branch_code, cashier_user_code, business_date
+  FROM public.cashbox_movements
+),
+movement_totals AS (
+  SELECT
+    cm.branch_code,
+    cm.cashier_user_code,
+    cm.business_date,
+    COALESCE(SUM(cm.amount) FILTER (WHERE cm.movement_type = 'payment' AND cm.status = 'active'), 0)::NUMERIC(12,2) AS income_amount,
+    COALESCE(SUM(cm.amount) FILTER (WHERE cm.movement_type = 'expense' AND cm.status = 'active'), 0)::NUMERIC(12,2) AS expense_amount,
+    COALESCE(SUM(cm.amount) FILTER (WHERE cm.movement_type = 'surrender' AND cm.status = 'active'), 0)::NUMERIC(12,2) AS surrender_amount
+  FROM public.cashbox_movements cm
+  GROUP BY cm.branch_code, cm.cashier_user_code, cm.business_date
+)
+SELECT
+  ad.branch_code,
+  b.name AS branch_name,
+  ad.cashier_user_code,
+  TRIM(COALESCE(cu.name, '') || ' ' || COALESCE(cu.last_name, '')) AS cashier_full_name,
+  ad.business_date,
+  cd.code AS cashbox_day_code,
+  cd.opened_by_user_code,
+  cd.closed_by_user_code,
+  COALESCE(cd.opening_amount, 0)::NUMERIC(12,2) AS opening_amount,
+  COALESCE(mt.income_amount, 0)::NUMERIC(12,2) AS income_amount,
+  COALESCE(mt.expense_amount, 0)::NUMERIC(12,2) AS expense_amount,
+  COALESCE(mt.surrender_amount, 0)::NUMERIC(12,2) AS surrender_amount,
+  (
+    COALESCE(cd.opening_amount, 0)
+    + COALESCE(mt.income_amount, 0)
+    - COALESCE(mt.expense_amount, 0)
+    - COALESCE(mt.surrender_amount, 0)
+  )::NUMERIC(12,2) AS current_amount,
+  cd.closing_amount,
+  cd.notes,
+  cd.closed_at,
+  cd.created_at,
+  cd.updated_at
+FROM all_scopes ad
+INNER JOIN public.branches b ON b.code = ad.branch_code
+INNER JOIN public.users cu ON cu.code = ad.cashier_user_code
+LEFT JOIN public.cashbox_days cd
+  ON cd.branch_code = ad.branch_code
+  AND cd.cashier_user_code = ad.cashier_user_code
+  AND cd.business_date = ad.business_date
+LEFT JOIN movement_totals mt
+  ON mt.branch_code = ad.branch_code
+  AND mt.cashier_user_code = ad.cashier_user_code
+  AND mt.business_date = ad.business_date;
+
 CREATE OR REPLACE VIEW public.teacher_overview AS
 SELECT
   t.code,

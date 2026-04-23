@@ -248,7 +248,7 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 		key: 'payments:update',
 		label: 'Editar pagos',
 		category: 'Finanzas',
-		description: 'Actualizar pagos, cuotas y observaciones'
+		description: 'Anular pagos y actualizar observaciones de cobro'
 	},
 	{
 		key: 'payments:delete',
@@ -266,13 +266,13 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 		key: 'cashbox:create',
 		label: 'Registrar caja',
 		category: 'Finanzas',
-		description: 'Registrar aperturas, ingresos y salidas'
+		description: 'Registrar aperturas, gastos, rendiciones y movimientos de caja'
 	},
 	{
 		key: 'cashbox:update',
 		label: 'Editar caja',
 		category: 'Finanzas',
-		description: 'Ajustar movimientos y estados de caja'
+		description: 'Actualizar aperturas, cierres y estados de caja'
 	},
 	{
 		key: 'cashbox:delete',

@@ -84,6 +84,7 @@
 	const canReadStudents = $derived(can('students:read'));
 	const canReadEnrollments = $derived(can('enrollments:read'));
 	const canReadAttendance = $derived(can('attendance:read'));
+	const canReadCashbox = $derived(can('cashbox:read') || can('payments:read'));
 	const canReadDrive = $derived(can('drive:read'));
 </script>
 
@@ -232,6 +233,19 @@
 					<Icon icon="clipboard" size="20px" />
 				{/snippet}
 				Asistencia
+			</SidebarItem>
+		{/if}
+
+		{#if canReadCashbox}
+			<SidebarItem
+				href="/cashbox"
+				active={page.url.pathname.startsWith('/cashbox')}
+				collapsed={sidebarCollapsed}
+			>
+				{#snippet icon()}
+					<Icon icon="wallet" size="20px" />
+				{/snippet}
+				Caja
 			</SidebarItem>
 		{/if}
 

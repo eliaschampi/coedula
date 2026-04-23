@@ -7,6 +7,8 @@
 CREATE SEQUENCE public.student_number_seq START WITH 1000 INCREMENT BY 1;
 CREATE SEQUENCE public.teacher_number_seq START WITH 1000 INCREMENT BY 1;
 CREATE SEQUENCE public.enrollment_number_seq START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE public.payment_number_seq START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE public.cash_outflow_number_seq START WITH 1000 INCREMENT BY 1;
 
 -- Users
 CREATE TABLE public.users (
@@ -231,6 +233,165 @@ CREATE TABLE public.enrollments (
   CONSTRAINT enrollments_status_finalized_check CHECK (
     (status = 'finalized' AND finalized_at IS NOT NULL)
     OR (status <> 'finalized' AND finalized_at IS NULL)
+  )
+);
+
+-- Cashbox day controls
+CREATE TABLE public.cashbox_days (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  branch_code UUID NOT NULL,
+  cashier_user_code UUID NOT NULL,
+  business_date DATE NOT NULL,
+  opening_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  closing_amount NUMERIC(12,2) NULL,
+  notes TEXT NULL,
+  opened_by_user_code UUID NULL,
+  closed_by_user_code UUID NULL,
+  closed_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT cashbox_days_pk PRIMARY KEY (code),
+  CONSTRAINT cashbox_days_scope_uq UNIQUE (business_date, branch_code, cashier_user_code),
+  CONSTRAINT cashbox_days_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
+  CONSTRAINT cashbox_days_cashier_user_fk FOREIGN KEY (cashier_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cashbox_days_opened_by_user_fk FOREIGN KEY (opened_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cashbox_days_closed_by_user_fk FOREIGN KEY (closed_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cashbox_days_opening_amount_check CHECK (opening_amount >= 0),
+  CONSTRAINT cashbox_days_closing_amount_check CHECK (closing_amount IS NULL OR closing_amount >= 0),
+  CONSTRAINT cashbox_days_closed_state_check CHECK (
+    (closing_amount IS NULL AND closed_at IS NULL AND closed_by_user_code IS NULL)
+    OR (closing_amount IS NOT NULL AND closed_at IS NOT NULL AND closed_by_user_code IS NOT NULL)
+  )
+);
+
+-- Payments
+CREATE TABLE public.payments (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  payment_number VARCHAR(20) NOT NULL DEFAULT ('PAY-' || LPAD(nextval('public.payment_number_seq')::text, 6, '0')),
+  branch_code UUID NOT NULL,
+  cashier_user_code UUID NOT NULL,
+  student_code UUID NULL,
+  payer_first_name VARCHAR(120) NOT NULL,
+  payer_last_name VARCHAR(150) NOT NULL,
+  payer_document VARCHAR(20) NULL,
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  observation TEXT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'posted',
+  total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  registered_by_user_code UUID NOT NULL,
+  voided_at TIMESTAMPTZ NULL,
+  voided_by_user_code UUID NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payments_pk PRIMARY KEY (code),
+  CONSTRAINT payments_payment_number_uq UNIQUE (payment_number),
+  CONSTRAINT payments_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
+  CONSTRAINT payments_cashier_user_fk FOREIGN KEY (cashier_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT payments_student_fk FOREIGN KEY (student_code) REFERENCES public.students (code) ON DELETE RESTRICT,
+  CONSTRAINT payments_registered_by_user_fk FOREIGN KEY (registered_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT payments_voided_by_user_fk FOREIGN KEY (voided_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT payments_payer_first_name_check CHECK (char_length(trim(payer_first_name)) > 0),
+  CONSTRAINT payments_payer_last_name_check CHECK (char_length(trim(payer_last_name)) > 0),
+  CONSTRAINT payments_status_check CHECK (status IN ('posted', 'voided')),
+  CONSTRAINT payments_total_amount_check CHECK (total_amount > 0),
+  CONSTRAINT payments_voided_state_check CHECK (
+    (status = 'voided' AND voided_at IS NOT NULL AND voided_by_user_code IS NOT NULL)
+    OR (status = 'posted' AND voided_at IS NULL AND voided_by_user_code IS NULL)
+  )
+);
+
+-- Payment items
+CREATE TABLE public.payment_items (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  payment_code UUID NOT NULL,
+  position INTEGER NOT NULL,
+  concept_code VARCHAR(40) NOT NULL,
+  concept_label VARCHAR(150) NOT NULL,
+  detail TEXT NULL,
+  amount NUMERIC(12,2) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payment_items_pk PRIMARY KEY (code),
+  CONSTRAINT payment_items_payment_fk FOREIGN KEY (payment_code) REFERENCES public.payments (code) ON DELETE CASCADE,
+  CONSTRAINT payment_items_payment_position_uq UNIQUE (payment_code, position),
+  CONSTRAINT payment_items_position_check CHECK (position > 0),
+  CONSTRAINT payment_items_concept_code_check CHECK (
+    concept_code IN ('enrollment', 'monthly_fee', 'first_installment', 'second_installment', 'initial_fee', 'other')
+  ),
+  CONSTRAINT payment_items_concept_label_check CHECK (char_length(trim(concept_label)) > 0),
+  CONSTRAINT payment_items_amount_check CHECK (amount > 0)
+);
+
+-- Cash outflows (expenses + surrenders)
+CREATE TABLE public.cash_outflows (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  outflow_number VARCHAR(20) NOT NULL DEFAULT ('OUT-' || LPAD(nextval('public.cash_outflow_number_seq')::text, 6, '0')),
+  branch_code UUID NOT NULL,
+  cashier_user_code UUID NOT NULL,
+  outflow_type VARCHAR(20) NOT NULL DEFAULT 'expense',
+  outflow_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  concept VARCHAR(160) NOT NULL,
+  description TEXT NULL,
+  amount NUMERIC(12,2) NOT NULL,
+  responsible_name VARCHAR(180) NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'posted',
+  registered_by_user_code UUID NOT NULL,
+  deleted_at TIMESTAMPTZ NULL,
+  deleted_by_user_code UUID NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT cash_outflows_pk PRIMARY KEY (code),
+  CONSTRAINT cash_outflows_outflow_number_uq UNIQUE (outflow_number),
+  CONSTRAINT cash_outflows_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
+  CONSTRAINT cash_outflows_cashier_user_fk FOREIGN KEY (cashier_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cash_outflows_registered_by_user_fk FOREIGN KEY (registered_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cash_outflows_deleted_by_user_fk FOREIGN KEY (deleted_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cash_outflows_outflow_type_check CHECK (outflow_type IN ('expense', 'surrender')),
+  CONSTRAINT cash_outflows_concept_check CHECK (char_length(trim(concept)) > 0),
+  CONSTRAINT cash_outflows_amount_check CHECK (amount > 0),
+  CONSTRAINT cash_outflows_status_check CHECK (status IN ('posted', 'deleted')),
+  CONSTRAINT cash_outflows_deleted_state_check CHECK (
+    (status = 'deleted' AND deleted_at IS NOT NULL AND deleted_by_user_code IS NOT NULL)
+    OR (status = 'posted' AND deleted_at IS NULL AND deleted_by_user_code IS NULL)
+  )
+);
+
+-- Cashbox movements
+CREATE TABLE public.cashbox_movements (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  branch_code UUID NOT NULL,
+  cashier_user_code UUID NOT NULL,
+  business_date DATE NOT NULL,
+  movement_type VARCHAR(20) NOT NULL,
+  source_type VARCHAR(20) NOT NULL,
+  source_code UUID NOT NULL,
+  direction VARCHAR(3) NOT NULL,
+  amount NUMERIC(12,2) NOT NULL,
+  note TEXT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  registered_by_user_code UUID NOT NULL,
+  reversed_at TIMESTAMPTZ NULL,
+  reversed_by_user_code UUID NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT cashbox_movements_pk PRIMARY KEY (code),
+  CONSTRAINT cashbox_movements_source_uq UNIQUE (source_type, source_code),
+  CONSTRAINT cashbox_movements_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
+  CONSTRAINT cashbox_movements_cashier_user_fk FOREIGN KEY (cashier_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cashbox_movements_registered_by_user_fk FOREIGN KEY (registered_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cashbox_movements_reversed_by_user_fk FOREIGN KEY (reversed_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cashbox_movements_movement_type_check CHECK (movement_type IN ('payment', 'expense', 'surrender')),
+  CONSTRAINT cashbox_movements_source_type_check CHECK (source_type IN ('payment', 'outflow')),
+  CONSTRAINT cashbox_movements_direction_check CHECK (direction IN ('in', 'out')),
+  CONSTRAINT cashbox_movements_amount_check CHECK (amount > 0),
+  CONSTRAINT cashbox_movements_status_check CHECK (status IN ('active', 'reversed')),
+  CONSTRAINT cashbox_movements_source_alignment_check CHECK (
+    (movement_type = 'payment' AND source_type = 'payment' AND direction = 'in')
+    OR (movement_type IN ('expense', 'surrender') AND source_type = 'outflow' AND direction = 'out')
+  ),
+  CONSTRAINT cashbox_movements_reversed_state_check CHECK (
+    (status = 'reversed' AND reversed_at IS NOT NULL AND reversed_by_user_code IS NOT NULL)
+    OR (status = 'active' AND reversed_at IS NULL AND reversed_by_user_code IS NULL)
   )
 );
 

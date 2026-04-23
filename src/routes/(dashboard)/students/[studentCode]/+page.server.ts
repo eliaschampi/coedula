@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { isUuid } from '$lib/utils/validation';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
 import { StudentDriveRepository } from '$lib/server/repositories/student-drive.repository';
+import { CashboxRepository } from '$lib/server/repositories/cashbox.repository';
 
 export const load: PageServerLoad = async ({ params, locals, depends }) => {
 	depends('students:profile');
@@ -16,33 +17,45 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
 		throw error(400, 'Alumno inválido');
 	}
 
-	const [student, canReadEnrollments, canReadDrive, canUpdateStudents, canUpdateDrive] =
-		await Promise.all([
-			EducationRepository.findStudentByCode(locals.db, studentCode),
-			locals.can('enrollments:read'),
-			locals.can('drive:read'),
-			locals.can('students:update'),
-			locals.can('drive:update')
-		]);
+	const [
+		student,
+		canReadEnrollments,
+		canReadDrive,
+		canReadPayments,
+		canUpdateStudents,
+		canUpdateDrive
+	] = await Promise.all([
+		EducationRepository.findStudentByCode(locals.db, studentCode),
+		locals.can('enrollments:read'),
+		locals.can('drive:read'),
+		locals.can('payments:read'),
+		locals.can('students:update'),
+		locals.can('drive:update')
+	]);
 
 	if (!student) {
 		throw error(404, 'Alumno no encontrado');
 	}
 
-	const [enrollments, linkedFiles] = await Promise.all([
+	const [enrollments, linkedFiles, studentPayments] = await Promise.all([
 		canReadEnrollments
 			? EducationRepository.listStudentEnrollmentHistory(locals.db, studentCode)
 			: Promise.resolve([]),
-		canReadDrive ? StudentDriveRepository.listLinks(locals.db, studentCode) : Promise.resolve([])
+		canReadDrive ? StudentDriveRepository.listLinks(locals.db, studentCode) : Promise.resolve([]),
+		canReadPayments
+			? CashboxRepository.listPaymentsByStudent(locals.db, studentCode)
+			: Promise.resolve([])
 	]);
 
 	return {
 		title: student.full_name,
 		student,
 		enrollments,
+		studentPayments,
 		linkedFiles,
 		canReadEnrollments,
 		canReadDrive,
+		canReadPayments,
 		canManageAttachments: canUpdateStudents && canUpdateDrive
 	};
 };

@@ -10,7 +10,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			locals.user,
 			'students:read',
 			'enrollments:create',
-			'enrollments:update'
+			'enrollments:update',
+			'payments:create',
+			'payments:update'
 		)
 	) {
 		throw error(403, 'No tienes permisos para consultar alumnos');

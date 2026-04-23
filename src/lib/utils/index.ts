@@ -21,6 +21,17 @@ export {
 	formatGroupCode
 } from './education';
 export {
+	CASH_OUTFLOW_TYPE_OPTIONS,
+	PAYMENT_CONCEPT_OPTIONS,
+	formatCashOutflowStatus,
+	formatCashOutflowType,
+	formatPaymentConceptLabel,
+	formatPaymentStatus,
+	getCashOutflowStatusColor,
+	getCashOutflowTypeColor,
+	getPaymentStatusColor
+} from './finance';
+export {
 	DEFAULT_EVALUATION_SECTION_QUESTION_COUNT,
 	EVALUATION_ANSWER_KEYS,
 	EVALUATION_ANSWER_KEY_OPTIONS,

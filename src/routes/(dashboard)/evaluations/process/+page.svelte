@@ -796,7 +796,7 @@
 		{#snippet actions()}
 			<Dropdown position="bottom-end" aria-label="Acciones de procesamiento">
 				{#snippet triggerContent()}
-					<Button type="filled" color="primary" icon="moreVertical">Acciones</Button>
+					<Button type="flat" color="primary" icon="moreVertical" />
 				{/snippet}
 
 				{#snippet content()}
