@@ -134,24 +134,23 @@
 		icon="badgeCheck"
 	>
 		{#snippet actions()}
-			<div class="lumi-flex lumi-flex--gap-sm lumi-align-items--center lumi-flex--wrap">
-				<Button type="border" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
-					Seleccionar evaluación
-				</Button>
-				<Button
-					type="filled"
-					color="primary"
-					icon="download"
-					onclick={exportDetailedResults}
-					disabled={!currentEvaluation || data.results.length === 0}
-				>
-					Exportar CSV
-				</Button>
-				<Dropdown position="bottom-end" aria-label="Más acciones de resultados">
-					{#snippet triggerContent()}
-						<Button type="border" icon="moreVertical">Acciones</Button>
-					{/snippet}
+			<Dropdown position="bottom-end" aria-label="Acciones de resultados">
+				{#snippet triggerContent()}
+					<Button type="filled" color="primary" icon="moreVertical">Acciones</Button>
+				{/snippet}
 
+				{#snippet content()}
+					<DropdownItem icon="slidersHorizontal" color="info" onclick={() => (showFilterDialog = true)}>
+						Seleccionar evaluación
+					</DropdownItem>
+					<DropdownItem
+						icon="download"
+						color="info"
+						onclick={exportDetailedResults}
+						disabled={!currentEvaluation || data.results.length === 0}
+					>
+						Exportar CSV
+					</DropdownItem>
 					<DropdownItem icon="userRound" onclick={openStudentResults}>Por alumno</DropdownItem>
 					{#if currentEvaluation && canUpdate}
 						<DropdownItem icon="imagePlus" color="info" onclick={openProcessPage}>
@@ -161,8 +160,8 @@
 					<DropdownItem icon="arrowLeft" onclick={() => void goto(resolve('/evaluations' as '/'))}>
 						Volver
 					</DropdownItem>
-				</Dropdown>
-			</div>
+				{/snippet}
+			</Dropdown>
 		{/snippet}
 	</PageHeader>
 
@@ -255,7 +254,7 @@
 
 				<Table data={resultRows} pagination hover itemsPerPage={20}>
 					{#snippet thead()}
-						<th>Alumno</th>
+						<th class="lumi-min-w--xl">Alumno</th>
 						<th>Lista</th>
 						<th>Correctas</th>
 						<th>Incorrectas</th>
@@ -267,7 +266,7 @@
 
 					{#snippet row({ row })}
 						{@const result = row as unknown as ResultRow}
-						<td>
+						<td class="lumi-min-w--xl">
 							<div class="lumi-stack lumi-stack--2xs">
 								<span class="lumi-font--medium">{result.student_full_name}</span>
 								<span class="lumi-text--xs lumi-text--muted">

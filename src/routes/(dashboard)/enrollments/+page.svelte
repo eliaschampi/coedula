@@ -555,7 +555,7 @@
 							<Table data={enrollmentRows} pagination hover itemsPerPage={25}>
 								{#snippet thead()}
 									<th>Lista</th>
-									<th>Alumno</th>
+									<th class="lumi-min-w--xl">Alumno</th>
 									<th>Asignación</th>
 									<th>Turno</th>
 									<th>Costo</th>
@@ -573,7 +573,7 @@
 											</span>
 										</div>
 									</td>
-									<td>
+									<td class="lumi-min-w--xl">
 										<div class="enrollment-student-cell">
 											<Avatar text={enrollment.student_full_name} size="sm" color="primary" />
 											<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">

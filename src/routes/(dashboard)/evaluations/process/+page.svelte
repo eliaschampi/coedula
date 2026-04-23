@@ -794,15 +794,15 @@
 		icon="imagePlus"
 	>
 		{#snippet actions()}
-			<div class="lumi-flex lumi-flex--gap-sm lumi-align-items--center lumi-flex--wrap">
-				<Button type="border" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
-					Seleccionar evaluación
-				</Button>
-				<Dropdown position="bottom-end" aria-label="Más acciones de procesamiento">
-					{#snippet triggerContent()}
-						<Button type="border" icon="moreVertical">Acciones</Button>
-					{/snippet}
+			<Dropdown position="bottom-end" aria-label="Acciones de procesamiento">
+				{#snippet triggerContent()}
+					<Button type="filled" color="primary" icon="moreVertical">Acciones</Button>
+				{/snippet}
 
+				{#snippet content()}
+					<DropdownItem icon="slidersHorizontal" color="info" onclick={() => (showFilterDialog = true)}>
+						Seleccionar evaluación
+					</DropdownItem>
 					<DropdownItem icon="arrowLeft" onclick={() => goto(resolve('/evaluations' as '/'))}>
 						Volver
 					</DropdownItem>
@@ -820,8 +820,8 @@
 							Ver resultados
 						</DropdownItem>
 					{/if}
-				</Dropdown>
-			</div>
+				{/snippet}
+			</Dropdown>
 		{/snippet}
 	</PageHeader>
 
@@ -966,22 +966,24 @@
 								<Button type="border" icon="moreVertical">Más</Button>
 							{/snippet}
 
-							<DropdownItem
-								icon="trash"
-								color="danger"
-								onclick={clearFiles}
-								disabled={fileEntries.length === 0 || isProcessingBatch || isSavingBatch}
-							>
-								Limpiar lote
-							</DropdownItem>
-							<DropdownItem
-								icon="trash"
-								color="danger"
-								onclick={() => void clearSavedResults()}
-								disabled={data.savedResultsCount === 0 || isDeletingSavedResults}
-							>
-								Limpiar guardados
-							</DropdownItem>
+							{#snippet content()}
+								<DropdownItem
+									icon="trash"
+									color="danger"
+									onclick={clearFiles}
+									disabled={fileEntries.length === 0 || isProcessingBatch || isSavingBatch}
+								>
+									Limpiar lote
+								</DropdownItem>
+								<DropdownItem
+									icon="trash"
+									color="danger"
+									onclick={() => void clearSavedResults()}
+									disabled={data.savedResultsCount === 0 || isDeletingSavedResults}
+								>
+									Limpiar guardados
+								</DropdownItem>
+							{/snippet}
 						</Dropdown>
 					</div>
 				</div>

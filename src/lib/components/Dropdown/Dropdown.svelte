@@ -187,10 +187,10 @@
 		onclick={handleTriggerClick}
 		onkeydown={handleTriggerKeydown}
 	>
-		{#if children}
-			{@render children()}
-		{:else if triggerContent}
+		{#if triggerContent}
 			{@render triggerContent()}
+		{:else if children}
+			{@render children()}
 		{/if}
 	</div>
 

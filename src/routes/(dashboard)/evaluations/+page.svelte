@@ -351,24 +351,18 @@
 		icon="clipboardPenLine"
 	>
 		{#snippet actions()}
-			<div class="lumi-flex lumi-flex--gap-sm lumi-align-items--center lumi-flex--wrap">
-				<Button type="border" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
-					Seleccionar vista
-				</Button>
-				<Button
-					type="filled"
-					color="primary"
-					icon="plus"
-					onclick={openCreateModal}
-					disabled={!canCreate}
-				>
-					Nueva evaluación
-				</Button>
-				<Dropdown position="bottom-end" aria-label="Más acciones de evaluaciones">
-					{#snippet triggerContent()}
-						<Button type="border" icon="moreVertical">Acciones</Button>
-					{/snippet}
+			<Dropdown position="bottom-end" aria-label="Acciones de evaluaciones">
+				{#snippet triggerContent()}
+					<Button type="filled" color="primary" icon="moreVertical">Acciones</Button>
+				{/snippet}
 
+				{#snippet content()}
+					<DropdownItem icon="slidersHorizontal" color="info" onclick={() => (showFilterDialog = true)}>
+						Seleccionar vista
+					</DropdownItem>
+					<DropdownItem icon="plus" onclick={openCreateModal} disabled={!canCreate}>
+						Nueva evaluación
+					</DropdownItem>
 					<DropdownItem
 						icon="imagePlus"
 						color="info"
@@ -380,8 +374,8 @@
 					<DropdownItem icon="badgeCheck" color="info" onclick={() => openResultsPage()}>
 						Ver resultados
 					</DropdownItem>
-				</Dropdown>
-			</div>
+				{/snippet}
+			</Dropdown>
 		{/snippet}
 	</PageHeader>
 
@@ -472,7 +466,7 @@
 
 				<Table data={evaluationRows} pagination hover itemsPerPage={20}>
 					{#snippet thead()}
-						<th>Evaluación</th>
+						<th class="lumi-min-w--xl">Evaluación</th>
 						<th>Nivel y grupo</th>
 						<th>Fecha</th>
 						<th>Secciones</th>
@@ -482,7 +476,7 @@
 
 					{#snippet row({ row })}
 						{@const evaluation = row as unknown as EvaluationRow}
-						<td>
+						<td class="lumi-min-w--xl">
 							<div class="lumi-stack lumi-stack--2xs">
 								<span class="lumi-font--medium">{evaluation.name}</span>
 								<span class="lumi-text--xs lumi-text--muted">

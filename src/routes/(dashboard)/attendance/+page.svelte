@@ -465,7 +465,7 @@
 							<Table data={attendanceRows} pagination hover itemsPerPage={25}>
 								{#snippet thead()}
 									<th>Lista</th>
-									<th>Alumno</th>
+									<th class="lumi-min-w--xl">Alumno</th>
 									<th>Turno</th>
 									<th>Ingreso</th>
 									<th>Estado</th>
@@ -483,7 +483,7 @@
 											</span>
 										</div>
 									</td>
-									<td>
+									<td class="lumi-min-w--xl">
 										<div class="attendance-page__student-cell">
 											<Avatar
 												src={attendanceRow.student_photo_url || ''}

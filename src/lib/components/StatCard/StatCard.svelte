@@ -50,7 +50,6 @@
 <style>
 	.lumi-stat-card__container {
 		container-type: inline-size;
-		padding: var(--lumi-space-sm);
 		display: flex;
 		flex-direction: column;
 		gap: var(--lumi-space-xs);
@@ -60,19 +59,8 @@
 	.lumi-stat-card__header {
 		display: flex;
 		justify-content: space-between;
-		align-items: flex-start;
-		gap: var(--lumi-space-sm);
+		align-items: center;
 		margin-bottom: var(--lumi-space-xs);
-	}
-
-	.lumi-stat-card__header :global(.lumi-title) {
-		flex: 1;
-		min-width: 0;
-		align-items: flex-start;
-	}
-
-	.lumi-stat-card__header :global(.lumi-title__text) {
-		overflow-wrap: anywhere;
 	}
 
 	.lumi-stat-card__value {
@@ -89,18 +77,4 @@
 		color: var(--lumi-color-text-muted);
 	}
 
-	@container (max-width: 220px) {
-		.lumi-stat-card__container {
-			padding: var(--lumi-space-xs);
-		}
-
-		.lumi-stat-card__header {
-			flex-direction: column;
-			align-items: flex-start;
-		}
-
-		.lumi-stat-card__subtitle {
-			font-size: var(--lumi-font-size-xs);
-		}
-	}
 </style>
