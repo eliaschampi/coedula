@@ -1,5 +1,10 @@
 export { formatDate, formatDateWithYear } from './formatDate';
 export {
+	base64ToEvaluationImageFile,
+	processEvaluationImageWithCanvas,
+	validateEvaluationImageProportion
+} from './evaluationImage';
+export {
 	CYCLE_MODALITY_OPTIONS,
 	ENROLLMENT_STATUS_OPTIONS,
 	ENROLLMENT_TURN_OPTIONS,

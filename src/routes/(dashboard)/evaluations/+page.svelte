@@ -17,9 +17,7 @@
 		List,
 		ListItem,
 		PageHeader,
-		PageSidebar,
 		Select,
-		StatCard,
 		Table,
 		type TableRow
 	} from '$lib/components';
@@ -38,6 +36,11 @@
 		formatGroupCode,
 		normalizeEvaluationSections
 	} from '$lib/utils';
+	import EvaluationSelectorDialog from './_components/EvaluationSelectorDialog.svelte';
+	import {
+		buildEvaluationSelectionUrl,
+		type EvaluationSelectionValue
+	} from './_components/selection';
 	import type { PageData } from './$types';
 
 	type EvaluationRow = PageData['evaluations'][number];
@@ -66,7 +69,7 @@
 	let filterCycleDegreeCode = $state<string | null>(initialFilters.cycleDegreeCode);
 	let filterGroupCode = $state<GroupCode>(initialFilters.groupCode);
 	let filterSearchQuery = $state(initialFilters.searchQuery);
-	let showMobileSidebar = $state(false);
+	let showFilterDialog = $state(false);
 	let showModal = $state(false);
 	let showDeleteModal = $state(false);
 	let isEditing = $state(false);
@@ -88,15 +91,6 @@
 			value: cycle.code,
 			label: cycle.label
 		}))
-	);
-
-	const filteredCycleDegreeOptions = $derived(
-		data.cycleDegreeOptions
-			.filter((option) => option.cycle_code === filterCycleCode)
-			.map((option) => ({
-				value: option.code,
-				label: option.label
-			}))
 	);
 
 	const formCycleDegreeOptions = $derived(
@@ -188,37 +182,22 @@
 		);
 	}
 
-	function buildFilterUrl(): string {
+	function openResultsPage(evaluationCode?: string): void {
 		const entries = [
 			filterCycleCode ? `cycle=${encodeURIComponent(filterCycleCode)}` : '',
 			filterCycleDegreeCode ? `degree=${encodeURIComponent(filterCycleDegreeCode)}` : '',
 			filterGroupCode ? `group=${encodeURIComponent(filterGroupCode)}` : '',
-			filterSearchQuery.trim() ? `search=${encodeURIComponent(filterSearchQuery.trim())}` : ''
+			filterSearchQuery.trim() ? `search=${encodeURIComponent(filterSearchQuery.trim())}` : '',
+			evaluationCode ? `evaluation=${encodeURIComponent(evaluationCode)}` : ''
 		].filter(Boolean);
 
-		return `/evaluations${entries.length > 0 ? `?${entries.join('&')}` : ''}`;
-	}
-
-	function applyFilters(): void {
-		void goto(resolve(buildFilterUrl() as '/'));
-	}
-
-	function applyFiltersAndCloseSidebar(): void {
-		showMobileSidebar = false;
-		applyFilters();
+		void goto(
+			resolve(`/evaluations/results${entries.length > 0 ? `?${entries.join('&')}` : ''}` as '/')
+		);
 	}
 
 	function clearFilters(): void {
-		showMobileSidebar = false;
 		void goto(resolve('/evaluations' as '/'));
-	}
-
-	function handleFilterCycleChange(value: string | number | object | null): void {
-		filterCycleCode = value ? String(value) : null;
-		const nextOptions = data.cycleDegreeOptions.filter(
-			(option) => option.cycle_code === filterCycleCode
-		);
-		filterCycleDegreeCode = nextOptions[0]?.code ?? null;
 	}
 
 	function handleFormCycleChange(value: string | number | object | null): void {
@@ -358,6 +337,10 @@
 		errorMessage = '';
 	}
 
+	function applyDialogSelection(selection: EvaluationSelectionValue): void {
+		void goto(resolve(buildEvaluationSelectionUrl('/evaluations', selection, false) as '/'));
+	}
+
 	$effect(() => {
 		if (!showModal) {
 			filterCycleCode = data.selectedCycleCode;
@@ -371,21 +354,17 @@
 <div class="lumi-stack lumi-stack--md">
 	<PageHeader
 		title="Evaluaciones"
-		subtitle="Gestiona evaluaciones por filtros inteligentes y mantén sus secciones listas para configurar claves"
+		subtitle="Gestiona evaluaciones con una vista más simple y mantén sus secciones listas para configurar claves."
 		icon="clipboardPenLine"
 	>
 		{#snippet actions()}
-			<div
-				class="lumi-flex lumi-flex--gap-sm lumi-align-items--center lumi-page-sidebar__header-actions"
-			>
-				<Button
-					type="ghost"
-					size="sm"
-					icon="slidersHorizontal"
-					class="lumi-page-sidebar__mobile-trigger"
-					onclick={() => (showMobileSidebar = true)}
-					aria-label="Abrir filtros de evaluaciones"
-				/>
+			<div class="lumi-flex lumi-flex--gap-sm lumi-align-items--center lumi-flex--wrap">
+				<Button type="border" icon="slidersHorizontal" onclick={() => (showFilterDialog = true)}>
+					Seleccionar vista
+				</Button>
+				{#if filterSearchQuery.trim()}
+					<Button type="flat" icon="x" onclick={clearFilters}>Limpiar</Button>
+				{/if}
 				<Button
 					type="border"
 					color="info"
@@ -394,6 +373,9 @@
 					disabled={!canUpdate || configuredEvaluations === 0}
 				>
 					Procesar hojas
+				</Button>
+				<Button type="border" color="primary" icon="badgeCheck" onclick={() => openResultsPage()}>
+					Ver resultados
 				</Button>
 				<Button
 					type="filled"
@@ -408,260 +390,205 @@
 		{/snippet}
 	</PageHeader>
 
-	<div class="lumi-layout--two-columns lumi-page-sidebar-layout">
-		<PageSidebar
-			bind:mobileOpen={showMobileSidebar}
-			mobileTitle="Filtros de evaluaciones"
-			mobileAriaLabel="Cerrar filtros de evaluaciones"
+	<Card spaced class="evaluation-page__context-card">
+		<div
+			class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
 		>
-			{#snippet sidebar()}
-				<div class="lumi-page-sidebar__section">
-					<p class="lumi-page-sidebar__label">Vista actual</p>
-					<h2 class="lumi-margin--none">{currentCycleLabel}</h2>
-					<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-						<Chip color="secondary" size="sm">{currentDegreeLabel}</Chip>
-						<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
-						{#if filterSearchQuery.trim()}
-							<Chip color="primary" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
-						{/if}
-					</div>
-				</div>
+			<div class="lumi-stack lumi-stack--2xs">
+				<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Vista actual</p>
+				<h2 class="lumi-margin--none">{currentCycleLabel}</h2>
+				<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+					{currentDegreeLabel} · {formatGroupCode(filterGroupCode)}
+					{#if filterSearchQuery.trim()}
+						· búsqueda "{filterSearchQuery.trim()}"
+					{/if}
+				</p>
+			</div>
 
-				<div class="lumi-page-sidebar__section">
-					<p class="lumi-page-sidebar__label">Filtros</p>
-					<Select
-						bind:value={filterCycleCode}
-						label="Ciclo"
-						options={cycleOptions}
-						placeholder="Seleccione un ciclo"
-						onchange={handleFilterCycleChange}
-					/>
-					<Select
-						bind:value={filterCycleDegreeCode}
-						label="Grado"
-						options={filteredCycleDegreeOptions}
-						placeholder="Seleccione un grado"
-						disabled={!filterCycleCode}
-					/>
-					<Select
-						bind:value={filterGroupCode}
-						label="Grupo"
-						options={GROUP_CODE_OPTIONS}
-						clearable={false}
-					/>
-				</div>
+			<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+				<Chip color="secondary" size="sm">{currentDegreeLabel}</Chip>
+				<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
+				<Chip color="primary" size="sm">{totalEvaluations} evaluaciones</Chip>
+				{#if configuredEvaluations > 0}
+					<Chip color="success" size="sm">{configuredEvaluations} con claves</Chip>
+				{/if}
+				{#if pendingKeysEvaluations > 0}
+					<Chip color="warning" size="sm">{pendingKeysEvaluations} pendientes</Chip>
+				{/if}
+				{#if filterSearchQuery.trim()}
+					<Chip color="warning" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
+				{/if}
+			</div>
+		</div>
+	</Card>
 
-				<div class="lumi-page-sidebar__section">
-					<p class="lumi-page-sidebar__label">Buscar evaluación</p>
-					<Input
-						bind:value={filterSearchQuery}
-						label="Nombre, ciclo o grado"
-						placeholder="Escribe para filtrar"
-						icon="search"
-					/>
-				</div>
-
-				<div class="lumi-page-sidebar__section">
-					<p class="lumi-page-sidebar__label">Acciones</p>
-					<div class="lumi-stack lumi-stack--xs">
+	<Card spaced>
+		<div class="lumi-stack lumi-stack--md">
+			{#if !canRead}
+				<Alert type="warning" closable>No tienes permisos para consultar evaluaciones.</Alert>
+			{:else if !data.selectedCycleCode || !data.selectedCycleDegreeCode}
+				<EmptyState
+					title="Configura ciclo, grado y grupo"
+					description="Abre el selector para elegir la vista de trabajo antes de revisar o crear evaluaciones."
+					icon="slidersHorizontal"
+				>
+					{#snippet actions()}
 						<Button
 							type="filled"
 							color="primary"
-							icon="search"
-							onclick={applyFiltersAndCloseSidebar}
+							icon="slidersHorizontal"
+							onclick={() => (showFilterDialog = true)}
 						>
-							Aplicar filtros
+							Seleccionar vista
 						</Button>
-						<Button type="border" onclick={clearFilters}>Limpiar</Button>
-					</div>
-				</div>
-			{/snippet}
-		</PageSidebar>
-
-		<section class="lumi-layout--content-right">
-			<div class="lumi-stack lumi-stack--sm">
-				<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md">
-					<StatCard
-						title="Evaluaciones"
-						value={String(totalEvaluations)}
-						icon="clipboardPenLine"
-						color="primary"
-						subtitle="Registros consultados"
-					/>
-					<StatCard
-						title="Con claves"
-						value={String(configuredEvaluations)}
-						icon="key"
-						color="success"
-						subtitle="Evaluaciones listas para corrección"
-					/>
-					<StatCard
-						title="Pendientes"
-						value={String(pendingKeysEvaluations)}
-						icon="clock"
-						color="warning"
-						subtitle="Aún requieren configurar claves"
-					/>
-					<StatCard
-						title="Preguntas"
-						value={String(plannedQuestions)}
-						icon="listChecks"
-						color="info"
-						subtitle="Total planificado en esta vista"
-					/>
-				</div>
-
-				<Card spaced>
-					<div class="lumi-stack lumi-stack--md">
-						<div
-							class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-						>
-							<div class="lumi-stack lumi-stack--2xs">
-								<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Panel operativo</p>
-								<h2 class="lumi-margin--none">{currentCycleLabel}</h2>
-								<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-									{currentDegreeLabel} · {formatGroupCode(filterGroupCode)}
-									{#if filterSearchQuery.trim()}
-										· Búsqueda activa: "{filterSearchQuery.trim()}"
-									{/if}
-								</p>
-							</div>
-
-							<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-								<Chip color="secondary" size="sm">{currentDegreeLabel}</Chip>
-								<Chip color="info" size="sm">{formatGroupCode(filterGroupCode)}</Chip>
-								{#if filterSearchQuery.trim()}
-									<Chip color="primary" size="sm" icon="search">{filterSearchQuery.trim()}</Chip>
-								{/if}
-							</div>
-						</div>
-
-						{#if !canRead}
-							<Alert type="warning" closable>No tienes permisos para consultar evaluaciones.</Alert>
-						{:else if !data.selectedCycleCode || !data.selectedCycleDegreeCode}
-							<EmptyState
-								title="Configura ciclo, grado y grupo"
-								description="Selecciona un nivel académico para trabajar las evaluaciones de forma ordenada."
+					{/snippet}
+				</EmptyState>
+			{:else if data.evaluations.length === 0}
+				<EmptyState
+					title="No hay evaluaciones en esta vista"
+					description="Registra la primera evaluación o cambia el filtro para revisar otro ciclo."
+					icon="clipboardPenLine"
+				>
+					{#snippet actions()}
+						<div class="lumi-flex lumi-flex--gap-sm lumi-flex--wrap">
+							<Button
+								type="border"
 								icon="slidersHorizontal"
-							/>
-						{:else if data.evaluations.length === 0}
-							<EmptyState
-								title="No hay evaluaciones en esta vista"
-								description="Registra la primera evaluación para después configurar sus claves."
-								icon="clipboardPenLine"
+								onclick={() => (showFilterDialog = true)}
 							>
-								{#snippet actions()}
-									<Button
-										type="filled"
-										color="primary"
-										icon="plus"
-										onclick={openCreateModal}
-										disabled={!canCreate}
-									>
-										Crear evaluación
-									</Button>
-								{/snippet}
-							</EmptyState>
-						{:else}
-							<Table data={evaluationRows} pagination hover itemsPerPage={20}>
-								{#snippet thead()}
-									<th>Evaluación</th>
-									<th>Nivel y grupo</th>
-									<th>Fecha</th>
-									<th>Secciones</th>
-									<th>Claves</th>
-									<th>Acciones</th>
-								{/snippet}
-
-								{#snippet row({ row })}
-									{@const evaluation = row as unknown as EvaluationRow}
-									<td>
-										<div class="lumi-stack lumi-stack--2xs">
-											<span class="lumi-font--medium">{evaluation.name}</span>
-											<span class="lumi-text--xs lumi-text--muted">
-												{evaluation.section_count} cursos ·
-												{evaluation.planned_question_count} preguntas planificadas
-											</span>
-										</div>
-									</td>
-									<td>
-										<div class="lumi-stack lumi-stack--2xs">
-											<span class="lumi-font--medium">{evaluation.cycle_title}</span>
-											<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
-												<Chip color="secondary" size="sm">
-													{formatAcademicDegreeLabel(evaluation.degree_name)}
-												</Chip>
-												<Chip color="info" size="sm">
-													{formatGroupCode(evaluation.group_code)}
-												</Chip>
-											</div>
-										</div>
-									</td>
-									<td>{formatEducationDate(evaluation.eval_date)}</td>
-									<td>
-										<Chip color="primary" size="sm">
-											{evaluation.section_count} secciones
-										</Chip>
-									</td>
-									<td>
-										<Chip color={evaluation.has_questions ? 'success' : 'warning'} size="sm">
-											{evaluation.configured_question_count}/{evaluation.planned_question_count}
-										</Chip>
-									</td>
-									<td>
-										<Dropdown position="bottom-end" aria-label={`Acciones para ${evaluation.name}`}>
-											{#snippet triggerContent()}
-												<Button
-													type="flat"
-													size="sm"
-													icon="moreVertical"
-													aria-label={`Abrir acciones para ${evaluation.name}`}
-												/>
-											{/snippet}
-
-											{#snippet content()}
-												<DropdownItem
-													icon="key"
-													color="info"
-													onclick={() => openKeysPage(evaluation.code)}
-												>
-													Configurar claves
-												</DropdownItem>
-												<DropdownItem
-													icon="imagePlus"
-													color="info"
-													onclick={() => openProcessPage(evaluation.code)}
-													disabled={!canUpdate || !evaluation.has_questions}
-												>
-													Procesar respuestas
-												</DropdownItem>
-												<DropdownItem
-													icon="edit"
-													onclick={() => openEditModal(evaluation)}
-													disabled={!canUpdate}
-												>
-													Editar evaluación
-												</DropdownItem>
-												<DropdownItem
-													icon="trash"
-													color="danger"
-													onclick={() => openDeleteModal(evaluation)}
-													disabled={!canDelete}
-												>
-													Eliminar evaluación
-												</DropdownItem>
-											{/snippet}
-										</Dropdown>
-									</td>
-								{/snippet}
-							</Table>
-						{/if}
+								Cambiar vista
+							</Button>
+							<Button
+								type="filled"
+								color="primary"
+								icon="plus"
+								onclick={openCreateModal}
+								disabled={!canCreate}
+							>
+								Crear evaluación
+							</Button>
+						</div>
+					{/snippet}
+				</EmptyState>
+			{:else}
+				<div class="evaluation-page__table-header">
+					<div class="lumi-stack lumi-stack--2xs">
+						<p class="lumi-margin--none lumi-text--xs lumi-text--muted">Listado</p>
+						<h2 class="lumi-margin--none">Evaluaciones registradas</h2>
 					</div>
-				</Card>
-			</div>
-		</section>
-	</div>
+					<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+						{plannedQuestions} preguntas planificadas en esta vista.
+					</p>
+				</div>
+
+				<Table data={evaluationRows} pagination hover itemsPerPage={20}>
+					{#snippet thead()}
+						<th>Evaluación</th>
+						<th>Nivel y grupo</th>
+						<th>Fecha</th>
+						<th>Secciones</th>
+						<th>Claves</th>
+						<th>Acciones</th>
+					{/snippet}
+
+					{#snippet row({ row })}
+						{@const evaluation = row as unknown as EvaluationRow}
+						<td>
+							<div class="lumi-stack lumi-stack--2xs">
+								<span class="lumi-font--medium">{evaluation.name}</span>
+								<span class="lumi-text--xs lumi-text--muted">
+									{evaluation.section_count} cursos ·
+									{evaluation.planned_question_count} preguntas planificadas
+								</span>
+							</div>
+						</td>
+						<td>
+							<div class="lumi-stack lumi-stack--2xs">
+								<span class="lumi-font--medium">{evaluation.cycle_title}</span>
+								<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+									<Chip color="secondary" size="sm">
+										{formatAcademicDegreeLabel(evaluation.degree_name)}
+									</Chip>
+									<Chip color="info" size="sm">
+										{formatGroupCode(evaluation.group_code)}
+									</Chip>
+								</div>
+							</div>
+						</td>
+						<td>{formatEducationDate(evaluation.eval_date)}</td>
+						<td>
+							<Chip color="primary" size="sm">
+								{evaluation.section_count} secciones
+							</Chip>
+						</td>
+						<td>
+							<Chip color={evaluation.has_questions ? 'success' : 'warning'} size="sm">
+								{evaluation.configured_question_count}/{evaluation.planned_question_count}
+							</Chip>
+						</td>
+						<td>
+							<Dropdown position="bottom-end" aria-label={`Acciones para ${evaluation.name}`}>
+								{#snippet triggerContent()}
+									<Button
+										type="flat"
+										size="sm"
+										icon="moreVertical"
+										aria-label={`Abrir acciones para ${evaluation.name}`}
+									/>
+								{/snippet}
+
+								{#snippet content()}
+									<DropdownItem icon="key" onclick={() => openKeysPage(evaluation.code)}>
+										Configurar claves
+									</DropdownItem>
+									<DropdownItem
+										icon="imagePlus"
+										onclick={() => openProcessPage(evaluation.code)}
+										disabled={!canUpdate || !evaluation.has_questions}
+									>
+										Procesar respuestas
+									</DropdownItem>
+									<DropdownItem icon="badgeCheck" onclick={() => openResultsPage(evaluation.code)}>
+										Ver resultados
+									</DropdownItem>
+									<DropdownItem
+										icon="edit"
+										onclick={() => openEditModal(evaluation)}
+										disabled={!canUpdate}
+									>
+										Editar evaluación
+									</DropdownItem>
+									<DropdownItem
+										icon="trash"
+										color="danger"
+										onclick={() => openDeleteModal(evaluation)}
+										disabled={!canDelete}
+									>
+										Eliminar evaluación
+									</DropdownItem>
+								{/snippet}
+							</Dropdown>
+						</td>
+					{/snippet}
+				</Table>
+			{/if}
+		</div>
+	</Card>
 </div>
+
+<EvaluationSelectorDialog
+	bind:open={showFilterDialog}
+	title="Seleccionar vista de evaluaciones"
+	description="Usa pocos filtros para cambiar de ciclo, grado y grupo sin saturar la pantalla."
+	cycles={data.cycles}
+	cycleDegreeOptions={data.cycleDegreeOptions}
+	initialCycleCode={data.selectedCycleCode}
+	initialCycleDegreeCode={data.selectedCycleDegreeCode}
+	initialGroupCode={data.selectedGroupCode as GroupCode}
+	initialSearchQuery={data.searchQuery}
+	applyLabel="Ver evaluaciones"
+	onapply={applyDialogSelection}
+/>
 
 <Dialog
 	bind:open={showModal}
@@ -925,3 +852,17 @@
 		</Button>
 	{/snippet}
 </Dialog>
+
+<style>
+	:global(.evaluation-page__context-card) {
+		border-color: color-mix(in srgb, var(--lumi-color-primary) 16%, var(--lumi-color-border));
+	}
+
+	.evaluation-page__table-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--lumi-space-sm);
+		flex-wrap: wrap;
+	}
+</style>

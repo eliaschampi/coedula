@@ -61,6 +61,7 @@
 	const canReadEnrollments = $derived(data.canReadEnrollments);
 	const canReadDrive = $derived(data.canReadDrive);
 	const canReadAttendance = $derived(can('attendance:read'));
+	const canReadEvaluations = $derived(can('evaluations:read'));
 	const canManageAttachments = $derived(data.canManageAttachments && data.canReadDrive);
 	const linkedRows = $derived(linkedFiles as unknown as TableRow[]);
 	const canGenerateCard = $derived(
@@ -101,6 +102,11 @@
 	function openAttendanceReport(): void {
 		if (!canReadAttendance) return;
 		void goto(resolve(`/students/${data.student.code}/attendance` as '/'));
+	}
+
+	function openEvaluationResults(): void {
+		if (!canReadEvaluations) return;
+		void goto(resolve(`/evaluations/results/student?student=${data.student.code}` as '/'));
 	}
 
 	function toPreviewFile(file: StudentDriveLink): DriveFileItem {
@@ -316,6 +322,15 @@
 				disabled={!canReadAttendance}
 			>
 				Ver asistencia
+			</Button>
+			<Button
+				type="border"
+				color="primary"
+				icon="badgeCheck"
+				onclick={openEvaluationResults}
+				disabled={!canReadEvaluations}
+			>
+				Ver resultados
 			</Button>
 			<Button type="border" icon="arrowLeft" onclick={() => void goto(resolve('/students' as '/'))}>
 				Volver

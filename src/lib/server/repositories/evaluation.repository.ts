@@ -1,16 +1,22 @@
 import { sql, type Kysely, type Transaction } from 'kysely';
 import type { DB, Database } from '$lib/database';
-import type { GroupCode } from '$lib/types/education';
+import type { EnrollmentStatus, EnrollmentTurn, GroupCode } from '$lib/types/education';
 import type {
 	EvaluationAnswerKey,
+	EvaluationDetailedExportItem,
 	EvaluationOverview,
+	EvaluationProcessedAnswer,
+	EvaluationResultDetail,
+	EvaluationResultSectionDetail,
 	EvaluationSavedResultSummary,
 	EvaluationScoreSummary,
 	EvaluationStudentAnswer,
 	EvaluationQuestionRecord,
 	EvaluationProcessingStudentSummary,
 	EvaluationSectionFormItem,
-	EvaluationSectionOverview
+	EvaluationSectionOverview,
+	StudentEvaluationReportItem,
+	StudentEvaluationResultSummary
 } from '$lib/types/evaluation';
 import { MAX_EVALUATION_QUESTIONS, normalizeEvaluationSections } from '$lib/utils/evaluation';
 
@@ -104,8 +110,121 @@ interface EvaluationOverviewRow {
 	eval_sections: unknown;
 }
 
+interface EvaluationResultDetailRow {
+	code: string | null;
+	calculated_at: Date | string | null;
+	correct_count: number | string | bigint | null;
+	incorrect_count: number | string | bigint | null;
+	blank_count: number | string | bigint | null;
+	score: number | string | bigint | null;
+	eval_code: string | null;
+	evaluation_name: string | null;
+	eval_date: Date | string | null;
+	cycle_title: string | null;
+	degree_name: string | null;
+	degree_short_name: string | null;
+	branch_name: string | null;
+	evaluation_group_code: string | null;
+	section_count: number | string | bigint | null;
+	planned_question_count: number | string | bigint | null;
+	enrollment_code: string | null;
+	enrollment_number: string | null;
+	roll_code: string | null;
+	enrollment_group_code: string | null;
+	turn: string | null;
+	status: string | null;
+	student_code: string | null;
+	student_full_name: string | null;
+	student_number: string | null;
+	student_dni: string | null;
+	student_photo_url: string | null;
+}
+
+interface EvaluationResultSectionRow {
+	section_code: string | null;
+	course_name: string | null;
+	question_count: number | string | bigint | null;
+	correct_count: number | string | bigint | null;
+	incorrect_count: number | string | bigint | null;
+	blank_count: number | string | bigint | null;
+	score: number | string | bigint | null;
+}
+
+interface EvaluationResultAnswerRow {
+	question_code: string;
+	student_answer: string | null;
+	order_in_eval: number | string | bigint;
+	correct_key: string;
+	score_percent: number | string | bigint;
+	omitable: boolean;
+	section_code: string;
+	course_name: string | null;
+}
+
+interface StudentEvaluationResultRow {
+	code: string;
+	eval_code: string;
+	eval_name: string | null;
+	eval_date: Date | string | null;
+	cycle_title: string | null;
+	degree_name: string | null;
+	group_code: string | null;
+	enrollment_code: string;
+	enrollment_number: string | null;
+	roll_code: string | null;
+	correct_count: number | string | bigint | null;
+	incorrect_count: number | string | bigint | null;
+	blank_count: number | string | bigint | null;
+	score: number | string | bigint | null;
+	calculated_at: Date | string | null;
+}
+
+interface EvaluationDetailedExportBaseRow {
+	enrollment_code: string;
+	roll_code: string | null;
+	student_full_name: string | null;
+	student_number: string | null;
+	student_dni: string | null;
+	group_code: string | null;
+	correct_count: number | string | bigint | null;
+	incorrect_count: number | string | bigint | null;
+	blank_count: number | string | bigint | null;
+	score: number | string | bigint | null;
+}
+
+interface EvaluationDetailedExportSectionRow {
+	enrollment_code: string;
+	course_name: string | null;
+	score: number | string | bigint | null;
+}
+
+interface StudentEvaluationReportBaseRow {
+	result_code: string;
+	eval_code: string;
+	eval_name: string | null;
+	eval_date: Date | string | null;
+	cycle_title: string | null;
+	degree_name: string | null;
+	group_code: string | null;
+	enrollment_number: string | null;
+	roll_code: string | null;
+	correct_count: number | string | bigint | null;
+	incorrect_count: number | string | bigint | null;
+	blank_count: number | string | bigint | null;
+	score: number | string | bigint | null;
+	calculated_at: Date | string | null;
+}
+
+interface StudentEvaluationReportSectionRow {
+	result_code: string;
+	course_name: string | null;
+	score: number | string | bigint | null;
+}
+
 const VALID_GROUP_CODES = new Set<GroupCode>(['A', 'B', 'C', 'D']);
 const VALID_ANSWER_KEYS = new Set<EvaluationAnswerKey>(['A', 'B', 'C', 'D', 'E']);
+const VALID_ENROLLMENT_TURNS = new Set<EnrollmentTurn>(['turn_1', 'turn_2']);
+const VALID_ENROLLMENT_STATUSES = new Set<EnrollmentStatus>(['active', 'finalized', 'inactive']);
 
 function toNumber(value: number | string | bigint | null | undefined): number {
 	if (typeof value === 'bigint') return Number(value);
@@ -122,6 +241,46 @@ function normalizeRequiredText(value: string | null | undefined, label: string):
 	}
 
 	return normalized;
+}
+
+function normalizeGroupCode(value: string | null | undefined, label: string): GroupCode {
+	if (!value || !VALID_GROUP_CODES.has(value as GroupCode)) {
+		throw new Error(`${label} no es válido`);
+	}
+
+	return value as GroupCode;
+}
+
+function normalizeEnrollmentTurn(value: string | null | undefined): EnrollmentTurn {
+	if (!value || !VALID_ENROLLMENT_TURNS.has(value as EnrollmentTurn)) {
+		throw new Error('El turno de la matrícula no es válido');
+	}
+
+	return value as EnrollmentTurn;
+}
+
+function normalizeEnrollmentStatus(value: string | null | undefined): EnrollmentStatus {
+	if (!value || !VALID_ENROLLMENT_STATUSES.has(value as EnrollmentStatus)) {
+		throw new Error('El estado de la matrícula no es válido');
+	}
+
+	return value as EnrollmentStatus;
+}
+
+function normalizeStudentAnswer(value: string | null): EvaluationStudentAnswer {
+	if (value === null) {
+		return null;
+	}
+
+	if (value === 'error_multiple') {
+		return 'error_multiple';
+	}
+
+	if (VALID_ANSWER_KEYS.has(value as EvaluationAnswerKey)) {
+		return value as EvaluationAnswerKey;
+	}
+
+	throw new Error('La evaluación contiene respuestas de alumno inválidas');
 }
 
 function normalizeEvalDate(value: string | Date): string {
@@ -404,6 +563,72 @@ function mapSavedResultSummary(row: EvaluationSavedResultRow): EvaluationSavedRe
 		student_number: row.student_number,
 		student_dni: row.student_dni,
 		student_photo_url: row.student_photo_url,
+		correct_count: toNumber(row.correct_count),
+		incorrect_count: toNumber(row.incorrect_count),
+		blank_count: toNumber(row.blank_count),
+		score: toNumber(row.score),
+		calculated_at: row.calculated_at
+	};
+}
+
+function mapEvaluationResultSectionDetail(
+	row: EvaluationResultSectionRow
+): EvaluationResultSectionDetail {
+	if (!row.section_code || !row.course_name) {
+		throw new Error('La evaluación contiene secciones incompletas');
+	}
+
+	return {
+		section_code: row.section_code,
+		section_name: row.course_name,
+		question_count: toNumber(row.question_count),
+		correct_count: toNumber(row.correct_count),
+		incorrect_count: toNumber(row.incorrect_count),
+		blank_count: toNumber(row.blank_count),
+		total_questions: toNumber(row.question_count),
+		score: toNumber(row.score)
+	};
+}
+
+function mapEvaluationProcessedAnswer(row: EvaluationResultAnswerRow): EvaluationProcessedAnswer {
+	if (!VALID_ANSWER_KEYS.has(row.correct_key as EvaluationAnswerKey)) {
+		throw new Error('La evaluación contiene claves inválidas');
+	}
+
+	const studentAnswer = normalizeStudentAnswer(row.student_answer);
+
+	return {
+		question_code: row.question_code,
+		student_answer: studentAnswer,
+		order_in_eval: toNumber(row.order_in_eval),
+		correct_key: row.correct_key as EvaluationAnswerKey,
+		score_percent: toNumber(row.score_percent),
+		is_correct: studentAnswer === row.correct_key,
+		is_blank: studentAnswer === null,
+		is_multiple: studentAnswer === 'error_multiple',
+		section_code: row.section_code,
+		section_name: row.course_name
+	};
+}
+
+function mapStudentEvaluationResultSummary(
+	row: StudentEvaluationResultRow
+): StudentEvaluationResultSummary {
+	if (!row.eval_name || !row.cycle_title || !row.degree_name) {
+		throw new Error('El resultado del alumno contiene información incompleta');
+	}
+
+	return {
+		code: row.code,
+		eval_code: row.eval_code,
+		eval_name: row.eval_name,
+		eval_date: row.eval_date,
+		cycle_title: row.cycle_title,
+		degree_name: row.degree_name,
+		group_code: normalizeGroupCode(row.group_code, 'El grupo del resultado'),
+		enrollment_code: row.enrollment_code,
+		enrollment_number: normalizeRequiredText(row.enrollment_number, 'La matrícula'),
+		roll_code: normalizeRequiredText(row.roll_code, 'El código de lista'),
 		correct_count: toNumber(row.correct_count),
 		incorrect_count: toNumber(row.incorrect_count),
 		blank_count: toNumber(row.blank_count),
@@ -838,6 +1063,347 @@ export class EvaluationRepository {
 			.execute();
 
 		return rows.map((row) => mapSavedResultSummary(row as EvaluationSavedResultRow));
+	}
+
+	static async getResultDetail(
+		db: Database,
+		resultCode: string
+	): Promise<EvaluationResultDetail | null> {
+		const mainRow = await db
+			.selectFrom('eval_results as er')
+			.innerJoin('eval_overview as ev', 'ev.code', 'er.eval_code')
+			.innerJoin('enrollment_overview as eo', 'eo.code', 'er.enrollment_code')
+			.innerJoin('students as s', 's.code', 'eo.student_code')
+			.select([
+				'er.code',
+				'er.calculated_at',
+				'er.correct_count',
+				'er.incorrect_count',
+				'er.blank_count',
+				'er.score',
+				'er.eval_code',
+				'ev.name as evaluation_name',
+				'ev.eval_date',
+				'ev.cycle_title',
+				'ev.degree_name',
+				'ev.degree_short_name',
+				'ev.branch_name',
+				'ev.group_code as evaluation_group_code',
+				'ev.section_count',
+				'ev.planned_question_count',
+				'eo.code as enrollment_code',
+				'eo.enrollment_number',
+				'eo.roll_code',
+				'eo.group_code as enrollment_group_code',
+				'eo.turn',
+				'eo.status',
+				'eo.student_code',
+				'eo.student_full_name',
+				'eo.student_number',
+				'eo.student_dni',
+				's.photo_url as student_photo_url'
+			])
+			.where('er.code', '=', resultCode)
+			.where('er.section_code', 'is', null)
+			.executeTakeFirst();
+
+		if (!mainRow) {
+			return null;
+		}
+
+		const [sectionRows, answerRows] = await Promise.all([
+			db
+				.selectFrom('eval_results as er')
+				.innerJoin('eval_sections as es', 'es.code', 'er.section_code')
+				.innerJoin('courses as c', 'c.code', 'es.course_code')
+				.select([
+					'er.section_code',
+					'c.name as course_name',
+					'es.question_count',
+					'er.correct_count',
+					'er.incorrect_count',
+					'er.blank_count',
+					'er.score'
+				])
+				.where('er.eval_code', '=', mainRow.eval_code!)
+				.where('er.enrollment_code', '=', mainRow.enrollment_code!)
+				.where('er.section_code', 'is not', null)
+				.orderBy('es.order_in_eval', 'asc')
+				.execute(),
+			db
+				.selectFrom('eval_answers as ea')
+				.innerJoin('eval_questions as eq', 'eq.code', 'ea.question_code')
+				.innerJoin('eval_sections as es', 'es.code', 'eq.section_code')
+				.innerJoin('courses as c', 'c.code', 'es.course_code')
+				.select([
+					'ea.question_code',
+					'ea.student_answer',
+					'eq.order_in_eval',
+					'eq.correct_key',
+					'eq.score_percent',
+					'eq.omitable',
+					'eq.section_code',
+					'c.name as course_name'
+				])
+				.where('ea.enrollment_code', '=', mainRow.enrollment_code!)
+				.where('eq.eval_code', '=', mainRow.eval_code!)
+				.orderBy('eq.order_in_eval', 'asc')
+				.execute()
+		]);
+
+		const row = mainRow as EvaluationResultDetailRow;
+
+		if (
+			!row.code ||
+			!row.eval_code ||
+			!row.evaluation_name ||
+			!row.cycle_title ||
+			!row.degree_name ||
+			!row.branch_name ||
+			!row.enrollment_code ||
+			!row.enrollment_number ||
+			!row.roll_code ||
+			!row.student_code ||
+			!row.student_full_name ||
+			!row.student_number
+		) {
+			throw new Error('El resultado contiene información incompleta');
+		}
+
+		return {
+			code: row.code,
+			calculated_at: row.calculated_at,
+			evaluation: {
+				code: row.eval_code,
+				name: row.evaluation_name,
+				eval_date: row.eval_date,
+				cycle_title: row.cycle_title,
+				degree_name: row.degree_name,
+				degree_short_name: row.degree_short_name,
+				branch_name: row.branch_name,
+				group_code: normalizeGroupCode(row.evaluation_group_code, 'El grupo de la evaluación'),
+				section_count: toNumber(row.section_count),
+				planned_question_count: toNumber(row.planned_question_count)
+			},
+			student: {
+				code: row.student_code,
+				full_name: row.student_full_name,
+				student_number: row.student_number,
+				dni: row.student_dni,
+				photo_url: row.student_photo_url
+			},
+			enrollment: {
+				code: row.enrollment_code,
+				enrollment_number: row.enrollment_number,
+				roll_code: row.roll_code,
+				group_code: normalizeGroupCode(row.enrollment_group_code, 'El grupo de la matrícula'),
+				turn: normalizeEnrollmentTurn(row.turn),
+				status: normalizeEnrollmentStatus(row.status)
+			},
+			general: {
+				correct_count: toNumber(row.correct_count),
+				incorrect_count: toNumber(row.incorrect_count),
+				blank_count: toNumber(row.blank_count),
+				total_questions:
+					toNumber(row.correct_count) + toNumber(row.incorrect_count) + toNumber(row.blank_count),
+				score: toNumber(row.score)
+			},
+			sections: sectionRows.map((item) =>
+				mapEvaluationResultSectionDetail(item as EvaluationResultSectionRow)
+			),
+			answers: answerRows.map((item) => mapEvaluationProcessedAnswer(item as EvaluationResultAnswerRow))
+		};
+	}
+
+	static async listStudentResults(
+		db: Database,
+		studentCode: string
+	): Promise<StudentEvaluationResultSummary[]> {
+		const rows = await db
+			.selectFrom('eval_results as er')
+			.innerJoin('enrollment_overview as eo', 'eo.code', 'er.enrollment_code')
+			.innerJoin('eval_overview as ev', 'ev.code', 'er.eval_code')
+			.select([
+				'er.code',
+				'er.eval_code',
+				'ev.name as eval_name',
+				'ev.eval_date',
+				'ev.cycle_title',
+				'ev.degree_name',
+				'ev.group_code',
+				'er.enrollment_code',
+				'eo.enrollment_number',
+				'eo.roll_code',
+				'er.correct_count',
+				'er.incorrect_count',
+				'er.blank_count',
+				'er.score',
+				'er.calculated_at'
+			])
+			.where('eo.student_code', '=', studentCode)
+			.where('er.section_code', 'is', null)
+			.orderBy('ev.eval_date', 'desc')
+			.orderBy('er.calculated_at', 'desc')
+			.orderBy('ev.name', 'asc')
+			.execute();
+
+		return rows.map((row) => mapStudentEvaluationResultSummary(row as StudentEvaluationResultRow));
+	}
+
+	static async listDetailedExportItems(
+		db: Database,
+		evaluationCode: string
+	): Promise<EvaluationDetailedExportItem[]> {
+		const [baseRows, sectionRows] = await Promise.all([
+			db
+				.selectFrom('eval_results as er')
+				.innerJoin('enrollment_overview as eo', 'eo.code', 'er.enrollment_code')
+				.innerJoin('eval_overview as ev', 'ev.code', 'er.eval_code')
+				.select([
+					'er.enrollment_code',
+					'eo.roll_code',
+					'eo.student_full_name',
+					'eo.student_number',
+					'eo.student_dni',
+					'ev.group_code',
+					'er.correct_count',
+					'er.incorrect_count',
+					'er.blank_count',
+					'er.score'
+				])
+				.where('er.eval_code', '=', evaluationCode)
+				.where('er.section_code', 'is', null)
+				.orderBy('eo.roll_code', 'asc')
+				.orderBy('eo.student_full_name', 'asc')
+				.execute(),
+			db
+				.selectFrom('eval_results as er')
+				.innerJoin('eval_sections as es', 'es.code', 'er.section_code')
+				.innerJoin('courses as c', 'c.code', 'es.course_code')
+				.select(['er.enrollment_code', 'c.name as course_name', 'er.score'])
+				.where('er.eval_code', '=', evaluationCode)
+				.where('er.section_code', 'is not', null)
+				.orderBy('es.order_in_eval', 'asc')
+				.execute()
+		]);
+
+		const courseScores = new Map<string, Record<string, number>>();
+
+		for (const sectionRow of sectionRows as EvaluationDetailedExportSectionRow[]) {
+			if (!sectionRow.course_name) {
+				continue;
+			}
+
+			const scores = courseScores.get(sectionRow.enrollment_code) ?? {};
+			scores[sectionRow.course_name] = toNumber(sectionRow.score);
+			courseScores.set(sectionRow.enrollment_code, scores);
+		}
+
+		return (baseRows as EvaluationDetailedExportBaseRow[]).map((row) => {
+			if (!row.roll_code || !row.student_full_name || !row.student_number) {
+				throw new Error('El resultado exportable contiene datos incompletos');
+			}
+
+			return {
+				enrollment_code: row.enrollment_code,
+				roll_code: row.roll_code,
+				student_full_name: row.student_full_name,
+				student_number: row.student_number,
+				student_dni: row.student_dni,
+				group_code: normalizeGroupCode(row.group_code, 'El grupo de la evaluación'),
+				correct_count: toNumber(row.correct_count),
+				incorrect_count: toNumber(row.incorrect_count),
+				blank_count: toNumber(row.blank_count),
+				score: toNumber(row.score),
+				course_scores: courseScores.get(row.enrollment_code) ?? {}
+			};
+		});
+	}
+
+	static async listStudentReportItems(
+		db: Database,
+		studentCode: string
+	): Promise<StudentEvaluationReportItem[]> {
+		const [baseRows, sectionRows] = await Promise.all([
+			db
+				.selectFrom('eval_results as er')
+				.innerJoin('enrollment_overview as eo', 'eo.code', 'er.enrollment_code')
+				.innerJoin('eval_overview as ev', 'ev.code', 'er.eval_code')
+				.select([
+					'er.code as result_code',
+					'er.eval_code',
+					'ev.name as eval_name',
+					'ev.eval_date',
+					'ev.cycle_title',
+					'ev.degree_name',
+					'ev.group_code',
+					'eo.enrollment_number',
+					'eo.roll_code',
+					'er.correct_count',
+					'er.incorrect_count',
+					'er.blank_count',
+					'er.score',
+					'er.calculated_at'
+				])
+				.where('eo.student_code', '=', studentCode)
+				.where('er.section_code', 'is', null)
+				.orderBy('ev.eval_date', 'desc')
+				.orderBy('er.calculated_at', 'desc')
+				.orderBy('ev.name', 'asc')
+				.execute(),
+			db
+				.selectFrom('eval_results as general')
+				.innerJoin('enrollment_overview as eo', 'eo.code', 'general.enrollment_code')
+				.innerJoin('eval_results as section', (join) =>
+					join
+						.onRef('section.eval_code', '=', 'general.eval_code')
+						.onRef('section.enrollment_code', '=', 'general.enrollment_code')
+				)
+				.innerJoin('eval_sections as es', 'es.code', 'section.section_code')
+				.innerJoin('courses as c', 'c.code', 'es.course_code')
+				.select(['general.code as result_code', 'c.name as course_name', 'section.score'])
+				.where('eo.student_code', '=', studentCode)
+				.where('general.section_code', 'is', null)
+				.where('section.section_code', 'is not', null)
+				.orderBy('es.order_in_eval', 'asc')
+				.execute()
+		]);
+
+		const courseScores = new Map<string, Record<string, number>>();
+
+		for (const sectionRow of sectionRows as StudentEvaluationReportSectionRow[]) {
+			if (!sectionRow.course_name) {
+				continue;
+			}
+
+			const scores = courseScores.get(sectionRow.result_code) ?? {};
+			scores[sectionRow.course_name] = toNumber(sectionRow.score);
+			courseScores.set(sectionRow.result_code, scores);
+		}
+
+		return (baseRows as StudentEvaluationReportBaseRow[]).map((row) => {
+			if (!row.eval_name || !row.cycle_title || !row.degree_name) {
+				throw new Error('El historial del alumno contiene evaluaciones incompletas');
+			}
+
+			return {
+				result_code: row.result_code,
+				eval_code: row.eval_code,
+				eval_name: row.eval_name,
+				eval_date: row.eval_date,
+				cycle_title: row.cycle_title,
+				degree_name: row.degree_name,
+				group_code: normalizeGroupCode(row.group_code, 'El grupo del historial'),
+				enrollment_number: normalizeRequiredText(row.enrollment_number, 'La matrícula'),
+				roll_code: normalizeRequiredText(row.roll_code, 'El código de lista'),
+				correct_count: toNumber(row.correct_count),
+				incorrect_count: toNumber(row.incorrect_count),
+				blank_count: toNumber(row.blank_count),
+				score: toNumber(row.score),
+				calculated_at: row.calculated_at,
+				course_scores: courseScores.get(row.result_code) ?? {}
+			};
+		});
 	}
 
 	static async deleteSavedResults(

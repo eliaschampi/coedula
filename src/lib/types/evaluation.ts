@@ -1,5 +1,5 @@
 import type { OmrErrorCode } from '$lib/omrProcessor';
-import type { DateValue, GroupCode } from './education';
+import type { DateValue, EnrollmentStatus, EnrollmentTurn, GroupCode } from './education';
 
 export type EvaluationAnswerKey = 'A' | 'B' | 'C' | 'D' | 'E';
 export type EvaluationDraftAnswerKey = EvaluationAnswerKey | '';
@@ -170,4 +170,100 @@ export interface EvaluationSavedResultSummary {
 	blank_count: number;
 	score: number;
 	calculated_at: DateValue;
+}
+
+export interface EvaluationResultInfo {
+	code: string;
+	name: string;
+	eval_date: DateValue;
+	cycle_title: string;
+	degree_name: string;
+	degree_short_name: string | null;
+	branch_name: string;
+	group_code: GroupCode;
+	section_count: number;
+	planned_question_count: number;
+}
+
+export interface EvaluationResultStudentInfo {
+	code: string;
+	full_name: string;
+	student_number: string;
+	dni: string | null;
+	photo_url: string | null;
+}
+
+export interface EvaluationResultEnrollmentInfo {
+	code: string;
+	enrollment_number: string;
+	roll_code: string;
+	group_code: GroupCode;
+	turn: EnrollmentTurn;
+	status: EnrollmentStatus;
+}
+
+export interface EvaluationResultSectionDetail extends EvaluationSectionScoreSummary {
+	section_code: string;
+	question_count: number;
+}
+
+export interface EvaluationResultDetail {
+	code: string;
+	calculated_at: DateValue;
+	evaluation: EvaluationResultInfo;
+	student: EvaluationResultStudentInfo;
+	enrollment: EvaluationResultEnrollmentInfo;
+	general: EvaluationScoreSummary;
+	sections: EvaluationResultSectionDetail[];
+	answers: EvaluationProcessedAnswer[];
+}
+
+export interface StudentEvaluationResultSummary {
+	code: string;
+	eval_code: string;
+	eval_name: string;
+	eval_date: DateValue;
+	cycle_title: string;
+	degree_name: string;
+	group_code: GroupCode;
+	enrollment_code: string;
+	enrollment_number: string;
+	roll_code: string;
+	correct_count: number;
+	incorrect_count: number;
+	blank_count: number;
+	score: number;
+	calculated_at: DateValue;
+}
+
+export interface EvaluationDetailedExportItem {
+	enrollment_code: string;
+	roll_code: string;
+	student_full_name: string;
+	student_number: string;
+	student_dni: string | null;
+	group_code: GroupCode;
+	correct_count: number;
+	incorrect_count: number;
+	blank_count: number;
+	score: number;
+	course_scores: Record<string, number>;
+}
+
+export interface StudentEvaluationReportItem {
+	result_code: string;
+	eval_code: string;
+	eval_name: string;
+	eval_date: DateValue;
+	cycle_title: string;
+	degree_name: string;
+	group_code: GroupCode;
+	enrollment_number: string;
+	roll_code: string;
+	correct_count: number;
+	incorrect_count: number;
+	blank_count: number;
+	score: number;
+	calculated_at: DateValue;
+	course_scores: Record<string, number>;
 }
