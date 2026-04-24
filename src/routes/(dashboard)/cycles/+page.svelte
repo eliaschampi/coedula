@@ -231,7 +231,7 @@
 			icon="bookOpen"
 		/>
 	{:else}
-		<div class="lumi-grid lumi-grid--responsive lumi-grid--gap-md">
+		<div class="lumi-grid lumi-grid--dashboard-cards lumi-grid--gap-md">
 			{#each data.cycles as cycle (cycle.code)}
 				<Card spaced hoverable>
 					{@const timeline = getCycleTimeline(cycle)}

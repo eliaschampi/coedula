@@ -104,8 +104,8 @@
 					<div class="lumi-search-panel__buttons">
 						<Button type="filled" color="primary" icon="search" button="submit">Buscar</Button>
 						<Button type="border" onclick={() => void goto(resolve('/students' as '/'))}
-							>Limpiar</Button
-						>
+							>Limpiar
+						</Button>
 					</div>
 				</form>
 			</div>

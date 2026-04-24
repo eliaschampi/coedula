@@ -1084,6 +1084,22 @@ body {
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+/* Capped-width columns: fills with as many cards as fit; tracks do not grow past max */
+.lumi-grid--dashboard-cards {
+	grid-template-columns: repeat(
+		auto-fill,
+		minmax(
+			min(100%, var(--lumi-dashboard-card-grid-min)),
+			var(--lumi-dashboard-card-grid-max)
+		)
+	);
+	justify-content: safe center;
+}
+
+.lumi-grid--dashboard-cards > * {
+	min-width: 0;
+}
+
 .lumi-grid--columns-1 {
 	grid-template-columns: 1fr;
 }

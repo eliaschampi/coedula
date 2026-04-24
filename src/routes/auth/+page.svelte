@@ -220,6 +220,7 @@
 	.auth-login__headline {
 		display: flex;
 		flex-direction: column;
+		margin-top: var(--lumi-space-lg);
 		gap: var(--lumi-space-md);
 		max-width: 34rem;
 	}

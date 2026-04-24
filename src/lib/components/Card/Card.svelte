@@ -107,6 +107,7 @@
 	.lumi-card {
 		--card-hover-lift: calc(var(--lumi-space-2xs) * -0.25);
 		position: relative;
+		min-width: 0;
 		background:
 			linear-gradient(
 				180deg,
@@ -198,6 +199,7 @@
 
 	.lumi-card__content {
 		flex: 1;
+		min-width: 0;
 		padding-top: var(--lumi-space-sm);
 		padding-bottom: var(--lumi-space-lg);
 	}

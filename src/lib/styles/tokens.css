@@ -384,6 +384,10 @@
 	--lumi-control-height-lg: var(--lumi-space-3xl);
 	--lumi-control-height-xl: var(--lumi-space-4xl);
 
+	/* Dashboard card racks — capped columns (no 1fr stretch), token-driven */
+	--lumi-dashboard-card-grid-min: 17.5rem;
+	--lumi-dashboard-card-grid-max: 21rem;
+
 	/* Drive module geometry */
 	--lumi-drive-file-grid-min-desktop: 10.5rem;
 	--lumi-drive-file-grid-min-tablet: 9.75rem;

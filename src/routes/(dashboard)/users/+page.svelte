@@ -158,7 +158,7 @@
 		{/snippet}
 	</PageHeader>
 
-	<div class="lumi-grid lumi-grid--auto-fill lumi-grid--gap-md">
+	<div class="lumi-grid lumi-grid--dashboard-cards lumi-grid--gap-md">
 		{#each data.users as user (user.code)}
 			<Card image="wall.png" imageAlt={user.name || 'Usuario'} imageHeight={150}>
 				<div class="lumi-flex lumi-flex--column lumi-flex--gap-sm">
@@ -216,14 +216,15 @@
 							</div>
 						</div>
 					</div>
-
+				</div>
+				{#snippet footer()}
 					<!-- Role Badge -->
 					{#if hasSuperUserAccess(user)}
-						<Chip color="danger" size="sm" class="lumi-text--xs">Admin</Chip>
+						<Chip color="danger" size="sm">Admin</Chip>
 					{:else}
-						<Chip color="primary" size="sm" class="lumi-text--xs">Usuario</Chip>
+						<Chip color="primary" size="sm">Usuario</Chip>
 					{/if}
-				</div>
+				{/snippet}
 			</Card>
 		{/each}
 	</div>
