@@ -452,6 +452,13 @@ export interface EvalSections {
 	question_count: number;
 }
 
+export interface Migrations {
+	batch: number;
+	executed_at: Generated<Timestamp>;
+	id: string;
+	name: string;
+}
+
 export interface PaymentItems {
 	amount: Numeric;
 	code: Generated<string>;
@@ -645,6 +652,7 @@ export interface DB {
 	eval_results: EvalResults;
 	eval_sections: EvalSections;
 	evals: Evals;
+	migrations: Migrations;
 	payment_items: PaymentItems;
 	payment_overview: PaymentOverview;
 	payments: Payments;

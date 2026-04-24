@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -80,6 +80,16 @@ generate_types() {
     fi
 }
 
+migrate_database() {
+    log "Applying pending SQL migrations..."
+    if run_migrate migrate >/dev/null 2>&1; then
+        success "SQL migrations applied successfully"
+    else
+        error "Applying SQL migrations failed"
+        return 1
+    fi
+}
+
 setup_database() {
     log "Starting database setup..."
 
@@ -94,13 +104,14 @@ setup_database() {
         exit 1
     fi
 
-    # Initialize if needed, then generate types from the init snapshot
+    # Initialize if needed, then apply pending migrations and refresh generated types
     if is_db_initialized; then
         log "Database already initialized"
     else
         log "Fresh database detected, running initialization..."
         init_database
     fi
+    migrate_database
     generate_types
 
     success "Database setup completed successfully!"
@@ -116,9 +127,10 @@ show_status() {
 
     if is_db_initialized >/dev/null 2>&1; then
         success "Database is initialized"
-        log "Schema source: database/init"
+        log "Schema source: database/init + database/migrations"
+        run_migrate status
     else
-        warn "Database not initialized. Run: pnpm db:up"
+        warn "Database not initialized. Run: pnpm db:setup"
     fi
 }
 
@@ -141,8 +153,8 @@ reset_database() {
         log "Dropping all tables and schema..."
         if run_migrate reset >/dev/null 2>&1; then
             success "Database reset completed"
-            log "Reinitializing database with init files..."
-            if init_database && generate_types; then
+            log "Reinitializing database from SQL baseline and migrations..."
+            if init_database && migrate_database && generate_types; then
                 success "Database reinitialized successfully"
             else
                 error "Failed to reinitialize database after reset"
@@ -165,9 +177,9 @@ case "${1:-setup}" in
         echo "Usage: bash database/dev/setup.sh [setup|status|reset|rebuild] [--yes]"
         echo ""
         echo "Commands:"
-        echo "  setup   - Initialize database if needed, then generate types"
-        echo "  status  - Show database initialization status"
-        echo "  reset   - Reset database (destroys all data) and reinitialize"
+        echo "  setup   - Initialize if needed, apply migrations, generate types"
+        echo "  status  - Show database initialization and migration status"
+        echo "  reset   - Reset database, reapply baseline + migrations, generate types"
         echo "  rebuild - Alias of reset"
         ;;
 esac

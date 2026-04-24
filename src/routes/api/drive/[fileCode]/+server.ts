@@ -1,6 +1,5 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { sql } from 'kysely';
 import { isUuid } from '$lib/utils/validation';
 import {
 	isValidDriveScope,
@@ -132,7 +131,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 			}
 
 			if (file.type === 'dir') {
-				const isChild = await isDescendant(locals.db, fileCode, parentCode);
+				const isChild = await DriveRepository.isDescendantOf(locals.db, fileCode, parentCode);
 				if (isChild) {
 					throw error(400, 'No se puede mover una carpeta dentro de su propio árbol');
 				}
@@ -169,7 +168,11 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 
 		if (
 			body.deleted_at === false &&
-			(await hasTrashedAncestor(locals.db, parentForRestoreCheck, targetScopeContext))
+			(await DriveRepository.hasTrashedAncestor(
+				locals.db,
+				parentForRestoreCheck,
+				targetScopeContext
+			))
 		) {
 			throw error(400, 'No se puede restaurar mientras la carpeta padre esté en papelera');
 		}
@@ -186,7 +189,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 		await locals.db.transaction().execute(async (trx) => {
 			if (targetScope !== fileScope) {
 				if (file.type === 'dir') {
-					const changedRows = await setDirectoryTreeScope(trx, {
+					const changedRows = await DriveRepository.updateSubtreeScope(trx, {
 						rootCode: fileCode,
 						sourceScope: fileScope,
 						sourceUserCode: file.user_code,
@@ -232,7 +235,11 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 			}
 
 			if (file.type === 'dir') {
-				const updatedRows = await setDirectoryTreeTrashState(trx, fileCode, nextDeletedAt);
+				const updatedRows = await DriveRepository.updateSubtreeTrashState(
+					trx,
+					fileCode,
+					nextDeletedAt
+				);
 				if (updatedRows === 0) {
 					throw error(404, 'Archivo no encontrado');
 				}
@@ -290,169 +297,17 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		throw error(400, 'Solo se pueden eliminar permanentemente archivos en papelera');
 	}
 
-	const descendants = await sql<{ storage_path: string | null }>`
-		WITH RECURSIVE drive_tree AS (
-			SELECT code, storage_path
-			FROM drive_files
-			WHERE code = ${fileCode}
-			UNION ALL
-			SELECT f.code, f.storage_path
-			FROM drive_files f
-			INNER JOIN drive_tree dt ON f.parent_code = dt.code
-		)
-		SELECT storage_path FROM drive_tree
-	`.execute(locals.db);
+	const descendants = await DriveRepository.listSubtree(locals.db, fileCode);
 
 	await locals.db.deleteFrom('drive_files').where('code', '=', fileCode).execute();
 
-	for (const row of descendants.rows) {
-		if (!row.storage_path) {
+	for (const node of descendants) {
+		if (!node.storage_path) {
 			continue;
 		}
 
-		await removeDriveFileWithVariants(row.storage_path);
+		await removeDriveFileWithVariants(node.storage_path);
 	}
 
-	return json({ success: true, deletedFiles: descendants.rows.length });
+	return json({ success: true, deletedFiles: descendants.length });
 };
-
-async function isDescendant(
-	db: App.Locals['db'],
-	ancestorCode: string,
-	targetCode: string
-): Promise<boolean> {
-	if (ancestorCode === targetCode) {
-		return true;
-	}
-
-	let currentCode: string | null = targetCode;
-	const visited = new Set<string>();
-
-	while (currentCode) {
-		if (visited.has(currentCode)) {
-			break;
-		}
-
-		visited.add(currentCode);
-
-		if (currentCode === ancestorCode) {
-			return true;
-		}
-
-		const parent = await db
-			.selectFrom('drive_files')
-			.select(['parent_code'])
-			.where('code', '=', currentCode)
-			.executeTakeFirst();
-
-		currentCode = parent?.parent_code ?? null;
-	}
-
-	return false;
-}
-
-async function hasTrashedAncestor(
-	db: App.Locals['db'],
-	startCode: string | null,
-	context: DriveScopeContext
-): Promise<boolean> {
-	let currentCode: string | null = startCode;
-	const visited = new Set<string>();
-
-	while (currentCode) {
-		if (visited.has(currentCode)) {
-			break;
-		}
-
-		visited.add(currentCode);
-
-		const ancestor = await db
-			.selectFrom('drive_files')
-			.select(['code', 'scope', 'user_code', 'parent_code', 'deleted_at'])
-			.where('code', '=', currentCode)
-			.executeTakeFirst();
-
-		if (!ancestor || !DriveRepository.isFileInContext(ancestor, context)) {
-			return false;
-		}
-
-		if (ancestor.deleted_at !== null) {
-			return true;
-		}
-
-		currentCode = ancestor.parent_code;
-	}
-
-	return false;
-}
-
-async function setDirectoryTreeTrashState(
-	db: App.Locals['db'],
-	rootCode: string,
-	deletedAt: Date | null
-): Promise<number> {
-	const updated = await sql<{ code: string }>`
-		WITH RECURSIVE drive_tree AS (
-			SELECT code, parent_code, scope, user_code
-			FROM drive_files
-			WHERE code = ${rootCode}
-			UNION ALL
-			SELECT f.code, f.parent_code, f.scope, f.user_code
-			FROM drive_files f
-			INNER JOIN drive_tree dt ON f.parent_code = dt.code
-			WHERE
-				f.scope = dt.scope
-				AND (dt.scope <> 'user_private' OR f.user_code = dt.user_code)
-		)
-		UPDATE drive_files
-		SET deleted_at = ${deletedAt}
-		WHERE code IN (SELECT code FROM drive_tree)
-		RETURNING code
-	`.execute(db);
-
-	return updated.rows.length;
-}
-
-interface SetDirectoryTreeScopeInput {
-	rootCode: string;
-	sourceScope: DriveScopeContext['scope'];
-	sourceUserCode: string;
-	targetScope: DriveScopeContext['scope'];
-	targetOwnerUserCode: string | null;
-}
-
-async function setDirectoryTreeScope(
-	db: App.Locals['db'],
-	input: SetDirectoryTreeScopeInput
-): Promise<number> {
-	const targetScopeValue = input.targetScope;
-	const targetOwnerUserCode = input.targetOwnerUserCode;
-
-	const updated = await sql<{ code: string }>`
-		WITH RECURSIVE drive_tree AS (
-			SELECT code, parent_code, scope, user_code
-			FROM drive_files
-			WHERE code = ${input.rootCode}
-			UNION ALL
-			SELECT f.code, f.parent_code, f.scope, f.user_code
-			FROM drive_files f
-			INNER JOIN drive_tree dt ON f.parent_code = dt.code
-			WHERE
-				f.scope = dt.scope
-				AND (dt.scope <> 'user_private' OR f.user_code = dt.user_code)
-		)
-		UPDATE drive_files
-		SET
-			scope = ${targetScopeValue},
-			user_code = CASE
-				WHEN ${targetScopeValue} = 'user_private' THEN ${targetOwnerUserCode}
-				ELSE user_code
-			END
-		WHERE code IN (SELECT code FROM drive_tree)
-			AND scope = ${input.sourceScope}
-			AND (${input.sourceScope} <> 'user_private' OR user_code = ${input.sourceUserCode})
-		RETURNING code
-	`.execute(db);
-
-	return updated.rows.length;
-}

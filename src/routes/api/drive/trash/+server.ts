@@ -1,6 +1,5 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { sql } from 'kysely';
 import { DriveRepository } from '$lib/server/repositories/drive.repository';
 import { removeDriveFileWithVariants } from '$lib/server/services/drive-image.service';
 
@@ -17,37 +16,9 @@ export const DELETE: RequestHandler = async ({ url, locals }) => {
 		scope: url.searchParams.get('scope')
 	});
 
-	const ownerUserCode = scopeContext.scope === 'user_private' ? scopeContext.ownerUserCode : null;
+	const trashedNodes = await DriveRepository.listTrashSubtree(locals.db, scopeContext);
 
-	const scopedOwnerFilter =
-		scopeContext.scope === 'user_private' && ownerUserCode
-			? sql`AND user_code = ${ownerUserCode}`
-			: sql``;
-
-	const treeRows = await sql<{ code: string; storage_path: string | null }>`
-		WITH RECURSIVE trash_roots AS (
-			SELECT code, parent_code, storage_path, scope, user_code
-			FROM drive_files
-			WHERE scope = ${scopeContext.scope}
-				AND deleted_at IS NOT NULL
-				${scopedOwnerFilter}
-		),
-		trash_tree AS (
-			SELECT code, parent_code, storage_path, scope, user_code
-			FROM trash_roots
-			UNION ALL
-			SELECT f.code, f.parent_code, f.storage_path, f.scope, f.user_code
-			FROM drive_files f
-			INNER JOIN trash_tree tt ON f.parent_code = tt.code
-			WHERE
-				f.scope = tt.scope
-				AND (tt.scope <> 'user_private' OR f.user_code = tt.user_code)
-		)
-		SELECT DISTINCT code, storage_path
-		FROM trash_tree
-	`.execute(locals.db);
-
-	if (treeRows.rows.length === 0) {
+	if (trashedNodes.length === 0) {
 		return json({ success: true, deleted: 0 });
 	}
 
@@ -62,15 +33,15 @@ export const DELETE: RequestHandler = async ({ url, locals }) => {
 
 	await deleteQuery.execute();
 
-	for (const row of treeRows.rows) {
-		if (!row.storage_path) {
+	for (const node of trashedNodes) {
+		if (!node.storage_path) {
 			continue;
 		}
 
-		await removeDriveFileWithVariants(row.storage_path);
+		await removeDriveFileWithVariants(node.storage_path);
 	}
 
-	return json({ success: true, deleted: treeRows.rows.length });
+	return json({ success: true, deleted: trashedNodes.length });
 };
 
 /**

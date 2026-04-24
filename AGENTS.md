@@ -314,27 +314,27 @@ To ensure technical perfection and maintainability, follow this strict procedure
 
 ### Phase 1: Database & Types (The Foundation)
 
-1.  **Update Init SQL:**
-    Edit `database/init/*.sql`.
+1.  **Update SQL Schema Sources:**
+    - For baseline schema changes, edit `database/init/*.sql`.
+    - For incremental schema changes after the baseline, add a new file in `database/migrations/*.sql`.
     - _Standard:_ Use snake_case for table names (e.g., `products`).
     - _Mandatory Fields:_ `id` (uuid/serial), `created_at` (timestamp), `updated_at` (timestamp).
     - _Example:_
 
-      ```ts
-      import { Kysely, sql } from 'kysely';
-
-      export async function up(db: Kysely<any>): Promise<void> {
-      	await db.schema
-      		.createTable('products')
-      		.addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-      		.addColumn('name', 'text', (col) => col.notNull())
-      		.addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
-      		.execute();
-      }
+      ```sql
+      CREATE TABLE IF NOT EXISTS public.products (
+        code UUID NOT NULL DEFAULT gen_random_uuid(),
+        name VARCHAR(120) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT products_pk PRIMARY KEY (code),
+        CONSTRAINT products_name_uq UNIQUE (name),
+        CONSTRAINT products_name_check CHECK (char_length(trim(name)) > 0)
+      );
       ```
 
 2.  **Apply & Generate:**
-    Run `pnpm db:up` or `pnpm db:rebuild`, then `pnpm db:generate`.
+    Run `pnpm db:setup` or `pnpm db:rebuild`, then `pnpm db:generate`.
     - _Verification:_ Check `src/lib/database/types.ts` to ensure the new interface exists.
 
 ### Phase 2: Backend Architecture (Service-Repository)

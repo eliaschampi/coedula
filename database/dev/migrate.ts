@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /* eslint-disable no-console */
 import { promises as fs } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
 import { config } from 'dotenv';
@@ -388,31 +388,37 @@ async function showStatus(db: Database) {
 	);
 }
 
+async function ensureConnection(db: Database) {
+	if (!(await db.checkConnection())) {
+		throw new Error('Cannot connect to database');
+	}
+}
+
 async function run(args: string[]) {
-	const command = args[2] || 'help';
+	const [command = 'help', ...commandArgs] = args;
 	const db = new Database();
 
 	try {
 		switch (command) {
 			case 'init':
-				if (!(await db.checkConnection())) throw new Error('Cannot connect to database');
+				await ensureConnection(db);
 				await initializeDatabase(db);
 				break;
 			case 'migrate':
-				if (!(await db.checkConnection())) throw new Error('Cannot connect to database');
+				await ensureConnection(db);
 				await runMigrations(db);
 				break;
 			case 'rollback':
-				if (!(await db.checkConnection())) throw new Error('Cannot connect to database');
+				await ensureConnection(db);
 				await rollbackMigrations(db);
 				break;
 			case 'status':
-				if (!(await db.checkConnection())) throw new Error('Cannot connect to database');
+				await ensureConnection(db);
 				await showStatus(db);
 				break;
 			case 'create': {
-				if (args.length <= 3) throw new Error('Migration name required');
-				const name = args.slice(3).join(' ');
+				if (commandArgs.length === 0) throw new Error('Migration name required');
+				const name = commandArgs.join(' ');
 				const filepath = await createMigrationFile(name);
 				console.log(`Created: ${filepath}`);
 				break;
@@ -445,13 +451,16 @@ async function run(args: string[]) {
 			case 'help':
 			default:
 				console.log(`🗄️  Coedula Database Tool
-Usage: npx tsx database/dev/migrate.ts <command>
+Usage: pnpm exec tsx database/dev/migrate.ts <command>
 Commands:
-  init              Initialize database with init/ SQL files
-  status            Show database status
+  init              Apply database/init as the baseline snapshot
+  migrate           Run pending database/migrations SQL files
+  rollback          Roll back the latest executed migration batch
+  status            Show executed and pending migrations
+  create <name>     Create a timestamped SQL migration template
   check             Check database connection
-  check:tables      Check if core schema tables exist
-  reset             Reset database (destroys all data)`);
+  check:tables      Check whether the baseline schema exists
+  reset             Drop and recreate the public schema`);
 				break;
 		}
 	} catch (error) {
@@ -462,6 +471,8 @@ Commands:
 	}
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-	run(process.argv);
+const invokedScriptPath = process.argv[1] ? resolve(process.argv[1]) : null;
+
+if (invokedScriptPath && fileURLToPath(import.meta.url) === invokedScriptPath) {
+	void run(process.argv.slice(2));
 }

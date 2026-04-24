@@ -45,7 +45,8 @@ Ensure you have the following installed on your machine:
 
 - **Node.js** (v20.0.0 or higher)
 - **pnpm** (v9.0.0 or higher)
-- **Docker** & **Docker Compose** (for database)
+- **PostgreSQL 16** (local or containerized)
+- **Docker** & **Docker Compose** (optional, for container workflow)
 
 ### Installation
 
@@ -97,33 +98,36 @@ For convenience, a helper script is provided to manage the Docker environment.
 
 ---
 
-## 💾 Database Setup (Manual / Hybrid)
+## 💾 Database Setup (Local or Hybrid)
 
-If you prefer to run the **Node.js app locally** but keep the **Database in Docker**, follow these steps:
+If you prefer to run the **Node.js app locally**, the database workflow supports either local PostgreSQL or a Docker Postgres container.
 
-### 1. Start the Database Only
+### 1. Start PostgreSQL
 
 ```bash
-# Start Postgres container in detached mode
-docker-compose -f docker/docker-compose.yml up -d postgres
+# Option A: local PostgreSQL
+createdb coedula
+
+# Option B: Docker Postgres only
+docker compose -f docker/docker-compose.yml up -d postgres
 ```
 
-### 2. Initialize
+### 2. Bootstrap the schema
 
-Once the database is running, use the included scripts to initialize the schema from `database/init`.
+Once PostgreSQL is reachable and `.env` points to the correct database, use the included scripts:
 
 ```bash
-# Full bootstrap (init if empty, generate types)
-pnpm db:up
+# Baseline init if empty, apply pending migrations, generate types
+pnpm db:setup
 
-# Drop schema only (dangerous)
+# Drop and recreate only the public schema (dangerous)
 pnpm db:down
 
-# Full rebuild from scratch (reset + init + generate)
+# Full rebuild from scratch (reset + init + migrate + generate)
 pnpm db:rebuild
 ```
 
-> **Note:** The `database/init/` folder is the schema source of truth and is executed when the Postgres container is created for the first time.
+> **Note:** `database/init/` is the baseline snapshot for a fresh database. `database/migrations/` contains incremental SQL changes that are applied after the baseline.
 
 ---
 
@@ -177,19 +181,23 @@ coedula/
 
 ## 📜 Scripts Reference
 
-| Script             | Description                                     |
-| :----------------- | :---------------------------------------------- |
-| `pnpm dev`         | Start local development server.                 |
-| `pnpm build`       | Build the application for production.           |
-| `pnpm check`       | Run Svelte-Check for type validation.           |
-| `pnpm lint`        | Run ESLint.                                     |
-| `pnpm db:setup`    | Run the database setup shell script.            |
-| `pnpm db:up`       | Bootstrap DB (init from snapshot + types).      |
-| `pnpm db:down`     | Drop and recreate `public` schema (empty DB).   |
-| `pnpm db:reset`    | Interactive reset + rebuild flow.               |
-| `pnpm db:rebuild`  | Reset and fully rebuild schema + types.         |
-| `pnpm db:status`   | Show initialization status.                     |
-| `pnpm db:generate` | Generate TypeScript types from database schema. |
+| Script                 | Description                                     |
+| :--------------------- | :---------------------------------------------- |
+| `pnpm dev`             | Start local development server.                 |
+| `pnpm build`           | Build the application for production.           |
+| `pnpm check`           | Run Svelte-Check for type validation.           |
+| `pnpm lint`            | Run ESLint.                                     |
+| `pnpm db:setup`        | Run the database setup shell script.            |
+| `pnpm db:up`           | Alias of `pnpm db:setup`.                       |
+| `pnpm db:down`         | Alias of `pnpm db:reset:schema`.                |
+| `pnpm db:reset:schema` | Drop and recreate `public` schema (empty DB).   |
+| `pnpm db:reset`        | Interactive reset + rebuild flow.               |
+| `pnpm db:rebuild`      | Reset and fully rebuild schema + types.         |
+| `pnpm db:status`       | Show initialization status.                     |
+| `pnpm db:migrate`      | Apply pending SQL migrations.                   |
+| `pnpm db:rollback`     | Roll back the latest migration batch.           |
+| `pnpm db:create`       | Create a timestamped SQL migration template.    |
+| `pnpm db:generate`     | Generate TypeScript types from database schema. |
 
 ---
 
@@ -201,8 +209,8 @@ coedula/
 
 ### Creating a New Feature
 
-1.  **Schema:** update `database/init/*.sql` (source of truth).
-2.  **Types:** `pnpm db:up` or `pnpm db:rebuild`, then `pnpm db:generate`
+1.  **Schema:** update `database/init/*.sql` for baseline changes or add a new file in `database/migrations/*.sql` for incremental changes.
+2.  **Types:** run `pnpm db:setup` or `pnpm db:rebuild`, then `pnpm db:generate`
 3.  **Backend:** Create server load functions and actions.
 4.  **Frontend:** Build UI using Lumi UI components (`Card`, `Table`, `PageHeader`).
 

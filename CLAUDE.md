@@ -11,3 +11,7 @@ Strict priorities (never break this order):
 5. Simplicity and elegance
 
 Always deeply analyze the current code and project conventions first. Think step-by-step about trade-offs and the most elegant approach before writing any code.
+
+1.  use pnpm lint:fix and check
+2.  I am not using dockerinstead local psql -d coedula
+3.  This project is build with LUmi UI not hardcoded css, all must share reusable components styles and look professionaly same pattern and same ui principies to100%.
