@@ -351,7 +351,7 @@
 		<input type="hidden" name="attendance_date" value={filterDate} />
 	</form>
 
-	<div class="lumi-layout--two-columns lumi-page-sidebar-layout attendance-page__layout">
+	<div class="lumi-layout--two-columns lumi-page-sidebar-layout">
 		<PageSidebar
 			bind:mobileOpen={showMobileSidebar}
 			variant="attendance"
@@ -518,7 +518,7 @@
 										</Chip>
 									</td>
 									<td>
-										<span class="lumi-text--sm attendance-page__observation">
+										<span class="lumi-text--sm lumi-text--muted">
 											{attendanceRow.attendance_observation || 'Sin observación'}
 										</span>
 									</td>
@@ -701,7 +701,7 @@
 			</Fieldset>
 
 			<Fieldset legend="Registro">
-				<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md attendance-page__form-grid">
+				<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
 					<Select
 						bind:value={formState}
 						name="state"
@@ -741,15 +741,3 @@
 		</Button>
 	{/snippet}
 </Dialog>
-
-<style>
-	.attendance-page__observation {
-		color: var(--lumi-color-text-muted);
-	}
-
-	@media (max-width: 768px) {
-		.attendance-page__form-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-</style>

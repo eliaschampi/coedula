@@ -26,14 +26,14 @@
 	}: Props = $props();
 </script>
 
-<div class="cashbox-range-control">
-	<div class="cashbox-range-control__field">
+<div class="lumi-inline-filters">
+	<div class="lumi-toolbar-field">
 		<Input type="date" bind:value={fromValue} label={fromLabel} {disabled} />
 	</div>
-	<div class="cashbox-range-control__field">
+	<div class="lumi-toolbar-field">
 		<Input type="date" bind:value={toValue} label={toLabel} {disabled} />
 	</div>
-	<div class="cashbox-range-control__actions">
+	<div class="lumi-inline-filters__actions">
 		<Button type="border" onclick={onreset} {disabled}>
 			{resetLabel}
 		</Button>
@@ -42,32 +42,3 @@
 		</Button>
 	</div>
 </div>
-
-<style>
-	.cashbox-range-control,
-	.cashbox-range-control__actions {
-		display: flex;
-	}
-
-	.cashbox-range-control {
-		align-items: end;
-		gap: var(--lumi-space-sm);
-		flex-wrap: wrap;
-	}
-
-	.cashbox-range-control__field {
-		min-width: min(100%, 170px);
-	}
-
-	.cashbox-range-control__actions {
-		gap: var(--lumi-space-sm);
-		flex-wrap: wrap;
-	}
-
-	@media (max-width: 768px) {
-		.cashbox-range-control {
-			flex-direction: column;
-			align-items: stretch;
-		}
-	}
-</style>

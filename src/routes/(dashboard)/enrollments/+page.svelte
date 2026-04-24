@@ -471,7 +471,7 @@
 
 		<section class="lumi-layout--content-right">
 			<div class="lumi-stack lumi-stack--sm">
-				<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md enrollments-page__stats-grid">
+				<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md">
 					<StatCard
 						title="Total"
 						value={String(totalEnrollments)}
@@ -570,9 +570,9 @@
 										</div>
 									</td>
 									<td>
-										<div class="enrollment-assignment-cell">
+										<div class="lumi-flex lumi-flex--column lumi-flex--gap-xs">
 											<span class="lumi-text--sm lumi-font--medium">{enrollment.cycle_title}</span>
-											<div class="enrollment-assignment-cell__chips">
+											<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
 												<Chip color="secondary" size="sm">
 													{formatAcademicDegreeLabel(enrollment.degree_name)}
 												</Chip>
@@ -768,7 +768,7 @@
 			</Fieldset>
 
 			<Fieldset legend="Asignación académica">
-				<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md enrollment-form-grid">
+				<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
 					<Select
 						bind:value={formCycleCode}
 						label="Ciclo"
@@ -893,41 +893,3 @@
 		</Button>
 	{/snippet}
 </Dialog>
-
-<style>
-	.enrollments-page__stats-grid {
-		--lumi-grid-columns: repeat(4, minmax(0, 1fr));
-	}
-
-	.enrollment-assignment-cell,
-	.enrollment-assignment-cell__chips {
-		display: flex;
-	}
-
-	.enrollment-assignment-cell,
-	.enrollment-assignment-cell__chips {
-		flex-wrap: wrap;
-		gap: var(--lumi-space-xs);
-	}
-
-	.enrollment-assignment-cell {
-		flex-direction: column;
-		align-items: flex-start;
-	}
-
-	@media (max-width: 1100px) {
-		.enrollments-page__stats-grid {
-			--lumi-grid-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-
-	@media (max-width: 768px) {
-		.enrollments-page__stats-grid {
-			--lumi-grid-columns: 1fr;
-		}
-
-		.enrollment-form-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-</style>

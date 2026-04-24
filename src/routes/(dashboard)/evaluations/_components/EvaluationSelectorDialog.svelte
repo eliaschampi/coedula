@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { Button, Card, Chip, Dialog, EmptyState, Select } from '$lib/components';
+	import { Button, Card, Chip, Dialog, EmptyState, Loading, Select } from '$lib/components';
 	import type { GroupCode } from '$lib/types/education';
 	import { formatEducationDate, formatGroupCode, GROUP_CODE_OPTIONS } from '$lib/utils';
 	import type { EvaluationSelectionValue } from './selection';
@@ -215,7 +215,7 @@
 		</div>
 
 		<Card spaced>
-			<div class="evaluation-selector__filters">
+			<div class="lumi-grid lumi-grid--columns-3 lumi-grid--gap-md">
 				<Select
 					bind:value={cycleCode}
 					label="Ciclo"
@@ -241,7 +241,7 @@
 			</div>
 		</Card>
 
-		<div class="evaluation-selector__status">
+		<div class="lumi-section-toolbar">
 			<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
 				{#if cycleCode}
 					<Chip color="primary" size="sm">
@@ -262,9 +262,9 @@
 		</div>
 
 		{#if loadError}
-			<Card spaced class="evaluation-selector__alert">
+			<div class="evaluation-selector__alert">
 				<p class="lumi-margin--none lumi-text--sm">{loadError}</p>
-			</Card>
+			</div>
 		{/if}
 
 		<Card spaced>
@@ -275,11 +275,8 @@
 					icon="bookOpen"
 				/>
 			{:else if isLoading}
-				<div class="evaluation-selector__loading">
-					<div class="evaluation-selector__spinner" aria-hidden="true"></div>
-					<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-						Consultando evaluaciones disponibles…
-					</p>
+				<div class="lumi-flex lumi-flex--center evaluation-selector__loading">
+					<Loading color="primary" text="Consultando evaluaciones disponibles…" />
 				</div>
 			{:else if evaluations.length === 0}
 				<EmptyState
@@ -288,27 +285,26 @@
 					icon="clipboardPenLine"
 				/>
 			{:else}
-				<div class="evaluation-selector__list" role="list">
+				<div class="lumi-item-list evaluation-selector__list" role="list">
 					{#each evaluations as evaluation (evaluation.code)}
 						<button
 							type="button"
-							class="evaluation-selector__item {selectedEvaluationCode === evaluation.code
-								? 'evaluation-selector__item--active'
+							class="lumi-item-row lumi-item-row--interactive {selectedEvaluationCode ===
+							evaluation.code
+								? 'lumi-item-row--active'
 								: ''}"
 							onclick={() => {
 								selectedEvaluationCode = evaluation.code;
 							}}
 						>
-							<div class="evaluation-selector__item-main">
-								<div class="evaluation-selector__item-text">
-									<strong>{evaluation.name}</strong>
-									<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-										{formatEducationDate(evaluation.eval_date)}
-									</p>
-								</div>
+							<div class="lumi-item-row__copy">
+								<strong class="lumi-text-ellipsis">{evaluation.name}</strong>
+								<span class="lumi-text--sm lumi-text--muted">
+									{formatEducationDate(evaluation.eval_date)}
+								</span>
 							</div>
 
-							<span class="evaluation-selector__item-action">
+							<span class="lumi-text--xs lumi-font--medium lumi-text--primary">
 								{selectedEvaluationCode === evaluation.code ? 'Seleccionada' : 'Seleccionar'}
 							</span>
 						</button>
@@ -317,7 +313,7 @@
 			{/if}
 		</Card>
 
-		<div class="evaluation-selector__footer">
+		<div class="lumi-flex lumi-justify--end lumi-flex--gap-sm lumi-flex--wrap">
 			<Button type="border" onclick={closeDialog}>Cancelar</Button>
 			<Button
 				type="filled"
@@ -333,22 +329,11 @@
 </Dialog>
 
 <style>
-	.evaluation-selector__filters {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--lumi-space-md);
-	}
-
-	.evaluation-selector__status {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--lumi-space-md);
-		flex-wrap: wrap;
-	}
-
-	:global(.evaluation-selector__alert) {
-		border-color: color-mix(in srgb, var(--lumi-color-danger) 28%, var(--lumi-color-border));
+	.evaluation-selector__alert {
+		padding: var(--lumi-space-md);
+		border-radius: var(--lumi-radius-xl);
+		border: var(--lumi-border-width-thin) solid
+			color-mix(in srgb, var(--lumi-color-danger) 28%, var(--lumi-color-border));
 		background: linear-gradient(
 			180deg,
 			color-mix(in srgb, var(--lumi-color-danger) 10%, var(--lumi-color-surface)) 0%,
@@ -357,131 +342,12 @@
 	}
 
 	.evaluation-selector__loading {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: var(--lumi-space-sm);
 		min-height: 16rem;
 	}
 
-	.evaluation-selector__spinner {
-		width: var(--lumi-space-xl);
-		height: var(--lumi-space-xl);
-		border-radius: var(--lumi-radius-full);
-		border: var(--lumi-border-width-thick) solid
-			color-mix(in srgb, var(--lumi-color-primary) 18%, transparent);
-		border-top-color: var(--lumi-color-primary);
-		animation: evaluation-selector-spin 0.9s linear infinite;
-	}
-
 	.evaluation-selector__list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-sm);
 		max-height: 24rem;
 		overflow-y: auto;
 		padding-right: var(--lumi-space-2xs);
-	}
-
-	.evaluation-selector__item {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		gap: var(--lumi-space-md);
-		align-items: center;
-		width: 100%;
-		padding: var(--lumi-space-md);
-		border-radius: var(--lumi-radius-xl);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		background: linear-gradient(
-			180deg,
-			color-mix(in srgb, var(--lumi-color-surface) 94%, var(--lumi-color-primary) 6%) 0%,
-			var(--lumi-color-surface) 100%
-		);
-		cursor: pointer;
-		text-align: left;
-		transition:
-			transform var(--lumi-duration-fast) var(--lumi-easing-default),
-			border-color var(--lumi-duration-fast) var(--lumi-easing-default),
-			box-shadow var(--lumi-duration-fast) var(--lumi-easing-default);
-	}
-
-	.evaluation-selector__item:hover {
-		transform: translateY(calc(var(--lumi-space-2xs) * -1));
-		border-color: color-mix(in srgb, var(--lumi-color-primary) 26%, var(--lumi-color-border));
-		box-shadow: var(--lumi-shadow-md);
-	}
-
-	.evaluation-selector__item:focus-visible {
-		outline: none;
-		box-shadow:
-			0 0 0 var(--lumi-border-width-thick)
-				color-mix(in srgb, var(--lumi-color-primary) 24%, transparent),
-			var(--lumi-shadow-md);
-	}
-
-	.evaluation-selector__item--active {
-		border-color: color-mix(in srgb, var(--lumi-color-primary) 44%, var(--lumi-color-border));
-		box-shadow: var(--lumi-shadow-md);
-	}
-
-	.evaluation-selector__item-main {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-sm);
-		min-width: 0;
-	}
-
-	.evaluation-selector__item-text {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-2xs);
-		min-width: 0;
-	}
-
-	.evaluation-selector__item-text strong {
-		display: block;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.evaluation-selector__item-action {
-		font-size: var(--lumi-font-size-xs);
-		font-weight: var(--lumi-font-weight-semibold);
-		color: var(--lumi-color-primary);
-	}
-
-	.evaluation-selector__footer {
-		display: flex;
-		justify-content: flex-end;
-		gap: var(--lumi-space-sm);
-		flex-wrap: wrap;
-	}
-
-	@keyframes evaluation-selector-spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	@media (max-width: 720px) {
-		.evaluation-selector__filters {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-
-		.evaluation-selector__item {
-			grid-template-columns: 1fr;
-		}
-
-		.evaluation-selector__item-action {
-			justify-self: flex-start;
-		}
-	}
-
-	@media (max-width: 560px) {
-		.evaluation-selector__filters {
-			grid-template-columns: 1fr;
-		}
 	}
 </style>

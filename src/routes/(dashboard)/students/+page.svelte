@@ -60,7 +60,7 @@
 		{/snippet}
 	</PageHeader>
 
-	<div class="lumi-grid lumi-grid--columns-3 lumi-grid--gap-md student-summary-grid">
+	<div class="lumi-grid lumi-grid--columns-3 lumi-grid--gap-md">
 		<StatCard
 			title="Alumnos activos"
 			value={String(data.summary.activeStudents)}
@@ -86,22 +86,22 @@
 
 	<Card>
 		<div class="lumi-stack lumi-stack--md">
-			<div class="student-search-panel">
-				<div class="student-search-panel__copy">
-					<h2 class="student-search-panel__title">Panel de búsqueda previa</h2>
-					<p class="student-search-panel__subtitle">
+			<div class="lumi-search-panel">
+				<div class="lumi-search-panel__copy">
+					<h2 class="lumi-search-panel__title">Panel de búsqueda previa</h2>
+					<p class="lumi-search-panel__subtitle">
 						Busca por nombre, DNI, teléfono o código institucional antes de crear una nueva ficha.
 					</p>
 				</div>
 
-				<form method="GET" class="student-search-panel__form">
+				<form method="GET" class="lumi-search-panel__form">
 					<Input
 						name="search"
 						value={data.searchQuery}
 						label="Buscar alumno"
 						placeholder="Ej. María Torres, 12345678 o STU-001024"
 					/>
-					<div class="student-search-panel__buttons">
+					<div class="lumi-search-panel__buttons">
 						<Button type="filled" color="primary" icon="search" button="submit">Buscar</Button>
 						<Button type="border" onclick={() => void goto(resolve('/students' as '/'))}
 							>Limpiar</Button
@@ -134,8 +134,8 @@
 					{#each data.students as student (student.code)}
 						<Card>
 							<div class="lumi-stack lumi-stack--md">
-								<div class="student-card__header">
-									<div class="student-card__identity">
+								<div class="lumi-hero-panel">
+									<div class="lumi-hero-panel__identity">
 										<Avatar
 											src={student.photo_url
 												? buildStudentPhotoUrl(student.photo_url, 'thumb')
@@ -144,75 +144,64 @@
 											size="xl"
 											color="primary"
 										/>
-										<div>
-											<div class="student-card__name-row">
-												<h3 class="student-card__name">{student.full_name}</h3>
+										<div class="lumi-hero-panel__copy">
+											<div class="lumi-hero-panel__name-row">
+												<h3 class="lumi-hero-panel__name">{student.full_name}</h3>
 												<Chip color={student.is_active ? 'success' : 'danger'} size="sm">
 													{student.is_active ? 'Activo' : 'Inactivo'}
 												</Chip>
 											</div>
-											<p class="student-card__code">{student.student_number}</p>
+											<p class="lumi-hero-panel__code">{student.student_number}</p>
 										</div>
 									</div>
 
-									<div class="student-card__actions">
-										<Dropdown
-											position="bottom-end"
-											aria-label={`Acciones para ${student.full_name}`}
-										>
-											{#snippet triggerContent()}
-												<Button
-													type="flat"
-													size="sm"
-													icon="moreVertical"
-													aria-label={`Abrir acciones para ${student.full_name}`}
-												/>
-											{/snippet}
+									<Dropdown position="bottom-end" aria-label={`Acciones para ${student.full_name}`}>
+										{#snippet triggerContent()}
+											<Button
+												type="flat"
+												size="sm"
+												icon="moreVertical"
+												aria-label={`Abrir acciones para ${student.full_name}`}
+											/>
+										{/snippet}
 
-											{#snippet content()}
-												<DropdownItem icon="eye" onclick={() => openStudentProfile(student.code)}>
-													Ver perfil
-												</DropdownItem>
-												<DropdownItem
-													icon="history"
-													onclick={() => openStudentAttendance(student.code)}
-													disabled={!canReadAttendance}
-												>
-													Ver asistencia
-												</DropdownItem>
-												<DropdownItem
-													icon="edit"
-													onclick={() => openEditPage(student.code)}
-													disabled={!canUpdate}
-												>
-													Editar alumno
-												</DropdownItem>
-											{/snippet}
-										</Dropdown>
-									</div>
+										{#snippet content()}
+											<DropdownItem icon="eye" onclick={() => openStudentProfile(student.code)}>
+												Ver perfil
+											</DropdownItem>
+											<DropdownItem
+												icon="history"
+												onclick={() => openStudentAttendance(student.code)}
+												disabled={!canReadAttendance}
+											>
+												Ver asistencia
+											</DropdownItem>
+											<DropdownItem
+												icon="edit"
+												onclick={() => openEditPage(student.code)}
+												disabled={!canUpdate}
+											>
+												Editar alumno
+											</DropdownItem>
+										{/snippet}
+									</Dropdown>
 								</div>
 
-								<div class="student-card__body">
-									<div class="student-card__details">
-										<InfoItem icon="creditCard" label="DNI" value={student.dni || 'Sin DNI'} />
-										<InfoItem
-											icon="phone"
-											label="Teléfono"
-											value={student.phone || 'Sin teléfono'}
-										/>
-										<InfoItem
-											icon="badgeCheck"
-											label="Matrícula actual"
-											value={student.current_cycle_title || 'Sin matrícula actual'}
-										/>
-										<InfoItem
-											icon="activity"
-											label="Estado académico"
-											value={student.current_enrollment_status
-												? formatEnrollmentStatus(student.current_enrollment_status)
-												: 'Sin matrícula actual'}
-										/>
-									</div>
+								<div class="lumi-grid lumi-grid--auto-fit lumi-grid--gap-md">
+									<InfoItem icon="creditCard" label="DNI" value={student.dni || 'Sin DNI'} />
+									<InfoItem icon="phone" label="Teléfono" value={student.phone || 'Sin teléfono'} />
+									<InfoItem
+										icon="badgeCheck"
+										label="Matrícula actual"
+										value={student.current_cycle_title || 'Sin matrícula actual'}
+									/>
+									<InfoItem
+										icon="activity"
+										label="Estado académico"
+										value={student.current_enrollment_status
+											? formatEnrollmentStatus(student.current_enrollment_status)
+											: 'Sin matrícula actual'}
+									/>
 								</div>
 							</div>
 						</Card>
@@ -222,99 +211,3 @@
 		</div>
 	</Card>
 </div>
-
-<style>
-	.student-summary-grid {
-		--lumi-grid-columns: repeat(3, minmax(0, 1fr));
-	}
-
-	.student-search-panel {
-		display: grid;
-		grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-		gap: var(--lumi-space-lg);
-		align-items: end;
-		padding: var(--lumi-space-lg);
-		border-radius: var(--lumi-radius-2xl);
-		background:
-			linear-gradient(
-				135deg,
-				color-mix(in srgb, var(--lumi-color-primary) 6%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-info) 8%, transparent) 100%
-			),
-			color-mix(in srgb, var(--lumi-color-surface) 72%, var(--lumi-color-background-hover) 28%);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		box-shadow: var(--lumi-shadow-sm);
-	}
-
-	.student-search-panel__copy,
-	.student-search-panel__form,
-	.student-search-panel__buttons,
-	.student-card__identity,
-	.student-card__actions,
-	.student-card__header,
-	.student-card__name-row {
-		display: flex;
-	}
-
-	.student-search-panel__copy,
-	.student-search-panel__form {
-		flex-direction: column;
-		gap: var(--lumi-space-sm);
-	}
-
-	.student-search-panel__buttons,
-	.student-card__actions,
-	.student-card__name-row {
-		flex-wrap: wrap;
-		gap: var(--lumi-space-xs);
-	}
-
-	.student-search-panel__title,
-	.student-card__name {
-		margin: 0;
-		color: var(--lumi-color-text);
-	}
-
-	.student-search-panel__title {
-		font-size: var(--lumi-font-size-xl);
-	}
-
-	.student-search-panel__subtitle,
-	.student-card__code {
-		color: var(--lumi-color-text-muted);
-	}
-
-	.student-search-panel__subtitle,
-	.student-card__code {
-		margin: 0;
-		font-size: var(--lumi-font-size-sm);
-	}
-
-	.student-card__header {
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: var(--lumi-space-md);
-	}
-
-	.student-card__identity {
-		align-items: center;
-		gap: var(--lumi-space-md);
-	}
-
-	.student-card__body,
-	.student-card__details {
-		display: grid;
-		gap: var(--lumi-space-md);
-	}
-
-	.student-card__details {
-		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-	}
-
-	@media (max-width: 900px) {
-		.student-summary-grid,
-		.student-search-panel {
-			grid-template-columns: 1fr;
-		}
-	}
-</style>

@@ -59,7 +59,7 @@
 	{#if user}
 		<div class="profile-page__grid">
 			<Card spaced class="profile-page__hero-card">
-				<div class="profile-page__hero">
+				<div class="lumi-stack lumi-stack--lg lumi-relative">
 					<UserInfo
 						name={user.name ?? ''}
 						lastName={user.last_name ?? ''}
@@ -68,7 +68,7 @@
 						avatarSize="xl"
 					/>
 
-					<div class="profile-page__chips">
+					<div class="lumi-flex lumi-flex--wrap lumi-flex--gap-xs">
 						<Chip color={accessTone} icon={user.is_super_admin ? 'shieldCheck' : 'user'} size="sm">
 							{accessLabel}
 						</Chip>
@@ -77,7 +77,7 @@
 						</Chip>
 					</div>
 
-					<p class="profile-page__summary">
+					<p class="profile-page__summary lumi-margin--none lumi-text--sm lumi-text--muted">
 						Esta vista concentra tu información base de acceso para que puedas validar rápido quién
 						está operando el sistema.
 					</p>
@@ -89,7 +89,7 @@
 				subtitle="Información principal visible dentro del sistema"
 				spaced
 			>
-				<div class="profile-page__info-grid">
+				<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
 					<InfoItem icon="user" label="Nombres" value={user.name || 'Sin registro'} />
 					<InfoItem icon="userRound" label="Apellidos" value={user.last_name || 'Sin registro'} />
 					<InfoItem icon="mail" label="Correo" value={user.email || 'Sin correo'} />
@@ -99,7 +99,7 @@
 		</div>
 
 		<Card title="Actividad de cuenta" subtitle="Fechas y nivel de acceso" spaced>
-			<div class="profile-page__info-grid profile-page__info-grid--wide">
+			<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md">
 				<InfoItem icon="shieldCheck" label="Nivel de acceso" value={accessLabel} />
 				<InfoItem icon="calendar" label="Miembro desde" value={formatDate(user.created_at)} />
 				<InfoItem icon="clock" label="Último acceso" value={formatDateTime(user.last_login)} />
@@ -151,41 +151,13 @@
 		pointer-events: none;
 	}
 
-	.profile-page__hero {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-lg);
-	}
-
-	.profile-page__chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--lumi-space-xs);
-	}
-
 	.profile-page__summary {
-		margin: 0;
-		font-size: var(--lumi-font-size-sm);
 		line-height: var(--lumi-line-height-relaxed);
-		color: var(--lumi-color-text-muted);
 		max-width: 58ch;
 	}
 
-	.profile-page__info-grid {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: var(--lumi-space-md);
-	}
-
-	.profile-page__info-grid--wide {
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-	}
-
 	@media (max-width: 960px) {
-		.profile-page__grid,
-		.profile-page__info-grid,
-		.profile-page__info-grid--wide {
+		.profile-page__grid {
 			grid-template-columns: minmax(0, 1fr);
 		}
 	}

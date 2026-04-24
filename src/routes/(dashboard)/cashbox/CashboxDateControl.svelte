@@ -22,11 +22,11 @@
 	}: Props = $props();
 </script>
 
-<div class="cashbox-date-control">
-	<div class="cashbox-date-control__field">
+<div class="lumi-inline-filters">
+	<div class="lumi-toolbar-field">
 		<Input type="date" bind:value {label} {disabled} />
 	</div>
-	<div class="cashbox-date-control__actions">
+	<div class="lumi-inline-filters__actions">
 		<Button type="filled" color="primary" icon="search" onclick={onapply} {disabled}>
 			{applyLabel}
 		</Button>
@@ -35,32 +35,3 @@
 		</Button>
 	</div>
 </div>
-
-<style>
-	.cashbox-date-control,
-	.cashbox-date-control__actions {
-		display: flex;
-	}
-
-	.cashbox-date-control {
-		align-items: end;
-		gap: var(--lumi-space-sm);
-		flex-wrap: wrap;
-	}
-
-	.cashbox-date-control__field {
-		min-width: min(100%, 220px);
-	}
-
-	.cashbox-date-control__actions {
-		gap: var(--lumi-space-sm);
-		flex-wrap: wrap;
-	}
-
-	@media (max-width: 768px) {
-		.cashbox-date-control {
-			flex-direction: column;
-			align-items: stretch;
-		}
-	}
-</style>

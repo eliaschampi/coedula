@@ -376,8 +376,8 @@
 	</PageHeader>
 
 	<Card>
-		<div class="student-profile-hero">
-			<div class="student-profile-hero__identity">
+		<div class="lumi-hero-panel">
+			<div class="lumi-hero-panel__identity">
 				<Avatar
 					src={data.student.photo_url
 						? buildStudentPhotoUrl(data.student.photo_url, 'preview')
@@ -386,16 +386,16 @@
 					size="xl"
 					color="primary"
 				/>
-				<div class="lumi-stack lumi-stack--2xs">
-					<div class="student-profile-hero__name-row">
-						<h2 class="student-profile-hero__name">{data.student.full_name}</h2>
+				<div class="lumi-hero-panel__copy">
+					<div class="lumi-hero-panel__name-row">
+						<h2 class="lumi-hero-panel__name">{data.student.full_name}</h2>
 						<Chip color={data.student.is_active ? 'success' : 'danger'} size="sm">
 							{data.student.is_active ? 'Activo' : 'Inactivo'}
 						</Chip>
 					</div>
-					<p class="student-profile-hero__code">{data.student.student_number}</p>
+					<p class="lumi-hero-panel__code">{data.student.student_number}</p>
 					{#if data.student.current_cycle_title}
-						<p class="student-profile-hero__current">
+						<p class="lumi-hero-panel__subtitle">
 							{data.student.current_cycle_title} · {formatAcademicDegreeLabel(
 								data.student.current_degree_name
 							)}
@@ -404,7 +404,7 @@
 				</div>
 			</div>
 
-			<div class="student-profile-hero__stats">
+			<div class="lumi-hero-panel__stats">
 				<InfoItem icon="creditCard" label="DNI" value={data.student.dni || 'Sin DNI'} />
 				<InfoItem icon="phone" label="Teléfono" value={data.student.phone || 'Sin teléfono'} />
 				<InfoItem
@@ -507,9 +507,11 @@
 
 				<Card title="Observaciones" subtitle="Notas visibles para próximas áreas">
 					{#if data.student.observation}
-						<p class="student-profile-note">{data.student.observation}</p>
+						<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+							{data.student.observation}
+						</p>
 					{:else}
-						<p class="lumi-text--sm lumi-text--muted">
+						<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
 							No hay observaciones registradas para este alumno.
 						</p>
 					{/if}
@@ -528,11 +530,11 @@
 						icon="bookX"
 					/>
 				{:else}
-					<div class="student-history-list">
+					<div class="lumi-history-list">
 						{#each data.enrollments as enrollment (enrollment.code)}
-							<div class="student-history-item">
-								<div class="student-history-item__main">
-									<div class="student-history-item__top">
+							<div class="lumi-history-item">
+								<div class="lumi-history-item__main">
+									<div class="lumi-history-item__top">
 										<strong>{enrollment.enrollment_number}</strong>
 										<Chip
 											color={enrollment.status === 'active'
@@ -545,17 +547,17 @@
 											{formatEnrollmentStatus(enrollment.status)}
 										</Chip>
 									</div>
-									<p class="student-history-item__title">
+									<p class="lumi-history-item__title">
 										{enrollment.cycle_title} · {formatAcademicDegreeLabel(enrollment.degree_name)}
 									</p>
-									<p class="student-history-item__meta">
+									<p class="lumi-history-item__meta">
 										{formatGroupCode(enrollment.group_code)} · {formatEnrollmentTurn(
 											enrollment.turn
 										)} · {formatEducationDateRange(enrollment.start_date, enrollment.end_date)}
 									</p>
 								</div>
 
-								<div class="student-history-item__side">
+								<div class="lumi-history-item__side">
 									<InfoItem icon="hash" label="Lista" value={enrollment.roll_code} />
 									<InfoItem
 										icon="wallet"
@@ -872,106 +874,13 @@
 <DriveFilePreview bind:open={showPreview} file={previewFile} ondownload={handleDownload} />
 
 <style>
-	.student-profile-hero,
-	.student-profile-hero__identity,
-	.student-profile-hero__stats,
-	.student-profile-hero__name-row {
-		display: flex;
-	}
-
-	.student-profile-hero {
-		justify-content: space-between;
-		align-items: center;
-		gap: var(--lumi-space-lg);
-	}
-
-	.student-profile-hero__identity {
-		align-items: center;
-		gap: var(--lumi-space-md);
-	}
-
-	.student-profile-hero__stats {
-		flex-wrap: wrap;
-		gap: var(--lumi-space-xs);
-	}
-
-	.student-profile-hero__name-row {
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--lumi-space-xs);
-	}
-
-	.student-profile-hero__name,
-	.student-history-item__title {
-		margin: 0;
-	}
-
-	.student-profile-hero__code,
-	.student-profile-hero__current,
-	.student-history-item__meta,
-	.student-profile-note {
-		margin: 0;
-		color: var(--lumi-color-text-muted);
-	}
-
-	.student-profile-note {
-		font-size: var(--lumi-font-size-sm);
-		line-height: var(--lumi-line-height-relaxed);
-	}
-
 	:global(.student-profile-grid .lumi-card:last-child) {
 		grid-column: 1 / -1;
 	}
 
-	.student-history-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-md);
-	}
-
-	.student-history-item {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		gap: var(--lumi-space-md);
-		padding: var(--lumi-space-md);
-		border-radius: var(--lumi-radius-xl);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		background:
-			linear-gradient(
-				135deg,
-				color-mix(in srgb, var(--lumi-color-primary) 5%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-info) 6%, transparent) 100%
-			),
-			var(--lumi-color-surface);
-	}
-
-	.student-history-item__top,
-	.student-history-item__side {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--lumi-space-xs);
-		align-items: center;
-	}
-
-	.student-history-item__main {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-2xs);
-	}
-
-	.student-history-item__side {
-		align-content: start;
-	}
-
 	@media (max-width: 900px) {
-		.student-profile-grid,
-		.student-history-item {
+		:global(.student-profile-grid) {
 			grid-template-columns: 1fr;
-		}
-
-		.student-profile-hero {
-			flex-direction: column;
-			align-items: flex-start;
 		}
 	}
 </style>

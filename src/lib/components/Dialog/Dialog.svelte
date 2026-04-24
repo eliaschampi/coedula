@@ -35,6 +35,7 @@
 	let previousActiveElement: HTMLElement | null = null;
 	let bodyOverflow = '';
 	let afterCloseTimer: number | undefined;
+	let pointerDownOnOverlay = false;
 
 	const uniqueId = Math.random().toString(36).substring(2, 11);
 	const titleId = `lumi-dialog-title-${uniqueId}`;
@@ -70,8 +71,18 @@
 		onclose?.();
 	}
 
+	function handleOverlayPointerDown(event: PointerEvent): void {
+		pointerDownOnOverlay = !persistent && event.target === event.currentTarget;
+	}
+
 	function handleOverlayClick(event: MouseEvent): void {
-		if (persistent || event.target !== event.currentTarget) return;
+		const wasPointerDownOnOverlay = pointerDownOnOverlay;
+		pointerDownOnOverlay = false;
+
+		if (persistent) return;
+		if (!wasPointerDownOnOverlay) return;
+		if (event.target !== event.currentTarget) return;
+
 		handleClose();
 	}
 
@@ -179,6 +190,7 @@
 		class={overlayClasses()}
 		style={styleVars()}
 		transition:fade={{ duration: transitionDuration }}
+		onpointerdown={handleOverlayPointerDown}
 		onclick={handleOverlayClick}
 		role="presentation"
 	>

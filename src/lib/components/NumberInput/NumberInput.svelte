@@ -128,7 +128,6 @@
 	.lumi-number-input {
 		display: flex;
 		flex-direction: column;
-		gap: var(--lumi-space-xs);
 		width: 100%;
 		--input-accent: var(--lumi-color-primary);
 		--number-border: var(--lumi-color-border);
@@ -146,6 +145,7 @@
 		font-size: var(--lumi-font-size-sm);
 		font-weight: var(--lumi-font-weight-medium);
 		color: var(--lumi-color-text);
+		margin-block-end: var(--lumi-space-xs);
 	}
 
 	.lumi-number-input__wrapper {

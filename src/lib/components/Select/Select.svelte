@@ -472,7 +472,6 @@
 		font-family: var(--lumi-font-family-sans);
 		display: flex;
 		flex-direction: column;
-		gap: var(--lumi-space-xs);
 		--select-border: var(--lumi-color-border);
 		--select-focus: var(--lumi-color-primary);
 		--select-bg: color-mix(
@@ -490,6 +489,7 @@
 		font-weight: var(--lumi-font-weight-medium);
 		color: var(--lumi-color-text);
 		cursor: pointer;
+		margin-block-end: var(--lumi-space-xs);
 		transition: color var(--lumi-duration-base) var(--lumi-easing-default);
 	}
 
@@ -746,13 +746,16 @@
 	.lumi-select__footer {
 		display: grid;
 		grid-template-rows: 0fr;
-		transition: grid-template-rows var(--lumi-duration-base) var(--lumi-easing-default);
+		margin-block-start: 0;
 		overflow: hidden;
-		margin-top: calc(var(--lumi-space-2xs) * -1);
+		transition:
+			grid-template-rows var(--lumi-duration-base) var(--lumi-easing-default),
+			margin-block-start var(--lumi-duration-base) var(--lumi-easing-default);
 	}
 
 	.lumi-select__footer--visible {
 		grid-template-rows: 1fr;
+		margin-block-start: var(--lumi-space-xs);
 	}
 
 	.lumi-select__footer > span {

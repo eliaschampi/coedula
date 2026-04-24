@@ -171,7 +171,7 @@
 	{#if !canCreate}
 		<Alert type="warning" closable>No tienes permisos para registrar asistencia.</Alert>
 	{:else}
-		<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md attendance-scan__layout">
+		<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
 			<Card title="Captura" subtitle="Escaneo continuo con fallback manual" spaced>
 				<div class="lumi-stack lumi-stack--md">
 					{#if cameraError}
@@ -223,12 +223,14 @@
 							size="xl"
 							color="primary"
 						/>
-						<div class="lumi-stack lumi-stack--2xs">
-							<h2 class="attendance-scan__name">{result.student.full_name}</h2>
-							<p class="attendance-scan__meta">
+						<div class="lumi-stack lumi-stack--2xs lumi-text--center">
+							<h2 class="lumi-margin--none lumi-text--xl lumi-font--medium">
+								{result.student.full_name}
+							</h2>
+							<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
 								{result.student.student_number} · {result.student.dni || 'Sin DNI'}
 							</p>
-							<p class="attendance-scan__meta">
+							<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
 								{result.enrollment.cycle_title} · {result.enrollment.degree_name} · Grupo
 								{result.enrollment.group_code}
 							</p>
@@ -261,10 +263,6 @@
 </div>
 
 <style>
-	.attendance-scan__layout {
-		--lumi-grid-columns: repeat(2, minmax(0, 1fr));
-	}
-
 	.attendance-scan__video-shell {
 		position: relative;
 		overflow: hidden;
@@ -290,21 +288,5 @@
 	.attendance-scan__result {
 		align-items: center;
 		text-align: center;
-	}
-
-	.attendance-scan__name,
-	.attendance-scan__meta {
-		margin: 0;
-	}
-
-	.attendance-scan__meta {
-		color: var(--lumi-color-text-muted);
-		font-size: var(--lumi-font-size-sm);
-	}
-
-	@media (max-width: 900px) {
-		.attendance-scan__layout {
-			--lumi-grid-columns: 1fr;
-		}
 	}
 </style>

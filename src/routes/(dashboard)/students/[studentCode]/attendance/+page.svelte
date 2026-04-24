@@ -106,7 +106,7 @@
 			icon="lock"
 		/>
 	{:else}
-		<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md student-attendance__stats-grid">
+		<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md">
 			<StatCard
 				title="Registros"
 				value={String(totalCount)}
@@ -139,7 +139,7 @@
 
 		<Card spaced>
 			<div class="lumi-stack lumi-stack--md">
-				<div class="student-attendance__filters">
+				<div class="lumi-inline-filters">
 					<Input bind:value={filterFromDate} type="date" label="Desde" />
 					<Input bind:value={filterToDate} type="date" label="Hasta" />
 					<Select
@@ -148,7 +148,7 @@
 						options={ENROLLMENT_TURN_OPTIONS}
 						clearable={false}
 					/>
-					<div class="student-attendance__filters-actions">
+					<div class="lumi-inline-filters__actions">
 						<Button type="filled" color="primary" icon="search" onclick={applyFilters}>
 							Aplicar
 						</Button>
@@ -218,36 +218,3 @@
 		</Card>
 	{/if}
 </div>
-
-<style>
-	.student-attendance__stats-grid {
-		--lumi-grid-columns: repeat(4, minmax(0, 1fr));
-	}
-
-	.student-attendance__filters,
-	.student-attendance__filters-actions {
-		display: flex;
-		gap: var(--lumi-space-md);
-	}
-
-	.student-attendance__filters {
-		align-items: end;
-	}
-
-	@media (max-width: 900px) {
-		.student-attendance__stats-grid {
-			--lumi-grid-columns: repeat(2, minmax(0, 1fr));
-		}
-
-		.student-attendance__filters {
-			flex-direction: column;
-			align-items: stretch;
-		}
-	}
-
-	@media (max-width: 640px) {
-		.student-attendance__stats-grid {
-			--lumi-grid-columns: 1fr;
-		}
-	}
-</style>

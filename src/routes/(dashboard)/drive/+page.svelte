@@ -799,7 +799,7 @@
 					</Card>
 				</div>
 
-				<div class="drive-page__content-shell">
+				<div class="lumi-stack lumi-stack--sm drive-page__content-shell">
 					{#if showBreadcrumbs}
 						<nav class="lumi-flex lumi-flex--gap-xs lumi-align-items--center lumi-flex--wrap">
 							{#each breadcrumbs as crumb, index (crumb.code ?? `root-${index}`)}
@@ -823,7 +823,9 @@
 
 					<div class="drive-page__content">
 						{#if loading}
-							<div class="drive-page__loading">
+							<div
+								class="lumi-flex lumi-flex--column lumi-flex--center lumi-flex--gap-md drive-page__loading"
+							>
 								<Loading size="lg" color="primary" />
 								<span class="lumi-text--sm lumi-text--muted">Cargando archivos...</span>
 							</div>
@@ -938,9 +940,9 @@
 	<div class="lumi-stack lumi-stack--md">
 		<div class="lumi-stack lumi-stack--xs">
 			<span class="lumi-text--sm lumi-font--medium">Espacio destino</span>
-			<div class="drive-page__move-scope-options">
+			<div class="lumi-page-sidebar__radio-group">
 				{#each DRIVE_SCOPE_OPTIONS as scopeOption (scopeOption.value)}
-					<div class="drive-page__move-scope-option">
+					<div class="lumi-page-sidebar__radio-option">
 						<Radio
 							name="move-scope"
 							group={moveScope}
@@ -948,7 +950,7 @@
 							label={scopeOption.name}
 							onchange={(value) => void handleMoveScopeChange(value)}
 						/>
-						<span class="drive-page__move-scope-option-description">
+						<span class="lumi-page-sidebar__radio-description">
 							{scopeOption.description}
 						</span>
 					</div>
@@ -1131,56 +1133,11 @@
 	}
 
 	.drive-page__content-shell {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-sm);
 		padding: var(--lumi-space-sm);
-		background: transparent;
 	}
 
 	.drive-page__loading {
 		min-height: var(--lumi-drive-loading-min-height);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: var(--lumi-space-md);
-	}
-
-	.drive-page__move-scope-options {
-		display: grid;
-		gap: var(--lumi-space-sm);
-	}
-
-	.drive-page__move-scope-options :global(.lumi-radio) {
-		width: 100%;
-		padding: var(--lumi-space-sm) var(--lumi-space-md);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border-light);
-		border-radius: var(--lumi-radius-lg);
-		background: var(--lumi-color-surface);
-		transition: var(--lumi-transition-all);
-	}
-
-	.drive-page__move-scope-options :global(.lumi-radio:not(.lumi-radio--disabled):hover) {
-		border-color: var(--lumi-color-primary);
-		background: color-mix(in srgb, var(--lumi-color-primary) 4%, var(--lumi-color-surface));
-	}
-
-	.drive-page__move-scope-options :global(.lumi-radio--checked) {
-		border-color: color-mix(in srgb, var(--lumi-color-primary) 32%, var(--lumi-color-border));
-		background: color-mix(in srgb, var(--lumi-color-primary) 8%, var(--lumi-color-surface));
-	}
-
-	.drive-page__move-scope-option {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-2xs);
-	}
-
-	.drive-page__move-scope-option-description {
-		font-size: var(--lumi-font-size-xs);
-		color: var(--lumi-color-text-muted);
-		padding-left: calc(var(--lumi-icon-md) + var(--lumi-space-sm));
 	}
 
 	.drive-page__tag-none {

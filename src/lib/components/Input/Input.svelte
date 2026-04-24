@@ -219,7 +219,6 @@
 	.lumi-input-container {
 		display: flex;
 		flex-direction: column;
-		gap: var(--lumi-space-xs);
 		width: 100%;
 		--input-border: var(--lumi-color-border);
 		--input-bg: color-mix(
@@ -246,6 +245,7 @@
 		font-weight: var(--lumi-font-weight-medium);
 		color: var(--lumi-color-text);
 		cursor: pointer;
+		margin-block-end: var(--lumi-space-xs);
 		transition: color var(--lumi-duration-base) var(--lumi-easing-default);
 	}
 
@@ -450,13 +450,16 @@
 	.lumi-input__footer {
 		display: grid;
 		grid-template-rows: 0fr;
-		transition: grid-template-rows var(--lumi-duration-base) var(--lumi-easing-default);
+		margin-block-start: 0;
 		overflow: hidden;
-		margin-top: calc(var(--lumi-space-2xs) * -1);
+		transition:
+			grid-template-rows var(--lumi-duration-base) var(--lumi-easing-default),
+			margin-block-start var(--lumi-duration-base) var(--lumi-easing-default);
 	}
 
 	.lumi-input__footer--visible {
 		grid-template-rows: 1fr;
+		margin-block-start: var(--lumi-space-xs);
 	}
 
 	.lumi-input__footer > span {

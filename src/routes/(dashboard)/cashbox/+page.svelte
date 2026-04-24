@@ -599,17 +599,17 @@
 		</Card>
 	{:else}
 		<Card>
-			<div class="cashbox-context-bar">
-				<div class="cashbox-context-bar__copy">
-					<h2 class="cashbox-context-bar__title">Caja operativa</h2>
-					<p class="cashbox-context-bar__subtitle">
+			<div class="lumi-section-toolbar">
+				<div class="lumi-section-toolbar__copy">
+					<h2 class="lumi-section-toolbar__title">Caja operativa</h2>
+					<p class="lumi-section-toolbar__subtitle">
 						Los movimientos se registran por sede y usuario responsable.
 					</p>
 				</div>
 
-				<div class="cashbox-context-bar__controls">
+				<div class="lumi-section-toolbar__actions lumi-align-items--end">
 					{#if data.branches.length > 1}
-						<div class="cashbox-context-bar__field">
+						<div class="lumi-toolbar-field">
 							<Select
 								value={selectedBranchCode}
 								options={branchOptions}
@@ -655,7 +655,7 @@
 							</Alert>
 						{/if}
 
-						<div class="lumi-grid lumi-grid--columns-3 lumi-grid--gap-md cashbox-summary-grid">
+						<div class="lumi-grid lumi-grid--columns-3 lumi-grid--gap-md">
 							<StatCard
 								title="Apertura"
 								value={formatEducationCurrency(data.summary.opening_amount)}
@@ -705,7 +705,7 @@
 							activas.
 						</Alert>
 
-						<div class="cashbox-control-grid">
+						<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
 							<Button
 								type="filled"
 								color="primary"
@@ -739,14 +739,14 @@
 			{:else if activeTab === 'payments'}
 				<Card>
 					{#snippet header()}
-						<div class="cashbox-table-header">
-							<div>
-								<h2 class="cashbox-table-header__title">Ingresos registrados</h2>
-								<p class="cashbox-table-header__subtitle">
+						<div class="lumi-section-toolbar">
+							<div class="lumi-section-toolbar__copy">
+								<h2 class="lumi-section-toolbar__title">Ingresos registrados</h2>
+								<p class="lumi-section-toolbar__subtitle">
 									Cobros por alumno registrado o pagador manual con ticket imprimible.
 								</p>
 							</div>
-							<div class="cashbox-table-header__actions">
+							<div class="lumi-section-toolbar__actions">
 								<CashboxRangeControl
 									bind:fromValue={paymentFromDateFilter}
 									bind:toValue={paymentToDateFilter}
@@ -837,14 +837,14 @@
 			{:else if activeTab === 'outflows'}
 				<Card>
 					{#snippet header()}
-						<div class="cashbox-table-header">
-							<div>
-								<h2 class="cashbox-table-header__title">Egresos y rendiciones</h2>
-								<p class="cashbox-table-header__subtitle">
+						<div class="lumi-section-toolbar">
+							<div class="lumi-section-toolbar__copy">
+								<h2 class="lumi-section-toolbar__title">Egresos y rendiciones</h2>
+								<p class="lumi-section-toolbar__subtitle">
 									Salidas de caja diferenciadas entre gasto operativo y rendición.
 								</p>
 							</div>
-							<div class="cashbox-table-header__actions">
+							<div class="lumi-section-toolbar__actions">
 								<CashboxRangeControl
 									bind:fromValue={outflowFromDateFilter}
 									bind:toValue={outflowToDateFilter}
@@ -1071,13 +1071,15 @@
 					/>
 
 					{#if selectedStudentPreview}
-						<div class="cashbox-student-preview">
-							<div class="cashbox-student-preview__copy">
-								<span class="lumi-font--medium">{selectedStudentPreview.full_name}</span>
-								<span class="lumi-text--xs lumi-text--muted">
-									{selectedStudentPreview.student_number} · {selectedStudentPreview.dni ||
-										'Sin DNI'}
-								</span>
+						<div class="lumi-selected-panel">
+							<div class="lumi-selected-panel__identity">
+								<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
+									<span class="lumi-font--medium">{selectedStudentPreview.full_name}</span>
+									<span class="lumi-text--xs lumi-text--muted">
+										{selectedStudentPreview.student_number} · {selectedStudentPreview.dni ||
+											'Sin DNI'}
+									</span>
+								</div>
 							</div>
 							<Button type="flat" size="sm" color="danger" icon="x" onclick={removeSelectedStudent}>
 								Quitar
@@ -1092,14 +1094,14 @@
 					{:else if studentSearchLoading}
 						<p class="lumi-text--sm lumi-text--muted">Buscando alumnos…</p>
 					{:else if studentSearchQuery.trim().length >= 2 && studentSearchResults.length > 0}
-						<div class="cashbox-search-results" role="listbox" aria-label="Resultados de alumnos">
+						<div class="lumi-item-list" role="listbox" aria-label="Resultados de alumnos">
 							{#each studentSearchResults as student (student.code)}
 								<button
 									type="button"
-									class="cashbox-search-option"
+									class="lumi-item-row lumi-item-row--interactive"
 									onclick={() => selectStudent(student)}
 								>
-									<div class="cashbox-search-option__copy">
+									<div class="lumi-item-row__copy">
 										<span class="lumi-font--medium">{student.full_name}</span>
 										<span class="lumi-text--xs lumi-text--muted">
 											{student.student_number} · {student.dni || 'Sin DNI'}
@@ -1185,16 +1187,16 @@
 							icon="list"
 						/>
 					{:else}
-						<div class="cashbox-item-list">
+						<div class="lumi-item-list">
 							{#each paymentItems as item (item.id)}
-								<div class="cashbox-item-row">
-									<div class="cashbox-item-row__copy">
+								<div class="lumi-item-row">
+									<div class="lumi-item-row__copy">
 										<strong>{item.conceptLabel}</strong>
 										{#if item.detail}
 											<span class="lumi-text--xs lumi-text--muted">{item.detail}</span>
 										{/if}
 									</div>
-									<div class="cashbox-item-row__actions">
+									<div class="lumi-item-row__actions">
 										<span class="lumi-font--medium">
 											{formatEducationCurrency(item.amount)}
 										</span>
@@ -1211,7 +1213,7 @@
 						</div>
 					{/if}
 
-					<div class="cashbox-total-box">
+					<div class="lumi-total-box">
 						<span>Total del ingreso</span>
 						<strong>{formatEducationCurrency(paymentTotal)}</strong>
 					</div>
@@ -1385,7 +1387,7 @@
 					onchange={(value) => (cashDayAmount = value)}
 				/>
 			{:else}
-				<div class="cashbox-total-box">
+				<div class="lumi-total-box">
 					<span>Monto de cierre</span>
 					<strong>{formatEducationCurrency(data.summary.current_amount)}</strong>
 				</div>
@@ -1499,158 +1501,3 @@
 		</Button>
 	{/snippet}
 </Dialog>
-
-<style>
-	.cashbox-summary-grid {
-		--lumi-grid-columns: repeat(3, minmax(0, 1fr));
-	}
-
-	.cashbox-context-bar,
-	.cashbox-table-header,
-	.cashbox-table-header__actions,
-	.cashbox-context-bar__controls,
-	.cashbox-student-preview,
-	.cashbox-item-row,
-	.cashbox-item-row__actions {
-		display: flex;
-	}
-
-	.cashbox-context-bar,
-	.cashbox-table-header {
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--lumi-space-md);
-		flex-wrap: wrap;
-	}
-
-	.cashbox-context-bar__controls,
-	.cashbox-table-header__actions {
-		align-items: end;
-		gap: var(--lumi-space-sm);
-		flex-wrap: wrap;
-	}
-
-	.cashbox-context-bar__field {
-		min-width: min(100%, 220px);
-	}
-
-	.cashbox-context-bar__title,
-	.cashbox-table-header__title {
-		margin: 0;
-		font-size: var(--lumi-font-size-lg);
-		font-weight: var(--lumi-font-weight-semibold);
-		color: var(--lumi-color-text);
-	}
-
-	.cashbox-context-bar__subtitle,
-	.cashbox-table-header__subtitle {
-		margin: 0;
-		font-size: var(--lumi-font-size-sm);
-		color: var(--lumi-color-text-muted);
-	}
-
-	.cashbox-control-grid {
-		--lumi-grid-columns: repeat(2, minmax(0, 1fr));
-	}
-
-	.cashbox-student-preview {
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--lumi-space-md);
-		padding: var(--lumi-space-sm) var(--lumi-space-md);
-		border-radius: var(--lumi-radius-xl);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		background: color-mix(in srgb, var(--lumi-color-surface) 82%, var(--lumi-color-primary) 18%);
-	}
-
-	.cashbox-student-preview__copy,
-	.cashbox-item-row__copy,
-	.cashbox-search-option__copy {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-2xs);
-		min-width: 0;
-	}
-
-	.cashbox-item-list,
-	.cashbox-search-results {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lumi-space-sm);
-	}
-
-	.cashbox-item-row,
-	.cashbox-search-option {
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--lumi-space-md);
-		padding: var(--lumi-space-sm) var(--lumi-space-md);
-		border-radius: var(--lumi-radius-xl);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		background: color-mix(
-			in srgb,
-			var(--lumi-color-surface) 88%,
-			var(--lumi-color-background-hover) 12%
-		);
-	}
-
-	.cashbox-search-option {
-		width: 100%;
-		background:
-			linear-gradient(
-				180deg,
-				color-mix(in srgb, var(--lumi-color-primary) 4%, transparent) 0%,
-				transparent 100%
-			),
-			color-mix(in srgb, var(--lumi-color-surface) 90%, var(--lumi-color-background-hover) 10%);
-		cursor: pointer;
-		text-align: left;
-		transition:
-			transform var(--lumi-duration-base) var(--lumi-easing-default),
-			border-color var(--lumi-duration-base) var(--lumi-easing-default),
-			box-shadow var(--lumi-duration-base) var(--lumi-easing-default);
-	}
-
-	.cashbox-search-option:hover {
-		transform: translateY(calc(var(--lumi-space-2xs) * -0.25));
-		border-color: color-mix(in srgb, var(--lumi-color-primary) 35%, var(--lumi-color-border));
-		box-shadow: var(--lumi-shadow-sm);
-	}
-
-	.cashbox-total-box {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--lumi-space-md);
-		padding: var(--lumi-space-md);
-		border-radius: var(--lumi-radius-xl);
-		background:
-			linear-gradient(
-				135deg,
-				color-mix(in srgb, var(--lumi-color-success) 10%, transparent) 0%,
-				color-mix(in srgb, var(--lumi-color-primary) 8%, transparent) 100%
-			),
-			color-mix(in srgb, var(--lumi-color-surface) 78%, var(--lumi-color-background-hover) 22%);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-	}
-
-	@media (max-width: 1100px) {
-		.cashbox-summary-grid {
-			--lumi-grid-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-
-	@media (max-width: 768px) {
-		.cashbox-summary-grid,
-		.cashbox-control-grid {
-			--lumi-grid-columns: 1fr;
-		}
-
-		.cashbox-student-preview,
-		.cashbox-item-row,
-		.cashbox-search-option {
-			flex-direction: column;
-			align-items: stretch;
-		}
-	}
-</style>
