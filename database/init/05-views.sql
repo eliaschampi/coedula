@@ -291,6 +291,8 @@ SELECT
   co.concept,
   co.description,
   co.amount,
+  COALESCE(co.returned_amount, 0)::NUMERIC(12,2) AS returned_amount,
+  GREATEST(co.amount - COALESCE(co.returned_amount, 0), 0)::NUMERIC(12,2) AS pending_amount,
   co.responsible_name,
   co.status,
   co.registered_by_user_code,
@@ -317,7 +319,7 @@ movement_totals AS (
     cm.branch_code,
     cm.cashier_user_code,
     cm.business_date,
-    COALESCE(SUM(cm.amount) FILTER (WHERE cm.movement_type = 'payment' AND cm.status = 'active'), 0)::NUMERIC(12,2) AS income_amount,
+    COALESCE(SUM(cm.amount) FILTER (WHERE cm.movement_type IN ('payment', 'outflow_return') AND cm.status = 'active'), 0)::NUMERIC(12,2) AS income_amount,
     COALESCE(SUM(cm.amount) FILTER (WHERE cm.movement_type = 'expense' AND cm.status = 'active'), 0)::NUMERIC(12,2) AS expense_amount,
     COALESCE(SUM(cm.amount) FILTER (WHERE cm.movement_type = 'surrender' AND cm.status = 'active'), 0)::NUMERIC(12,2) AS surrender_amount
   FROM public.cashbox_movements cm

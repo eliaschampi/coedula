@@ -54,7 +54,7 @@ interface MovementInput {
 	branchCode: string;
 	cashierUserCode: string;
 	businessDate: string;
-	movementType: 'payment' | 'expense' | 'surrender';
+	movementType: 'payment' | 'expense' | 'surrender' | 'outflow_return';
 	sourceType: 'payment' | 'outflow';
 	sourceCode: string;
 	direction: 'in' | 'out';
@@ -790,6 +790,92 @@ export class CashboxRepository {
 			await reverseMovement(trx, 'outflow', outflowCode, userCode);
 
 			return true;
+		});
+	}
+
+	static async createOutflowReturn(
+		db: Database,
+		scope: CashboxScope,
+		input: {
+			outflowCode: string;
+			returnDate?: string | null;
+			amount: number | string;
+			returnedByName?: string | null;
+			note?: string | null;
+			registeredByUserCode: string;
+		}
+	): Promise<void> {
+		if (!isUuid(input.outflowCode)) {
+			throw new Error('El egreso seleccionado no es válido');
+		}
+
+		const returnDate = normalizeDateValue(input.returnDate);
+		const amount = normalizePositiveAmount(input.amount, 'El monto del vuelto debe ser mayor a 0');
+		const returnedByName = normalizeNullableText(input.returnedByName);
+		const note = normalizeNullableText(input.note);
+
+		await db.transaction().execute(async (trx) => {
+			await assertMovementsAllowed(trx, scope, returnDate);
+
+			const outflow = await trx
+				.selectFrom('cash_outflows')
+				.select(['code', 'status', 'amount', 'returned_amount', 'outflow_number'])
+				.where('code', '=', input.outflowCode)
+				.where('branch_code', '=', scope.branchCode)
+				.where('cashier_user_code', '=', scope.cashierUserCode)
+				.executeTakeFirst();
+
+			if (!outflow) {
+				throw new Error('El egreso seleccionado no existe');
+			}
+
+			if (outflow.status !== 'posted') {
+				throw new Error('El egreso seleccionado no admite devoluciones');
+			}
+
+			const outflowAmount = toNumber(outflow.amount);
+			const returnedAmount = toNumber(outflow.returned_amount);
+			const pendingAmount = Number((outflowAmount - returnedAmount).toFixed(2));
+
+			if (pendingAmount <= 0) {
+				throw new Error('Este egreso ya no tiene monto pendiente por devolver');
+			}
+
+			if (amount > pendingAmount + 0.00001) {
+				throw new Error('El monto del vuelto no puede ser mayor al pendiente del egreso');
+			}
+
+			const result = await trx
+				.updateTable('cash_outflows')
+				.set((eb) => ({
+					returned_amount: sql<number>`${eb.ref('returned_amount')} + ${amount}`,
+					returned_at: new Date(),
+					returned_by_name: returnedByName,
+					return_note: note,
+					returned_by_user_code: input.registeredByUserCode
+				}))
+				.where('code', '=', input.outflowCode)
+				.where('branch_code', '=', scope.branchCode)
+				.where('cashier_user_code', '=', scope.cashierUserCode)
+				.where('status', '=', 'posted')
+				.executeTakeFirst();
+
+			if (Number(result.numUpdatedRows ?? 0) === 0) {
+				throw new Error('No se pudo actualizar el egreso para registrar el vuelto');
+			}
+
+			await registerMovement(trx, {
+				branchCode: scope.branchCode,
+				cashierUserCode: scope.cashierUserCode,
+				businessDate: returnDate,
+				movementType: 'outflow_return',
+				sourceType: 'outflow',
+				sourceCode: input.outflowCode,
+				direction: 'in',
+				amount,
+				note: note ?? `Vuelto ${outflow.outflow_number}`,
+				registeredByUserCode: input.registeredByUserCode
+			});
 		});
 	}
 

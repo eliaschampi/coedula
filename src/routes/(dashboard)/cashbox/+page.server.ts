@@ -407,6 +407,46 @@ export const actions: Actions = {
 		}
 	},
 
+	createOutflowReturn: async ({ locals, request }) => {
+		const [canCreateCashbox, canUpdateCashbox] = await Promise.all([
+			locals.can('cashbox:create'),
+			locals.can('cashbox:update')
+		]);
+
+		if (!hasCashboxWritePermission(canCreateCashbox, canUpdateCashbox)) {
+			return fail(403, { error: 'No tienes permisos para registrar devoluciones de egresos' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
+			const outflowCode = readFormField(formData, 'outflow_code');
+			const returnDate = readFormField(formData, 'return_date');
+			const amount = readFormField(formData, 'amount');
+			const returnedByName = readFormField(formData, 'returned_by_name');
+			const note = readFormField(formData, 'note');
+
+			if (!outflowCode || !isUuid(outflowCode)) {
+				return fail(400, { error: 'El egreso seleccionado no es válido' });
+			}
+
+			await CashboxRepository.createOutflowReturn(locals.db, scope, {
+				outflowCode,
+				returnDate,
+				amount,
+				returnedByName,
+				note,
+				registeredByUserCode: locals.user?.code ?? ''
+			});
+
+			return { success: true, type: 'success' };
+		} catch (caught) {
+			const message =
+				caught instanceof Error ? caught.message : 'No se pudo registrar la devolución del egreso';
+			return fail(400, { error: message });
+		}
+	},
+
 	setOpening: async ({ locals, request }) => {
 		const [canCreateCashbox, canUpdateCashbox] = await Promise.all([
 			locals.can('cashbox:create'),

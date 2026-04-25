@@ -323,6 +323,11 @@ CREATE TABLE public.cash_outflows (
   concept VARCHAR(160) NOT NULL,
   description TEXT NULL,
   amount NUMERIC(12,2) NOT NULL,
+  returned_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  returned_at TIMESTAMPTZ NULL,
+  returned_by_name VARCHAR(180) NULL,
+  return_note TEXT NULL,
+  returned_by_user_code UUID NULL,
   responsible_name VARCHAR(180) NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'posted',
   registered_by_user_code UUID NOT NULL,
@@ -335,11 +340,17 @@ CREATE TABLE public.cash_outflows (
   CONSTRAINT cash_outflows_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
   CONSTRAINT cash_outflows_cashier_user_fk FOREIGN KEY (cashier_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
   CONSTRAINT cash_outflows_registered_by_user_fk FOREIGN KEY (registered_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
+  CONSTRAINT cash_outflows_returned_by_user_fk FOREIGN KEY (returned_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
   CONSTRAINT cash_outflows_deleted_by_user_fk FOREIGN KEY (deleted_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
   CONSTRAINT cash_outflows_outflow_type_check CHECK (outflow_type IN ('expense', 'surrender')),
   CONSTRAINT cash_outflows_concept_check CHECK (char_length(trim(concept)) > 0),
   CONSTRAINT cash_outflows_amount_check CHECK (amount > 0),
+  CONSTRAINT cash_outflows_returned_amount_check CHECK (returned_amount >= 0 AND returned_amount <= amount),
   CONSTRAINT cash_outflows_status_check CHECK (status IN ('posted', 'deleted')),
+  CONSTRAINT cash_outflows_returned_state_check CHECK (
+    (returned_amount = 0 AND returned_at IS NULL AND returned_by_user_code IS NULL)
+    OR (returned_amount > 0 AND returned_at IS NOT NULL AND returned_by_user_code IS NOT NULL)
+  ),
   CONSTRAINT cash_outflows_deleted_state_check CHECK (
     (status = 'deleted' AND deleted_at IS NOT NULL AND deleted_by_user_code IS NOT NULL)
     OR (status = 'posted' AND deleted_at IS NULL AND deleted_by_user_code IS NULL)
@@ -365,12 +376,12 @@ CREATE TABLE public.cashbox_movements (
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT cashbox_movements_pk PRIMARY KEY (code),
-  CONSTRAINT cashbox_movements_source_uq UNIQUE (source_type, source_code),
+  CONSTRAINT cashbox_movements_source_uq UNIQUE (source_type, source_code, direction),
   CONSTRAINT cashbox_movements_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
   CONSTRAINT cashbox_movements_cashier_user_fk FOREIGN KEY (cashier_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
   CONSTRAINT cashbox_movements_registered_by_user_fk FOREIGN KEY (registered_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
   CONSTRAINT cashbox_movements_reversed_by_user_fk FOREIGN KEY (reversed_by_user_code) REFERENCES public.users (code) ON DELETE RESTRICT,
-  CONSTRAINT cashbox_movements_movement_type_check CHECK (movement_type IN ('payment', 'expense', 'surrender')),
+  CONSTRAINT cashbox_movements_movement_type_check CHECK (movement_type IN ('payment', 'expense', 'surrender', 'outflow_return')),
   CONSTRAINT cashbox_movements_source_type_check CHECK (source_type IN ('payment', 'outflow')),
   CONSTRAINT cashbox_movements_direction_check CHECK (direction IN ('in', 'out')),
   CONSTRAINT cashbox_movements_amount_check CHECK (amount > 0),
@@ -378,6 +389,7 @@ CREATE TABLE public.cashbox_movements (
   CONSTRAINT cashbox_movements_source_alignment_check CHECK (
     (movement_type = 'payment' AND source_type = 'payment' AND direction = 'in')
     OR (movement_type IN ('expense', 'surrender') AND source_type = 'outflow' AND direction = 'out')
+    OR (movement_type = 'outflow_return' AND source_type = 'outflow' AND direction = 'in')
   ),
   CONSTRAINT cashbox_movements_reversed_state_check CHECK (
     (status = 'reversed' AND reversed_at IS NOT NULL AND reversed_by_user_code IS NOT NULL)

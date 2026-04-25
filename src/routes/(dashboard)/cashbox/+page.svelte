@@ -124,12 +124,14 @@
 	let showCashDayModal = $state(false);
 	let showVoidPaymentDialog = $state(false);
 	let showDeleteOutflowDialog = $state(false);
+	let showOutflowReturnDialog = $state(false);
 
 	let paymentErrorMessage = $state('');
 	let outflowErrorMessage = $state('');
 	let cashDayErrorMessage = $state('');
 	let deletePaymentErrorMessage = $state('');
 	let deleteOutflowErrorMessage = $state('');
+	let outflowReturnErrorMessage = $state('');
 
 	let paymentPayerMode = $state<'student' | 'manual'>('student');
 	let paymentDate = $state('');
@@ -161,6 +163,12 @@
 
 	let selectedPayment = $state<PaymentRow | null>(null);
 	let selectedOutflow = $state<OutflowRow | null>(null);
+	let selectedOutflowForReturn = $state<OutflowRow | null>(null);
+
+	let outflowReturnDate = $state('');
+	let outflowReturnAmount = $state(0);
+	let outflowReturnReturnedByName = $state('');
+	let outflowReturnNote = $state('');
 
 	const availableTabs = $derived.by(() => {
 		const tabs: Array<{ value: CashboxTabValue; label: string; icon: string }> = [];
@@ -367,6 +375,24 @@
 		showDeleteOutflowDialog = true;
 	}
 
+	function resetOutflowReturnForm(outflow: OutflowRow): void {
+		outflowReturnErrorMessage = '';
+		selectedOutflowForReturn = outflow;
+		outflowReturnDate = data.selectedDate;
+		outflowReturnAmount = 0;
+		outflowReturnReturnedByName = outflow.responsible_name ?? '';
+		outflowReturnNote = '';
+	}
+
+	function openOutflowReturnDialog(outflow: OutflowRow): void {
+		if (!canWriteCashbox) return;
+		if (outflow.status === 'deleted') return;
+		const pending = Number(outflow.pending_amount ?? 0);
+		if (pending <= 0) return;
+		resetOutflowReturnForm(outflow);
+		showOutflowReturnDialog = true;
+	}
+
 	function closePaymentModal(): void {
 		showPaymentModal = false;
 		paymentErrorMessage = '';
@@ -392,6 +418,12 @@
 		showDeleteOutflowDialog = false;
 		deleteOutflowErrorMessage = '';
 		selectedOutflow = null;
+	}
+
+	function closeOutflowReturnDialog(): void {
+		showOutflowReturnDialog = false;
+		outflowReturnErrorMessage = '';
+		selectedOutflowForReturn = null;
 	}
 
 	function toSelection(value: SelectValue): string {
@@ -875,6 +907,8 @@
 								<th>Tipo</th>
 								<th>Concepto</th>
 								<th>Monto</th>
+								<th>Vuelto</th>
+								<th>Pendiente</th>
 								<th>Estado</th>
 								<th>Acciones</th>
 							{/snippet}
@@ -903,22 +937,38 @@
 									</div>
 								</td>
 								<td>{formatEducationCurrency(outflow.amount)}</td>
+								<td>{formatEducationCurrency(outflow.returned_amount ?? 0)}</td>
+								<td>{formatEducationCurrency(outflow.pending_amount ?? 0)}</td>
 								<td>
 									<Chip color={getCashOutflowStatusColor(outflow.status)} size="sm">
 										{formatCashOutflowStatus(outflow.status)}
 									</Chip>
 								</td>
 								<td>
-									<Button
-										type="flat"
-										size="sm"
-										icon="trash"
-										color="danger"
-										onclick={() => openDeleteOutflowDialog(outflow)}
-										disabled={!canDeleteCashbox || outflow.status === 'deleted'}
-									>
-										Eliminar
-									</Button>
+									<div class="lumi-flex lumi-flex--gap-xs lumi-flex--wrap">
+										<Button
+											type="flat"
+											size="sm"
+											icon="undo"
+											color="info"
+											onclick={() => openOutflowReturnDialog(outflow)}
+											disabled={!canWriteCashbox ||
+												outflow.status === 'deleted' ||
+												Number(outflow.pending_amount ?? 0) <= 0}
+										>
+											Vuelto
+										</Button>
+										<Button
+											type="flat"
+											size="sm"
+											icon="trash"
+											color="danger"
+											onclick={() => openDeleteOutflowDialog(outflow)}
+											disabled={!canDeleteCashbox || outflow.status === 'deleted'}
+										>
+											Eliminar
+										</Button>
+									</div>
 								</td>
 							{/snippet}
 						</Table>
@@ -1458,6 +1508,89 @@
 		<Button type="border" onclick={closeVoidPaymentDialog}>Cancelar</Button>
 		<Button type="filled" color="danger" onclick={() => submitForm('void-payment-form')}>
 			Anular
+		</Button>
+	{/snippet}
+</Dialog>
+
+<Dialog bind:open={showOutflowReturnDialog} title="Registrar vuelto (devolución)" size="sm">
+	<form
+		id="outflow-return-form"
+		method="POST"
+		action="?/createOutflowReturn"
+		use:enhance={() => {
+			return async ({ result }) => {
+				if (result.type === 'success') {
+					showToast('Vuelto registrado exitosamente', 'success');
+					await invalidate('cashbox:load');
+					closeOutflowReturnDialog();
+				} else if (result.type === 'failure') {
+					outflowReturnErrorMessage =
+						getActionError(result) ?? 'No se pudo registrar el vuelto del egreso';
+				}
+			};
+		}}
+	>
+		{#if outflowReturnErrorMessage}
+			<Alert type="danger" closable onclose={() => (outflowReturnErrorMessage = '')}>
+				{outflowReturnErrorMessage}
+			</Alert>
+		{/if}
+
+		<input type="hidden" name="branch_code" value={data.selectedBranchCode ?? ''} />
+		{#if selectedOutflowForReturn}
+			<input type="hidden" name="outflow_code" value={selectedOutflowForReturn.code} />
+		{/if}
+		<input type="hidden" name="amount" value={String(outflowReturnAmount)} />
+
+		<div class="lumi-stack lumi-stack--md">
+			{#if selectedOutflowForReturn}
+				<Alert type="info" closable={false}>
+					<strong>{selectedOutflowForReturn.outflow_number}</strong> · {selectedOutflowForReturn.concept}
+					<br />
+					Pendiente:
+					<strong>{formatEducationCurrency(selectedOutflowForReturn.pending_amount ?? 0)}</strong>
+				</Alert>
+			{/if}
+
+			<Input
+				name="return_date"
+				type="date"
+				bind:value={outflowReturnDate}
+				label="Fecha de devolución"
+				required
+			/>
+
+			<NumberInput
+				value={outflowReturnAmount}
+				label="Monto devuelto (vuelto)"
+				min={0}
+				max={1000000}
+				step={0.01}
+				color="info"
+				onchange={(value) => (outflowReturnAmount = value)}
+			/>
+
+			<Input
+				name="returned_by_name"
+				bind:value={outflowReturnReturnedByName}
+				label="Responsable que devuelve"
+				placeholder="Opcional"
+			/>
+
+			<Textarea
+				name="note"
+				bind:value={outflowReturnNote}
+				label="Nota"
+				placeholder="Opcional"
+				rows={3}
+			/>
+		</div>
+	</form>
+
+	{#snippet footer()}
+		<Button type="border" onclick={closeOutflowReturnDialog}>Cancelar</Button>
+		<Button type="filled" color="info" onclick={() => submitForm('outflow-return-form')}>
+			Registrar vuelto
 		</Button>
 	{/snippet}
 </Dialog>

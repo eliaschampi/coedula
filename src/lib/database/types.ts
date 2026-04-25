@@ -182,9 +182,11 @@ export interface CashOutflowOverview {
 	outflow_date: Timestamp | null;
 	outflow_number: string | null;
 	outflow_type: string | null;
+	pending_amount: Numeric | null;
 	registered_by_full_name: string | null;
 	registered_by_user_code: string | null;
 	responsible_name: string | null;
+	returned_amount: Numeric | null;
 	status: string | null;
 	updated_at: Timestamp | null;
 }
@@ -204,6 +206,11 @@ export interface CashOutflows {
 	outflow_type: Generated<string>;
 	registered_by_user_code: string;
 	responsible_name: string | null;
+	return_note: string | null;
+	returned_amount: Generated<Numeric>;
+	returned_at: Timestamp | null;
+	returned_by_name: string | null;
+	returned_by_user_code: string | null;
 	status: Generated<string>;
 	updated_at: Generated<Timestamp>;
 }

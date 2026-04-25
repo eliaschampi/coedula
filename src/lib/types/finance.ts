@@ -3,7 +3,7 @@ import type { DateValue } from './education';
 export type PaymentStatus = 'posted' | 'voided';
 export type CashOutflowType = 'expense' | 'surrender';
 export type CashOutflowStatus = 'posted' | 'deleted';
-export type CashMovementType = 'payment' | 'expense' | 'surrender';
+export type CashMovementType = 'payment' | 'expense' | 'surrender' | 'outflow_return';
 export type PaymentConceptCode =
 	| 'enrollment'
 	| 'monthly_fee'
@@ -66,6 +66,8 @@ export interface CashOutflowOverview {
 	concept: string;
 	description: string | null;
 	amount: string | number;
+	returned_amount: string | number;
+	pending_amount: string | number;
 	responsible_name: string | null;
 	status: CashOutflowStatus;
 	registered_by_user_code: string;
