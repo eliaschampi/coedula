@@ -1,10 +1,14 @@
 <script lang="ts">
-	import { invalidate } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import {
 		Alert,
 		Button,
 		Card,
+		Chip,
 		Dialog,
 		Dropdown,
 		DropdownItem,
@@ -68,6 +72,10 @@
 		}))
 	);
 
+	const selectedBranch = $derived(
+		data.branches.find((b) => b.code === data.selectedBranchCode) ?? null
+	);
+
 	const degreeOptions = $derived(
 		data.degreeCatalog.map((degree) => ({
 			value: degree.code,
@@ -91,9 +99,27 @@
 		}
 	}
 
+	function coercedBranchCode(value: unknown): string {
+		if (typeof value === 'string') return value;
+		if (typeof value === 'number') return String(value);
+		return '';
+	}
+
+	function applyBranchFilter(value: unknown): void {
+		const code = coercedBranchCode(value);
+		if (!code || code === data.selectedBranchCode) return;
+		const q = new SvelteURLSearchParams(page.url.searchParams);
+		q.set('branch_code', code);
+		const search = q.toString();
+		void goto(resolve(`${page.url.pathname}${search ? `?${search}` : ''}` as '/'), {
+			keepFocus: true,
+			noScroll: true
+		});
+	}
+
 	function resetForm(): void {
 		formTitle = '';
-		formBranchCode = data.branches[0]?.code ?? '';
+		formBranchCode = data.selectedBranchCode ?? data.branches[0]?.code ?? '';
 		formModality = 'regular';
 		formStartDate = '';
 		formEndDate = '';
@@ -215,7 +241,7 @@
 				color="primary"
 				icon="plus"
 				onclick={openCreateModal}
-				disabled={!canCreate}
+				disabled={!canCreate || data.branches.length === 0}
 			>
 				Nuevo ciclo
 			</Button>
@@ -224,131 +250,178 @@
 
 	{#if !canRead}
 		<Alert type="warning" closable>No tienes permisos para consultar ciclos.</Alert>
-	{:else if data.cycles.length === 0}
+	{:else if data.branches.length === 0}
 		<EmptyState
-			title="Aún no hay ciclos registrados"
-			description="Cuando registres el primer ciclo, aparecerá aquí con su oferta académica y métricas."
-			icon="bookOpen"
+			title="Sin sede asignada"
+			description="Necesitas al menos una sede activa asignada para ver y administrar ciclos."
+			icon="building"
 		/>
 	{:else}
-		<div class="lumi-grid lumi-grid--dashboard-cards lumi-grid--gap-md">
-			{#each data.cycles as cycle (cycle.code)}
-				<Card spaced hoverable>
-					{@const timeline = getCycleTimeline(cycle)}
-					{#snippet header()}
-						<div class="lumi-flex lumi-justify--between lumi-align-items--start lumi-flex--gap-sm">
-							<div class="lumi-stack lumi-stack--2xs">
-								<div class="lumi-flex lumi-align-items--center lumi-flex--gap-xs lumi-flex--wrap">
-									<h3 class="lumi-margin--none">{cycle.title}</h3>
-									<div
-										class="lumi-flex lumi-align-items--center lumi-flex--gap-2xs lumi-text--xs lumi-text--muted"
-									>
-										<StatusIndicator active={cycle.is_active} pulse={cycle.is_active} />
-										<span>{cycle.is_active ? 'Activo' : 'Inactivo'}</span>
-									</div>
-								</div>
-								<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-									{cycle.branch_name} · {cycle.modality}
-								</p>
+		<div class="lumi-stack lumi-stack--md">
+			<Card>
+				<div class="lumi-section-toolbar">
+					<div class="lumi-section-toolbar__copy">
+						<h2 class="lumi-section-toolbar__title">Sede</h2>
+						<p class="lumi-section-toolbar__subtitle">
+							Solo se listan ciclos de la sede seleccionada.
+						</p>
+					</div>
+					<div class="lumi-section-toolbar__actions lumi-align-items--end">
+						{#if data.branches.length > 1}
+							<div class="lumi-toolbar-field">
+								<Select
+									value={data.selectedBranchCode}
+									options={branchOptions}
+									label="Sede"
+									clearable={false}
+									onchange={applyBranchFilter}
+								/>
 							</div>
-
-							<Dropdown position="bottom-end" aria-label={`Acciones para ${cycle.title}`}>
-								{#snippet triggerContent()}
-									<Button
-										type="flat"
-										size="sm"
-										icon="moreVertical"
-										aria-label={`Abrir acciones para ${cycle.title}`}
-									/>
-								{/snippet}
-
-								{#snippet content()}
-									<DropdownItem
-										icon="edit"
-										onclick={() => openEditModal(cycle)}
-										disabled={!canUpdate}
-									>
-										Editar ciclo
-									</DropdownItem>
-									<DropdownItem
-										icon="trash"
-										color="danger"
-										onclick={() => openDeleteModal(cycle)}
-										disabled={!canDelete}
-									>
-										Eliminar ciclo
-									</DropdownItem>
-								{/snippet}
-							</Dropdown>
-						</div>
-					{/snippet}
-
-					<div class="lumi-stack lumi-stack--sm">
-						<div class="lumi-flex lumi-flex--wrap lumi-flex--gap-sm lumi-text--sm lumi-text--muted">
-							<span>{cycle.degree_count} grados</span>
-							<span>{cycle.active_enrollment_count} activas / {cycle.enrollment_count} total</span>
-							<span>{formatEducationCurrency(cycle.base_cost)}</span>
-						</div>
-
-						<div class="lumi-stack lumi-stack--2xs">
-							<div
-								class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
-							>
-								<p class="lumi-margin--none lumi-font--medium">
-									{formatEducationDateRange(cycle.start_date, cycle.end_date)}
-								</p>
-								<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
-									{getCycleProgressHeadline(cycle)}
-								</p>
-							</div>
-
-							<Progress
-								value={timeline.percentage}
-								color={getCycleProgressColor(cycle)}
-								size="lg"
-								striped={timeline.status === 'active'}
-								animated={timeline.status === 'active'}
-								showLabel
-							/>
-						</div>
-
-						<Fieldset legend="Horario">
-							<div class="lumi-stack lumi-stack--2xs">
-								<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 1</span>
-								<span class="lumi-font--medium">
-									{cycle.turn_1_attendance_time || 'No configurado'}
-								</span>
-								<span class="lumi-text--sm lumi-text--muted">
-									Tolerancia {cycle.turn_1_tolerance_minutes} min
-								</span>
-							</div>
-							{#if cycle.turn_2_attendance_time}
-								<div class="lumi-stack lumi-stack--2xs">
-									<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 2</span>
-									<span class="lumi-font--medium">{cycle.turn_2_attendance_time}</span>
-									<span class="lumi-text--sm lumi-text--muted">
-										Tolerancia {cycle.turn_2_tolerance_minutes} min
-									</span>
-								</div>
-							{/if}
-						</Fieldset>
-
-						<div class="lumi-stack lumi-stack--2xs">
-							<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Grados</span>
-							<p class="lumi-margin--none lumi-text--sm">
-								{cycle.degrees_summary || 'Sin grados configurados'}
-							</p>
-						</div>
-
-						{#if cycle.notes}
-							<div class="lumi-stack lumi-stack--2xs">
-								<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Observaciones</span>
-								<p class="lumi-margin--none lumi-text--sm lumi-text--muted">{cycle.notes}</p>
-							</div>
+						{:else}
+							<Chip color="primary" size="sm">{selectedBranch?.name ?? 'Sede'}</Chip>
 						{/if}
 					</div>
-				</Card>
-			{/each}
+				</div>
+			</Card>
+
+			{#if data.cycles.length === 0}
+				<EmptyState
+					title="Sin ciclos en esta sede"
+					description="Aún no hay periodos para {selectedBranch?.name ??
+						'esta sede'}. Puedes crear uno o cambiar de sede si tienes varias asignadas."
+					icon="bookOpen"
+				/>
+			{:else}
+				<div class="lumi-grid lumi-grid--dashboard-cards lumi-grid--gap-md">
+					{#each data.cycles as cycle (cycle.code)}
+						<Card spaced hoverable>
+							{@const timeline = getCycleTimeline(cycle)}
+							{#snippet header()}
+								<div
+									class="lumi-flex lumi-justify--between lumi-align-items--start lumi-flex--gap-sm"
+								>
+									<div class="lumi-stack lumi-stack--2xs">
+										<div
+											class="lumi-flex lumi-align-items--center lumi-flex--gap-xs lumi-flex--wrap"
+										>
+											<h3 class="lumi-margin--none">{cycle.title}</h3>
+											<div
+												class="lumi-flex lumi-align-items--center lumi-flex--gap-2xs lumi-text--xs lumi-text--muted"
+											>
+												<StatusIndicator active={cycle.is_active} pulse={cycle.is_active} />
+												<span>{cycle.is_active ? 'Activo' : 'Inactivo'}</span>
+											</div>
+										</div>
+										<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+											{cycle.branch_name} · {cycle.modality}
+										</p>
+									</div>
+
+									<Dropdown position="bottom-end" aria-label={`Acciones para ${cycle.title}`}>
+										{#snippet triggerContent()}
+											<Button
+												type="flat"
+												size="sm"
+												icon="moreVertical"
+												aria-label={`Abrir acciones para ${cycle.title}`}
+											/>
+										{/snippet}
+
+										{#snippet content()}
+											<DropdownItem
+												icon="edit"
+												onclick={() => openEditModal(cycle)}
+												disabled={!canUpdate}
+											>
+												Editar ciclo
+											</DropdownItem>
+											<DropdownItem
+												icon="trash"
+												color="danger"
+												onclick={() => openDeleteModal(cycle)}
+												disabled={!canDelete}
+											>
+												Eliminar ciclo
+											</DropdownItem>
+										{/snippet}
+									</Dropdown>
+								</div>
+							{/snippet}
+
+							<div class="lumi-stack lumi-stack--sm">
+								<div
+									class="lumi-flex lumi-flex--wrap lumi-flex--gap-sm lumi-text--sm lumi-text--muted"
+								>
+									<span>{cycle.degree_count} grados</span>
+									<span
+										>{cycle.active_enrollment_count} activas / {cycle.enrollment_count} total</span
+									>
+									<span>{formatEducationCurrency(cycle.base_cost)}</span>
+								</div>
+
+								<div class="lumi-stack lumi-stack--2xs">
+									<div
+										class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap"
+									>
+										<p class="lumi-margin--none lumi-font--medium">
+											{formatEducationDateRange(cycle.start_date, cycle.end_date)}
+										</p>
+										<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+											{getCycleProgressHeadline(cycle)}
+										</p>
+									</div>
+
+									<Progress
+										value={timeline.percentage}
+										color={getCycleProgressColor(cycle)}
+										size="lg"
+										striped={timeline.status === 'active'}
+										animated={timeline.status === 'active'}
+										showLabel
+									/>
+								</div>
+
+								<Fieldset legend="Horario">
+									<div class="lumi-stack lumi-stack--2xs">
+										<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 1</span>
+										<span class="lumi-font--medium">
+											{cycle.turn_1_attendance_time || 'No configurado'}
+										</span>
+										<span class="lumi-text--sm lumi-text--muted">
+											Tolerancia {cycle.turn_1_tolerance_minutes} min
+										</span>
+									</div>
+									{#if cycle.turn_2_attendance_time}
+										<div class="lumi-stack lumi-stack--2xs">
+											<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Turno 2</span>
+											<span class="lumi-font--medium">{cycle.turn_2_attendance_time}</span>
+											<span class="lumi-text--sm lumi-text--muted">
+												Tolerancia {cycle.turn_2_tolerance_minutes} min
+											</span>
+										</div>
+									{/if}
+								</Fieldset>
+
+								<div class="lumi-stack lumi-stack--2xs">
+									<span class="lumi-text--xs lumi-text--muted lumi-font--medium">Grados</span>
+									<p class="lumi-margin--none lumi-text--sm">
+										{cycle.degrees_summary || 'Sin grados configurados'}
+									</p>
+								</div>
+
+								{#if cycle.notes}
+									<div class="lumi-stack lumi-stack--2xs">
+										<span class="lumi-text--xs lumi-text--muted lumi-font--medium"
+											>Observaciones</span
+										>
+										<p class="lumi-margin--none lumi-text--sm lumi-text--muted">{cycle.notes}</p>
+									</div>
+								{/if}
+							</div>
+						</Card>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

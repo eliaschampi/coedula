@@ -21,9 +21,7 @@ interface PaymentItemInput {
 
 interface CreatePaymentInput {
 	studentCode?: string | null;
-	payerFirstName?: string | null;
-	payerLastName?: string | null;
-	payerDocument?: string | null;
+	payerFullName?: string | null;
 	paymentDate?: string | null;
 	observation?: string | null;
 	items: PaymentItemInput[];
@@ -574,7 +572,6 @@ export class CashboxRepository {
 	): Promise<{ code: string; payment_number: string; total_amount: number }> {
 		const paymentDate = normalizeDateValue(input.paymentDate);
 		const observation = normalizeNullableText(input.observation);
-		const payerDocument = normalizeNullableText(input.payerDocument);
 		const items = normalizePaymentItems(input.items);
 		const totalAmount = Number(
 			items.reduce((sum, item) => sum + toNumber(item.amount), 0).toFixed(2)
@@ -584,22 +581,16 @@ export class CashboxRepository {
 			await assertMovementsAllowed(trx, scope, paymentDate);
 
 			let studentCode: string | null = null;
-			let payerFirstName: string;
-			let payerLastName: string;
+			let payerFullName: string;
 
 			if (input.studentCode) {
 				const student = await findStudentSnapshot(trx, input.studentCode);
 				studentCode = student.code;
-				payerFirstName = student.first_name;
-				payerLastName = student.last_name;
+				payerFullName = `${student.first_name} ${student.last_name}`.trim();
 			} else {
-				payerFirstName = normalizeRequiredText(
-					input.payerFirstName,
+				payerFullName = normalizeRequiredText(
+					input.payerFullName,
 					'Debes registrar el nombre del pagador'
-				);
-				payerLastName = normalizeRequiredText(
-					input.payerLastName,
-					'Debes registrar el apellido del pagador'
 				);
 			}
 
@@ -609,9 +600,7 @@ export class CashboxRepository {
 					branch_code: scope.branchCode,
 					cashier_user_code: scope.cashierUserCode,
 					student_code: studentCode,
-					payer_first_name: payerFirstName,
-					payer_last_name: payerLastName,
-					payer_document: payerDocument,
+					payer_full_name: payerFullName,
 					payment_date: paymentDate,
 					observation,
 					total_amount: totalAmount,

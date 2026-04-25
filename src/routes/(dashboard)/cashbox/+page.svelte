@@ -68,6 +68,22 @@
 
 	const { data }: { data: PageData } = $props();
 
+	const MONTH_OPTIONS: Array<{ value: string; label: string }> = [
+		{ value: 'Enero', label: 'Enero' },
+		{ value: 'Febrero', label: 'Febrero' },
+		{ value: 'Marzo', label: 'Marzo' },
+		{ value: 'Abril', label: 'Abril' },
+		{ value: 'Mayo', label: 'Mayo' },
+		{ value: 'Junio', label: 'Junio' },
+		{ value: 'Julio', label: 'Julio' },
+		{ value: 'Agosto', label: 'Agosto' },
+		{ value: 'Septiembre', label: 'Septiembre' },
+		{ value: 'Octubre', label: 'Octubre' },
+		{ value: 'Noviembre', label: 'Noviembre' },
+		{ value: 'Diciembre', label: 'Diciembre' }
+	];
+	const MONTH_SET = new Set(MONTH_OPTIONS.map((month) => month.value));
+
 	const canReadCashbox = $derived(data.canReadCashbox && can('cashbox:read'));
 	const canReadPayments = $derived(data.canReadPayments && can('payments:read'));
 	const canCreateCashbox = $derived(can('cashbox:create'));
@@ -119,9 +135,7 @@
 	let paymentDate = $state('');
 	let paymentStudentCode = $state('');
 	let selectedStudentPreview = $state<StudentSearchItem | null>(null);
-	let manualPayerFirstName = $state('');
-	let manualPayerLastName = $state('');
-	let manualPayerDocument = $state('');
+	let manualPayerFullName = $state('');
 	let paymentObservation = $state('');
 	let paymentItems = $state<PaymentDraftItem[]>([]);
 	let draftConceptCode = $state<PaymentConceptCode>('monthly_fee');
@@ -283,9 +297,7 @@
 		paymentDate = data.selectedDate;
 		paymentStudentCode = '';
 		selectedStudentPreview = null;
-		manualPayerFirstName = '';
-		manualPayerLastName = '';
-		manualPayerDocument = '';
+		manualPayerFullName = '';
 		paymentObservation = '';
 		paymentItems = [];
 		draftConceptCode = 'monthly_fee';
@@ -501,9 +513,15 @@
 			conceptCode === 'other'
 				? draftCustomConceptLabel.trim()
 				: formatPaymentConceptLabel(conceptCode);
+		const detail = draftConceptDetail.trim();
 
 		if (!conceptLabel) {
 			showToast('Debes indicar el concepto del item', 'error');
+			return;
+		}
+
+		if (conceptCode === 'monthly_fee' && !MONTH_SET.has(detail)) {
+			showToast('Selecciona el mes correspondiente a la mensualidad', 'error');
 			return;
 		}
 
@@ -518,7 +536,7 @@
 				id: crypto.randomUUID(),
 				conceptCode,
 				conceptLabel,
-				detail: draftConceptDetail.trim(),
+				detail,
 				amount: Number(draftConceptAmount.toFixed(2))
 			}
 		];
@@ -574,15 +592,6 @@
 				>
 					Nuevo gasto
 				</Button>
-				<Button
-					type="border"
-					color="info"
-					icon="hand"
-					onclick={() => openOutflowModal('surrender')}
-					disabled={!canCreateOutflowToday}
-				>
-					Nueva rendición
-				</Button>
 			</div>
 		{/snippet}
 	</PageHeader>
@@ -602,18 +611,20 @@
 			<div class="lumi-section-toolbar">
 				<div class="lumi-section-toolbar__copy">
 					<h2 class="lumi-section-toolbar__title">Caja operativa</h2>
-					<p class="lumi-section-toolbar__subtitle">
-						Los movimientos se registran por sede y usuario responsable.
-					</p>
+					<div class="lumi-section-toolbar__subtitle">
+						<Chip color="secondary" size="sm">{data.currentUserName}</Chip>
+						<Chip color={isDayClosed ? 'success' : hasOpening ? 'info' : 'warning'} size="sm">
+							{isDayClosed ? 'Caja cerrada' : hasOpening ? 'Caja abierta' : 'Sin apertura'}
+						</Chip>
+					</div>
 				</div>
 
-				<div class="lumi-section-toolbar__actions lumi-align-items--end">
+				<div class="lumi-section-toolbar__actions lumi-align-items--center">
 					{#if data.branches.length > 1}
 						<div class="lumi-toolbar-field">
 							<Select
 								value={selectedBranchCode}
 								options={branchOptions}
-								label="Sede"
 								clearable={false}
 								onchange={selectBranch}
 							/>
@@ -621,11 +632,6 @@
 					{:else}
 						<Chip color="primary" size="sm">{selectedBranch?.name ?? 'Sede'}</Chip>
 					{/if}
-
-					<Chip color="secondary" size="sm">{data.currentUserName}</Chip>
-					<Chip color={isDayClosed ? 'success' : hasOpening ? 'info' : 'warning'} size="sm">
-						{isDayClosed ? 'Caja cerrada' : hasOpening ? 'Caja abierta' : 'Sin apertura'}
-					</Chip>
 				</div>
 			</div>
 		</Card>
@@ -705,11 +711,10 @@
 							activas.
 						</Alert>
 
-						<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
+						<div class="lumi-flex lumi-flex--gap-md">
 							<Button
-								type="filled"
+								type="gradient"
 								color="primary"
-								icon="wallet"
 								onclick={() => openCashDayModal('opening')}
 								disabled={!canOpenSelectedDate}
 							>
@@ -1031,6 +1036,7 @@
 
 		<input type="hidden" name="branch_code" value={data.selectedBranchCode ?? ''} />
 		<input type="hidden" name="student_code" value={paymentStudentCode} />
+		<input type="hidden" name="payer_full_name" value={manualPayerFullName} />
 		<input type="hidden" name="items_json" value={paymentItemsPayload} />
 
 		<div class="lumi-stack lumi-stack--md">
@@ -1053,23 +1059,25 @@
 					label="Fecha de pago"
 					required
 				/>
-				<Input
-					name="payer_document"
-					bind:value={manualPayerDocument}
-					label="Documento del pagador"
-					placeholder="Opcional"
-				/>
-			</div>
-
-			{#if paymentPayerMode === 'student'}
-				<div class="lumi-stack lumi-stack--sm">
+				{#if paymentPayerMode === 'manual'}
+					<Input
+						bind:value={manualPayerFullName}
+						label="Pagador"
+						placeholder="Ej: Juan Pérez"
+						required
+					/>
+				{:else}
 					<Input
 						bind:value={studentSearchQuery}
 						label="Buscar alumno"
 						placeholder="Nombre, DNI o código institucional"
 						disabled={!canSearchStudents}
 					/>
+				{/if}
+			</div>
 
+			{#if paymentPayerMode === 'student'}
+				<div class="lumi-stack lumi-stack--sm">
 					{#if selectedStudentPreview}
 						<div class="lumi-selected-panel">
 							<div class="lumi-selected-panel__identity">
@@ -1120,23 +1128,6 @@
 						</p>
 					{/if}
 				</div>
-			{:else}
-				<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
-					<Input
-						name="payer_first_name"
-						bind:value={manualPayerFirstName}
-						label="Nombre"
-						placeholder="Nombres del pagador"
-						required
-					/>
-					<Input
-						name="payer_last_name"
-						bind:value={manualPayerLastName}
-						label="Apellido"
-						placeholder="Apellidos del pagador"
-						required
-					/>
-				</div>
 			{/if}
 
 			<Card title="Conceptos de cobro" subtitle="Agrega uno o varios conceptos antes de confirmar">
@@ -1167,12 +1158,23 @@
 						/>
 					{/if}
 
-					<Textarea
-						bind:value={draftConceptDetail}
-						label="Detalle"
-						placeholder="Opcional. Ej. Abril, grupo tarde, material adicional"
-						rows={2}
-					/>
+					{#if draftConceptCode === 'monthly_fee'}
+						<Select
+							value={draftConceptDetail}
+							options={MONTH_OPTIONS}
+							label="Mes"
+							placeholder="Selecciona el mes"
+							clearable={false}
+							onchange={(value) => (draftConceptDetail = String(value))}
+						/>
+					{:else}
+						<Textarea
+							bind:value={draftConceptDetail}
+							label="Detalle"
+							placeholder="Concepto adicional del ingreso"
+							rows={2}
+						/>
+					{/if}
 
 					<div class="lumi-flex lumi-justify--end">
 						<Button type="border" color="primary" icon="plus" onclick={addPaymentItem}>

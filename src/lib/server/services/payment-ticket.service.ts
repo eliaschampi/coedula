@@ -209,17 +209,6 @@ export async function generatePaymentTicketPdf(db: Database, paymentCode: string
 		cursorY -= 12;
 	}
 
-	if (payment.payer_document) {
-		page.drawText(`Documento: ${payment.payer_document}`, {
-			x: H_PADDING,
-			y: cursorY,
-			font,
-			size: SMALL_FONT,
-			color: COLORS.muted
-		});
-		cursorY -= 12;
-	}
-
 	for (const line of generatedByLines) {
 		page.drawText(line, {
 			x: H_PADDING,

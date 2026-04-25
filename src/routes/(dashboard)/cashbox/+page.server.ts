@@ -281,9 +281,7 @@ export const actions: Actions = {
 			const formData = await request.formData();
 			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
 			const studentCode = readFormField(formData, 'student_code');
-			const payerFirstName = readFormField(formData, 'payer_first_name');
-			const payerLastName = readFormField(formData, 'payer_last_name');
-			const payerDocument = readFormField(formData, 'payer_document');
+			const payerFullName = readFormField(formData, 'payer_full_name');
 			const paymentDate = readFormField(formData, 'payment_date');
 			const observation = readFormField(formData, 'observation');
 			const itemsJson = readFormField(formData, 'items_json');
@@ -294,9 +292,7 @@ export const actions: Actions = {
 
 			const createdPayment = await CashboxRepository.createPayment(locals.db, scope, {
 				studentCode: studentCode || null,
-				payerFirstName,
-				payerLastName,
-				payerDocument,
+				payerFullName,
 				paymentDate,
 				observation,
 				items: parsePaymentItems(itemsJson),

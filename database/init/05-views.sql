@@ -252,10 +252,7 @@ SELECT
     WHEN p.student_code IS NOT NULL THEN (s.first_name || ' ' || s.last_name)
     ELSE NULL
   END AS student_full_name,
-  p.payer_first_name,
-  p.payer_last_name,
-  (p.payer_first_name || ' ' || p.payer_last_name) AS payer_full_name,
-  p.payer_document,
+  p.payer_full_name,
   p.payment_date,
   p.observation,
   p.status,

@@ -1,7 +1,9 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import type { Database } from '$lib/database';
 import { readFormCheckbox, readFormField, readFormFieldList } from '$lib/utils/formData';
 import { areUuids, isUuid } from '$lib/utils/validation';
+import { CashboxRepository } from '$lib/server/repositories/cashbox.repository';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
 
 function isValidDateInput(value: string): boolean {
@@ -32,7 +34,19 @@ function parseMinutes(value: string, fieldLabel: string): number {
 	return parsed;
 }
 
-export const load: PageServerLoad = async ({ locals, depends }) => {
+async function assertBranchAllowedForUser(
+	db: Database,
+	userCode: string | undefined,
+	isSuperAdmin: boolean,
+	branchCode: string
+): Promise<void> {
+	const allowed = await CashboxRepository.listAvailableBranches(db, userCode, isSuperAdmin);
+	if (!allowed.some((b) => b.code === branchCode)) {
+		throw new Error('La sede seleccionada no es válida para tu usuario');
+	}
+}
+
+export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	depends('cycles:load');
 
 	if (!(await locals.can('cycles:read'))) {
@@ -40,22 +54,34 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 			title: 'Ciclos',
 			cycles: [],
 			branches: [],
+			selectedBranchCode: null,
 			degreeCatalog: [],
 			cycleDegreeMap: {}
 		};
 	}
 
-	const [cycles, branches, degreeCatalog, cycleDegreeOptions] = await Promise.all([
-		EducationRepository.listCycles(locals.db),
-		locals.db.selectFrom('branches').select(['code', 'name']).orderBy('name', 'asc').execute(),
+	const branches = await CashboxRepository.listAvailableBranches(
+		locals.db,
+		locals.user?.code,
+		Boolean(locals.user?.is_super_admin)
+	);
+	const selectedBranchCode = CashboxRepository.pickRequestedBranchCode(
+		url.searchParams.get('branch_code'),
+		branches
+	);
+
+	const [cycles, degreeCatalog, cycleDegreeOptions] = await Promise.all([
+		selectedBranchCode
+			? EducationRepository.listCycles(locals.db, selectedBranchCode)
+			: Promise.resolve([]),
 		EducationRepository.listDegreeCatalog(locals.db),
 		EducationRepository.listCycleDegreeOptions(locals.db)
 	]);
 
+	const cycleCodes = new Set(cycles.map((c) => c.code));
 	const cycleDegreeMap = cycleDegreeOptions.reduce<Record<string, string[]>>((acc, option) => {
-		if (!acc[option.cycle_code]) {
-			acc[option.cycle_code] = [];
-		}
+		if (!cycleCodes.has(option.cycle_code)) return acc;
+		if (!acc[option.cycle_code]) acc[option.cycle_code] = [];
 		acc[option.cycle_code].push(option.degree_code);
 		return acc;
 	}, {});
@@ -64,6 +90,7 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 		title: 'Ciclos',
 		cycles,
 		branches,
+		selectedBranchCode,
 		degreeCatalog,
 		cycleDegreeMap
 	};
@@ -104,6 +131,13 @@ export const actions: Actions = {
 			if (!branchCode || !isUuid(branchCode)) {
 				return fail(400, { error: 'Debe seleccionar una sede válida' });
 			}
+
+			await assertBranchAllowedForUser(
+				locals.db,
+				locals.user?.code,
+				Boolean(locals.user?.is_super_admin),
+				branchCode
+			);
 
 			if (!modality) {
 				return fail(400, { error: 'La modalidad es obligatoria' });
@@ -198,6 +232,13 @@ export const actions: Actions = {
 			if (!branchCode || !isUuid(branchCode)) {
 				return fail(400, { error: 'Debe seleccionar una sede válida' });
 			}
+
+			await assertBranchAllowedForUser(
+				locals.db,
+				locals.user?.code,
+				Boolean(locals.user?.is_super_admin),
+				branchCode
+			);
 
 			if (!modality) {
 				return fail(400, { error: 'La modalidad es obligatoria' });

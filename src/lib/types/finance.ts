@@ -39,10 +39,7 @@ export interface PaymentOverview {
 	student_code: string | null;
 	student_number: string | null;
 	student_full_name: string | null;
-	payer_first_name: string;
-	payer_last_name: string;
 	payer_full_name: string;
-	payer_document: string | null;
 	payment_date: DateValue;
 	observation: string | null;
 	status: PaymentStatus;

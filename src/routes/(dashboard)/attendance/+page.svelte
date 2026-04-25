@@ -305,11 +305,18 @@
 				<Button
 					type="flat"
 					color="secondary"
-					icon="creditCard"
 					onclick={() => void goto(resolve('/attendance/scan' as '/'))}
-				/>
-				<Button type="gradient" color="primary" icon="plus" onclick={() => openCreateModal()}
-				></Button>
+				>
+					Escanear
+				</Button>
+				<Button
+					type="gradient"
+					color="primary"
+					onclick={() => openCreateModal()}
+					disabled={!canCreate}
+				>
+					Registrar
+				</Button>
 				{#if canCompleteMissing}
 					<Button type="flat" color="warning" icon="badgeCheck" onclick={confirmCompleteMissing}>
 						Completar faltas

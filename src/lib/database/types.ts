@@ -480,10 +480,7 @@ export interface PaymentOverview {
 	created_at: Timestamp | null;
 	item_count: number | null;
 	observation: string | null;
-	payer_document: string | null;
-	payer_first_name: string | null;
 	payer_full_name: string | null;
-	payer_last_name: string | null;
 	payment_date: Timestamp | null;
 	payment_number: string | null;
 	registered_by_full_name: string | null;
@@ -504,9 +501,7 @@ export interface Payments {
 	code: Generated<string>;
 	created_at: Generated<Timestamp>;
 	observation: string | null;
-	payer_document: string | null;
-	payer_first_name: string;
-	payer_last_name: string;
+	payer_full_name: string;
 	payment_date: Generated<Timestamp>;
 	payment_number: Generated<string>;
 	registered_by_user_code: string;
@@ -548,7 +543,6 @@ export interface StudentOverview {
 	enrollments_count: number | null;
 	first_name: string | null;
 	full_name: string | null;
-	is_active: boolean | null;
 	last_name: string | null;
 	observation: string | null;
 	phone: string | null;
@@ -564,7 +558,6 @@ export interface Students {
 	created_at: Generated<Timestamp>;
 	dni: string | null;
 	first_name: string;
-	is_active: Generated<boolean>;
 	last_name: string;
 	observation: string | null;
 	password_hash: string;

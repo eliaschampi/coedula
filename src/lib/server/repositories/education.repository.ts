@@ -234,10 +234,11 @@ export class EducationRepository {
 		return result.rows;
 	}
 
-	static async listCycles(db: Database): Promise<AcademicCycleOverview[]> {
+	static async listCycles(db: Database, branchCode: string): Promise<AcademicCycleOverview[]> {
 		const rows = await db
 			.selectFrom('cycle_overview')
 			.selectAll()
+			.where('branch_code', '=', branchCode)
 			.orderBy('start_date', 'desc')
 			.orderBy('title', 'asc')
 			.execute();
