@@ -640,27 +640,22 @@
 		</Card>
 	{:else}
 		<Card>
-			<div class="lumi-section-toolbar">
-				<div class="lumi-section-toolbar__copy">
-					<h2 class="lumi-section-toolbar__title">Caja operativa</h2>
-					<div class="lumi-section-toolbar__subtitle">
-						<Chip color="secondary" size="sm">{data.currentUserName}</Chip>
-						<Chip color={isDayClosed ? 'success' : hasOpening ? 'info' : 'warning'} size="sm">
-							{isDayClosed ? 'Caja cerrada' : hasOpening ? 'Caja abierta' : 'Sin apertura'}
-						</Chip>
-					</div>
+			<div class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-md">
+				<div class="lumi-flex lumi-align-items--center lumi-flex--gap-sm">
+					<Chip color="secondary" size="sm">{data.currentUserName}</Chip>
+					<Chip color={isDayClosed ? 'success' : hasOpening ? 'info' : 'warning'} size="sm">
+						{isDayClosed ? 'Caja cerrada' : hasOpening ? 'Caja abierta' : 'Sin apertura'}
+					</Chip>
 				</div>
 
-				<div class="lumi-section-toolbar__actions lumi-align-items--center">
+				<div class="lumi-flex lumi-align-items--center lumi-flex--gap-sm">
 					{#if data.branches.length > 1}
-						<div class="lumi-toolbar-field">
-							<Select
-								value={selectedBranchCode}
-								options={branchOptions}
-								clearable={false}
-								onchange={selectBranch}
-							/>
-						</div>
+						<Select
+							value={selectedBranchCode}
+							options={branchOptions}
+							clearable={false}
+							onchange={selectBranch}
+						/>
 					{:else}
 						<Chip color="primary" size="sm">{selectedBranch?.name ?? 'Sede'}</Chip>
 					{/if}
@@ -738,11 +733,6 @@
 							/>
 						</div>
 
-						<Alert type="info" closable={false}>
-							La caja se calcula como apertura + ingresos activos - gastos activos - rendiciones
-							activas.
-						</Alert>
-
 						<div class="lumi-flex lumi-flex--gap-md">
 							<Button
 								type="gradient"
@@ -757,7 +747,6 @@
 							<Button
 								type="border"
 								color="secondary"
-								icon="calendar"
 								onclick={() => openCashDayModal('closing')}
 								disabled={!canCloseSelectedDate}
 							>
