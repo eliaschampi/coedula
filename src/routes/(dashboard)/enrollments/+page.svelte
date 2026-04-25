@@ -19,6 +19,7 @@
 		PageSidebar,
 		Select,
 		StatCard,
+		Switch,
 		Table,
 		type TableRow,
 		Textarea
@@ -26,7 +27,6 @@
 	import { can } from '$lib/stores/permissions';
 	import { showToast } from '$lib/stores/Toast';
 	import {
-		ENROLLMENT_STATUS_OPTIONS,
 		GROUP_CODE_OPTIONS,
 		formatAcademicDegreeLabel,
 		formatEducationCurrency,
@@ -82,7 +82,7 @@
 	let formCycleDegreeCode = $state<string | null>(null);
 	let formPayCost = $state('');
 	let formTurn = $state<'turn_1' | 'turn_2'>('turn_1');
-	let formStatus = $state<'active' | 'finalized' | 'inactive'>('active');
+	let formIsActive = $state(true);
 	let formGroupCode = $state<GroupCode>('A');
 	let formObservation = $state('');
 
@@ -178,7 +178,7 @@
 		formCycleDegreeCode = data.selectedCycleDegreeCode;
 		formPayCost = '';
 		formTurn = 'turn_1';
-		formStatus = 'active';
+		formIsActive = true;
 		formGroupCode = data.selectedGroupCode as GroupCode;
 		formObservation = '';
 		studentSearchQuery = '';
@@ -230,7 +230,7 @@
 		formCycleDegreeCode = enrollment.cycle_degree_code;
 		formPayCost = String(enrollment.pay_cost ?? '0');
 		formTurn = enrollment.turn;
-		formStatus = enrollment.status;
+		formIsActive = enrollment.is_active;
 		formGroupCode = enrollment.group_code;
 		formObservation = enrollment.observation ?? '';
 		studentSearchQuery = enrollment.student_full_name;
@@ -798,12 +798,14 @@
 						label="Grupo"
 						options={GROUP_CODE_OPTIONS}
 					/>
-					<Select
-						bind:value={formStatus}
-						name="status"
-						label="Estado"
-						options={ENROLLMENT_STATUS_OPTIONS}
-					/>
+					<div class="lumi-flex lumi-align-items--center">
+						<Switch
+							bind:checked={formIsActive}
+							name="is_active"
+							label="Matrícula habilitada"
+							color="success"
+						/>
+					</div>
 					<Input
 						bind:value={formPayCost}
 						name="pay_cost"

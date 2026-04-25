@@ -101,8 +101,7 @@ export const actions: Actions = {
 				dni: payload.dni,
 				birthDate: payload.birthDate,
 				observation: payload.observation,
-				photoUrl: payload.photoUrl,
-				isActive: payload.isActive
+				photoUrl: payload.photoUrl
 			});
 			const updated = await EducationRepository.updateStudent(locals.db, normalizedInput);
 

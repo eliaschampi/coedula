@@ -84,7 +84,6 @@
 		bind:dni={form.dni}
 		bind:birthDate={form.birthDate}
 		bind:observation={form.observation}
-		bind:isActive={form.isActive}
 		{isEditing}
 	/>
 

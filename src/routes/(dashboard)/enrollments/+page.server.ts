@@ -1,11 +1,10 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { readFormField } from '$lib/utils/formData';
+import { readFormCheckbox, readFormField } from '$lib/utils/formData';
 import { isUuid } from '$lib/utils/validation';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
 
 const VALID_TURNS = new Set(['turn_1', 'turn_2']);
-const VALID_STATUSES = new Set(['active', 'finalized', 'inactive']);
 const VALID_GROUPS = new Set(['A', 'B', 'C', 'D']);
 
 function parseMoney(value: string): number | null {
@@ -88,7 +87,7 @@ export const actions: Actions = {
 			const cycleDegreeCode = readFormField(formData, 'cycle_degree_code');
 			const payCost = parseMoney(readFormField(formData, 'pay_cost'));
 			const turn = readFormField(formData, 'turn');
-			const status = readFormField(formData, 'status');
+			const isActive = readFormCheckbox(formData, 'is_active');
 			const groupCode = readFormField(formData, 'group_code');
 			const observation = readFormField(formData, 'observation');
 
@@ -104,10 +103,6 @@ export const actions: Actions = {
 				return fail(400, { error: 'Debe seleccionar un turno válido' });
 			}
 
-			if (!VALID_STATUSES.has(status)) {
-				return fail(400, { error: 'Debe seleccionar un estado válido' });
-			}
-
 			if (!VALID_GROUPS.has(groupCode)) {
 				return fail(400, { error: 'Debe seleccionar un grupo válido' });
 			}
@@ -119,7 +114,7 @@ export const actions: Actions = {
 					cycleDegreeCode,
 					payCost,
 					turn: turn as 'turn_1' | 'turn_2',
-					status: status as 'active' | 'finalized' | 'inactive',
+					isActive,
 					groupCode: groupCode as 'A' | 'B' | 'C' | 'D',
 					observation
 				})
@@ -157,7 +152,7 @@ export const actions: Actions = {
 			const cycleDegreeCode = readFormField(formData, 'cycle_degree_code');
 			const payCost = parseMoney(readFormField(formData, 'pay_cost'));
 			const turn = readFormField(formData, 'turn');
-			const status = readFormField(formData, 'status');
+			const isActive = readFormCheckbox(formData, 'is_active');
 			const groupCode = readFormField(formData, 'group_code');
 			const observation = readFormField(formData, 'observation');
 
@@ -177,10 +172,6 @@ export const actions: Actions = {
 				return fail(400, { error: 'Debe seleccionar un turno válido' });
 			}
 
-			if (!VALID_STATUSES.has(status)) {
-				return fail(400, { error: 'Debe seleccionar un estado válido' });
-			}
-
 			if (!VALID_GROUPS.has(groupCode)) {
 				return fail(400, { error: 'Debe seleccionar un grupo válido' });
 			}
@@ -193,7 +184,7 @@ export const actions: Actions = {
 					cycleDegreeCode,
 					payCost,
 					turn: turn as 'turn_1' | 'turn_2',
-					status: status as 'active' | 'finalized' | 'inactive',
+					isActive,
 					groupCode: groupCode as 'A' | 'B' | 'C' | 'D',
 					observation
 				})

@@ -6,7 +6,6 @@ export {
 } from './evaluationImage';
 export {
 	CYCLE_MODALITY_OPTIONS,
-	ENROLLMENT_STATUS_OPTIONS,
 	ENROLLMENT_TURN_OPTIONS,
 	GROUP_CODE_OPTIONS,
 	formatAcademicDegreeLabel,

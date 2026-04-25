@@ -19,7 +19,13 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	}
 
 	const query = (url.searchParams.get('q') ?? '').trim();
-	const results = await EducationRepository.searchStudentOptions(locals.db, query, 12);
+	const onlyPaymentEligible = url.searchParams.get('context') === 'payments';
+	const results = await EducationRepository.searchStudentOptions(
+		locals.db,
+		query,
+		12,
+		onlyPaymentEligible
+	);
 
 	return json({ items: results });
 };

@@ -7,7 +7,6 @@ import type {
 	CycleDegreeOption,
 	CycleOption,
 	EnrollmentOverview,
-	EnrollmentStatus,
 	EnrollmentTurn,
 	GroupCode,
 	StudentDirectorySummary,
@@ -43,7 +42,6 @@ interface StudentUpsertInput {
 	observation: string | null;
 	photoUrl: string | null;
 	passwordHash?: string;
-	isActive: boolean;
 }
 
 interface EnrollmentUpsertInput {
@@ -53,7 +51,7 @@ interface EnrollmentUpsertInput {
 	rollCode?: string | null;
 	payCost: number | null;
 	turn: EnrollmentTurn;
-	status: EnrollmentStatus;
+	isActive: boolean;
 	groupCode: GroupCode;
 	observation: string | null;
 }
@@ -435,7 +433,8 @@ export class EducationRepository {
 	static async searchStudentOptions(
 		db: Database,
 		query: string,
-		limit = 12
+		limit = 12,
+		onlyPaymentEligible = false
 	): Promise<StudentOption[]> {
 		const normalizedQuery = query.trim();
 		if (normalizedQuery.length < 2) {
@@ -463,7 +462,9 @@ export class EducationRepository {
 					sql<boolean>`LOWER(COALESCE(phone, '')) LIKE ${searchPattern}`
 				])
 			)
-			.where('is_active', '=', true)
+			.$if(onlyPaymentEligible, (qb) =>
+				qb.where('current_enrollment_status', 'in', ['active', 'finalized'])
+			)
 			.orderBy('updated_at', 'desc')
 			.orderBy('last_name', 'asc')
 			.orderBy('first_name', 'asc')
@@ -476,9 +477,9 @@ export class EducationRepository {
 	static async getStudentDirectorySummary(db: Database): Promise<StudentDirectorySummary> {
 		const [activeStudents, studentsWithEnrollments, totalEnrollments] = await Promise.all([
 			db
-				.selectFrom('students')
+				.selectFrom('student_overview')
 				.select((eb) => eb.fn.countAll().as('total'))
-				.where('is_active', '=', true)
+				.where('current_enrollment_status', '=', 'active')
 				.executeTakeFirst(),
 			db
 				.selectFrom('student_overview')
@@ -517,8 +518,7 @@ export class EducationRepository {
 				birth_date: input.birthDate,
 				observation: input.observation,
 				photo_url: input.photoUrl,
-				password_hash: input.passwordHash,
-				is_active: input.isActive
+				password_hash: input.passwordHash
 			})
 			.returning(['code', 'student_number'])
 			.executeTakeFirstOrThrow();
@@ -538,7 +538,6 @@ export class EducationRepository {
 			birth_date: string | null;
 			observation: string | null;
 			photo_url: string | null;
-			is_active: boolean;
 			updated_at: Date;
 			password_hash?: string;
 		} = {
@@ -550,7 +549,6 @@ export class EducationRepository {
 			birth_date: input.birthDate,
 			observation: input.observation,
 			photo_url: input.photoUrl,
-			is_active: input.isActive,
 			updated_at: new Date()
 		};
 
@@ -635,7 +633,6 @@ export class EducationRepository {
 				'current_degree_name',
 				sql<string>`student_number || ' · ' || full_name`.as('label')
 			])
-			.where('is_active', '=', true)
 			.orderBy('last_name', 'asc')
 			.orderBy('first_name', 'asc')
 			.execute();
@@ -757,10 +754,9 @@ export class EducationRepository {
 					roll_code: rollCode,
 					pay_cost: payCost,
 					turn: input.turn,
-					status: input.status,
+					is_active: input.isActive,
 					group_code: input.groupCode,
-					observation: input.observation,
-					finalized_at: input.status === 'finalized' ? new Date() : null
+					observation: input.observation
 				})
 				.returning(['code', 'enrollment_number', 'roll_code'])
 				.executeTakeFirstOrThrow();
@@ -790,10 +786,9 @@ export class EducationRepository {
 				cycle_degree_code: input.cycleDegreeCode,
 				pay_cost: payCost,
 				turn: input.turn,
-				status: input.status,
+				is_active: input.isActive,
 				group_code: input.groupCode,
 				observation: input.observation,
-				finalized_at: input.status === 'finalized' ? new Date() : null,
 				updated_at: new Date()
 			})
 			.where('code', '=', input.enrollmentCode)

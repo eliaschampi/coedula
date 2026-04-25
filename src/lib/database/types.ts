@@ -344,9 +344,9 @@ export interface EnrollmentOverview {
 	degree_name: string | null;
 	end_date: Timestamp | null;
 	enrollment_number: string | null;
-	finalized_at: Timestamp | null;
 	first_name: string | null;
 	group_code: string | null;
+	is_active: boolean | null;
 	last_name: string | null;
 	modality: string | null;
 	observation: string | null;
@@ -368,12 +368,11 @@ export interface Enrollments {
 	created_at: Generated<Timestamp>;
 	cycle_degree_code: string;
 	enrollment_number: Generated<string>;
-	finalized_at: Timestamp | null;
 	group_code: Generated<string>;
+	is_active: Generated<boolean>;
 	observation: string | null;
 	pay_cost: Generated<Numeric>;
 	roll_code: string;
-	status: Generated<string>;
 	student_code: string;
 	turn: Generated<string>;
 	updated_at: Generated<Timestamp>;

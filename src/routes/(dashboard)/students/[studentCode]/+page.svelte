@@ -389,9 +389,6 @@
 				<div class="lumi-hero-panel__copy">
 					<div class="lumi-hero-panel__name-row">
 						<h2 class="lumi-hero-panel__name">{data.student.full_name}</h2>
-						<Chip color={data.student.is_active ? 'success' : 'danger'} size="sm">
-							{data.student.is_active ? 'Activo' : 'Inactivo'}
-						</Chip>
 					</div>
 					<p class="lumi-hero-panel__code">{data.student.student_number}</p>
 					{#if data.student.current_cycle_title}

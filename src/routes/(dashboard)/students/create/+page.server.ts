@@ -64,8 +64,7 @@ export const actions: Actions = {
 					birthDate: payload.birthDate,
 					observation: payload.observation,
 					photoUrl: payload.photoUrl,
-					passwordHash: await hashPassword(generatedPassword),
-					isActive: payload.isActive
+					passwordHash: await hashPassword(generatedPassword)
 				})
 			);
 

@@ -8,7 +8,6 @@ export interface StudentFormState {
 	observation: string;
 	photoUrl: string;
 	pendingPhotoFile: File | null;
-	isActive: boolean;
 }
 
 export interface StudentFormSource {
@@ -20,7 +19,6 @@ export interface StudentFormSource {
 	birth_date: string | Date | null;
 	observation: string | null;
 	photo_url: string | null;
-	is_active: boolean;
 }
 
 export function createEmptyStudentFormState(): StudentFormState {
@@ -33,8 +31,7 @@ export function createEmptyStudentFormState(): StudentFormState {
 		birthDate: '',
 		observation: '',
 		photoUrl: '',
-		pendingPhotoFile: null,
-		isActive: true
+		pendingPhotoFile: null
 	};
 }
 
@@ -56,7 +53,6 @@ export function createStudentFormStateFromSource(student: StudentFormSource): St
 		dni: student.dni ?? '',
 		birthDate: student.birth_date ? String(student.birth_date).slice(0, 10) : '',
 		observation: student.observation ?? '',
-		photoUrl: student.photo_url ?? '',
-		isActive: student.is_active
+		photoUrl: student.photo_url ?? ''
 	});
 }

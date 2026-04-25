@@ -121,7 +121,8 @@ export class AttendanceRepository {
 				'a.created_at as attendance_created_at',
 				'a.updated_at as attendance_updated_at'
 			])
-			.where('eo.status', '=', 'active')
+			.where('eo.is_active', '=', true)
+			.where('eo.end_date', '>=', sqlDate(filters.attendanceDate))
 			.$if(Boolean(filters.cycleCode), (qb) => qb.where('eo.cycle_code', '=', filters.cycleCode!))
 			.$if(Boolean(filters.cycleDegreeCode), (qb) =>
 				qb.where('eo.cycle_degree_code', '=', filters.cycleDegreeCode!)
@@ -217,7 +218,8 @@ export class AttendanceRepository {
 						.on('a.attendance_date', '=', sqlDate(filters.attendanceDate))
 				)
 				.select('eo.code as enrollment_code')
-				.where('eo.status', '=', 'active')
+				.where('eo.is_active', '=', true)
+				.where('eo.end_date', '>=', sqlDate(filters.attendanceDate))
 				.where('eo.code', 'is not', null)
 				.where('a.code', 'is', null)
 				.$if(Boolean(filters.cycleCode), (qb) => qb.where('eo.cycle_code', '=', filters.cycleCode!))
@@ -307,8 +309,8 @@ export class AttendanceRepository {
 					END
 				`.as('priority')
 			])
-			.where('eo.status', '=', 'active')
-			.where('s.is_active', '=', true)
+			.where('eo.is_active', '=', true)
+			.where('eo.end_date', '>=', sqlDate(attendanceDate))
 			.where('s.dni', '=', dni)
 			.orderBy('priority', 'asc')
 			.orderBy('ac.end_date', 'desc')

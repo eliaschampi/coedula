@@ -60,7 +60,7 @@ LEFT JOIN LATERAL (
 LEFT JOIN LATERAL (
   SELECT
     COUNT(*)::INTEGER AS enrollment_count,
-    COUNT(*) FILTER (WHERE e.status = 'active')::INTEGER AS active_enrollment_count
+    COUNT(*) FILTER (WHERE e.is_active = TRUE AND ac.end_date >= CURRENT_DATE)::INTEGER AS active_enrollment_count
   FROM public.enrollments e
   INNER JOIN public.cycle_degrees cd ON cd.code = e.cycle_degree_code
   WHERE cd.cycle_code = ac.code
@@ -90,10 +90,14 @@ SELECT
   e.roll_code,
   e.pay_cost,
   e.turn,
-  e.status,
+  e.is_active,
+  CASE
+    WHEN e.is_active = FALSE THEN 'inactive'
+    WHEN cdo.end_date < CURRENT_DATE THEN 'finalized'
+    ELSE 'active'
+  END AS status,
   e.group_code,
   e.observation,
-  e.finalized_at,
   e.created_at,
   e.updated_at
 FROM public.enrollments e
@@ -201,7 +205,6 @@ SELECT
   s.birth_date,
   s.observation,
   s.photo_url,
-  s.is_active,
   s.created_at,
   s.updated_at,
   COALESCE(enrollment_stats.enrollments_count, 0) AS enrollments_count,
@@ -228,7 +231,7 @@ LEFT JOIN LATERAL (
   ORDER BY
     CASE eo.status
       WHEN 'active' THEN 0
-      WHEN 'inactive' THEN 1
+      WHEN 'finalized' THEN 1
       ELSE 2
     END,
     eo.created_at DESC

@@ -41,7 +41,6 @@ CREATE UNIQUE INDEX teachers_dni_uq
   WHERE dni IS NOT NULL AND btrim(dni) <> '';
 CREATE INDEX students_full_name_idx ON public.students (last_name, first_name);
 CREATE INDEX students_created_at_idx ON public.students (created_at DESC);
-CREATE INDEX students_is_active_idx ON public.students (is_active, created_at DESC);
 CREATE INDEX student_drive_links_student_idx ON public.student_drive_links (student_code, created_at DESC);
 CREATE INDEX student_drive_links_file_idx ON public.student_drive_links (file_code);
 CREATE INDEX student_drive_links_user_idx ON public.student_drive_links (linked_by_user_code);
@@ -50,8 +49,8 @@ CREATE INDEX teachers_created_at_idx ON public.teachers (created_at DESC);
 CREATE INDEX teachers_is_active_idx ON public.teachers (is_active, created_at DESC);
 
 -- Enrollments
-CREATE INDEX enrollments_status_created_at_idx ON public.enrollments (status, created_at DESC);
-CREATE INDEX enrollments_cycle_degree_idx ON public.enrollments (cycle_degree_code, status);
+CREATE INDEX enrollments_active_created_at_idx ON public.enrollments (is_active, created_at DESC);
+CREATE INDEX enrollments_cycle_degree_idx ON public.enrollments (cycle_degree_code, is_active);
 CREATE INDEX enrollments_student_idx ON public.enrollments (student_code, created_at DESC);
 CREATE UNIQUE INDEX enrollments_roll_code_cycle_group_uq
   ON public.enrollments (cycle_degree_code, group_code, roll_code);

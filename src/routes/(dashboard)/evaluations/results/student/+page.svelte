@@ -168,7 +168,7 @@
 					color="primary"
 				/>
 				<div class="lumi-filter-summary__copy">
-					<p class="lumi-filter-summary__eyebrow">Alumno activo</p>
+					<p class="lumi-filter-summary__eyebrow">Alumno seleccionado</p>
 					<h2 class="lumi-filter-summary__title">{data.student.full_name}</h2>
 					<p class="lumi-filter-summary__subtitle">
 						{data.student.student_number} · {data.student.current_branch_name || 'Sin sede activa'}
@@ -177,9 +177,6 @@
 			</div>
 
 			<div class="lumi-filter-summary__meta">
-				<Chip color={data.student.is_active ? 'success' : 'danger'} size="sm">
-					{data.student.is_active ? 'Activo' : 'Inactivo'}
-				</Chip>
 				{#if data.student.current_cycle_title}
 					<Chip color="secondary" size="sm">{data.student.current_cycle_title}</Chip>
 				{/if}

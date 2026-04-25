@@ -69,7 +69,6 @@ export interface StudentOverview {
 	birth_date: DateValue;
 	observation: string | null;
 	photo_url: string | null;
-	is_active: boolean;
 	created_at: DateValue;
 	updated_at: DateValue;
 	enrollments_count: number;
@@ -127,10 +126,10 @@ export interface EnrollmentOverview {
 	roll_code: string;
 	pay_cost: string | number;
 	turn: EnrollmentTurn;
+	is_active: boolean;
 	status: EnrollmentStatus;
 	group_code: GroupCode;
 	observation: string | null;
-	finalized_at: DateValue;
 	created_at: DateValue;
 	updated_at: DateValue;
 }

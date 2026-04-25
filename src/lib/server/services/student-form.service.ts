@@ -1,4 +1,4 @@
-import { readFormCheckbox, readFormField } from '$lib/utils/formData';
+import { readFormField } from '$lib/utils/formData';
 import { STUDENT_PHOTO_FILE_FIELD } from '$lib/utils/studentPhoto';
 
 const DNI_REGEX = /^\d{8}$/;
@@ -13,7 +13,6 @@ export interface StudentFormPayload {
 	birthDate: string;
 	observation: string;
 	photoUrl: string;
-	isActive: boolean;
 }
 
 function isValidDateInput(value: string): boolean {
@@ -39,8 +38,7 @@ export function readStudentFormPayload(formData: FormData): StudentFormPayload {
 		dni: readFormField(formData, 'dni'),
 		birthDate: readFormField(formData, 'birth_date'),
 		observation: readFormField(formData, 'observation'),
-		photoUrl: readFormField(formData, 'photo_url'),
-		isActive: readFormCheckbox(formData, 'is_active')
+		photoUrl: readFormField(formData, 'photo_url')
 	};
 }
 

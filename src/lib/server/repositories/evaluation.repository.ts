@@ -919,7 +919,8 @@ export class EvaluationRepository {
 			.where('eo.cycle_degree_code', '=', filters.cycleDegreeCode)
 			.where('eo.group_code', '=', filters.groupCode)
 			.where('eo.roll_code', '=', filters.rollCode)
-			.where('eo.status', 'in', ['active', 'finalized'])
+			.where('eo.is_active', '=', true)
+			.where('eo.end_date', '>=', sql<Date>`CURRENT_DATE`)
 			.orderBy('eo.updated_at', 'desc')
 			.executeTakeFirst();
 

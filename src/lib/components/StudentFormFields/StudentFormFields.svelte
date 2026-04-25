@@ -3,7 +3,6 @@
 	import Fieldset from '../Fieldset/Fieldset.svelte';
 	import Input from '../Input/Input.svelte';
 	import StudentPhotoUploader from '../StudentPhotoUploader/StudentPhotoUploader.svelte';
-	import Switch from '../Switch/Switch.svelte';
 	import Textarea from '../Textarea/Textarea.svelte';
 
 	interface Props {
@@ -16,7 +15,6 @@
 		dni?: string;
 		birthDate?: string;
 		observation?: string;
-		isActive?: boolean;
 		isEditing?: boolean;
 	}
 
@@ -30,7 +28,6 @@
 		dni = $bindable(''),
 		birthDate = $bindable(''),
 		observation = $bindable(''),
-		isActive = $bindable(true),
 		isEditing = false
 	}: Props = $props();
 </script>
@@ -86,6 +83,4 @@
 			La contraseña se generará automáticamente al registrar al alumno.
 		</Alert>
 	{/if}
-
-	<Switch bind:checked={isActive} name="is_active" label="Alumno activo" color="success" />
 </div>

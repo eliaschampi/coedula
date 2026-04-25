@@ -160,7 +160,6 @@ CREATE TABLE public.students (
   observation TEXT NULL,
   photo_url TEXT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT students_pk PRIMARY KEY (code),
@@ -214,10 +213,9 @@ CREATE TABLE public.enrollments (
   roll_code VARCHAR(4) NOT NULL,
   pay_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
   turn VARCHAR(12) NOT NULL DEFAULT 'turn_1',
-  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
   group_code VARCHAR(1) NOT NULL DEFAULT 'A',
   observation TEXT NULL,
-  finalized_at TIMESTAMPTZ NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT enrollments_pk PRIMARY KEY (code),
@@ -228,12 +226,7 @@ CREATE TABLE public.enrollments (
   CONSTRAINT enrollments_roll_code_check CHECK (roll_code ~ '^[0-9]{4}$'),
   CONSTRAINT enrollments_pay_cost_check CHECK (pay_cost >= 0),
   CONSTRAINT enrollments_turn_check CHECK (turn IN ('turn_1', 'turn_2')),
-  CONSTRAINT enrollments_status_check CHECK (status IN ('active', 'finalized', 'inactive')),
-  CONSTRAINT enrollments_group_code_check CHECK (group_code IN ('A', 'B', 'C', 'D')),
-  CONSTRAINT enrollments_status_finalized_check CHECK (
-    (status = 'finalized' AND finalized_at IS NOT NULL)
-    OR (status <> 'finalized' AND finalized_at IS NULL)
-  )
+  CONSTRAINT enrollments_group_code_check CHECK (group_code IN ('A', 'B', 'C', 'D'))
 );
 
 -- Cashbox day controls

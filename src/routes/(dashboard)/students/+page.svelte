@@ -6,7 +6,6 @@
 		Avatar,
 		Button,
 		Card,
-		Chip,
 		Dropdown,
 		DropdownItem,
 		EmptyState,
@@ -62,11 +61,11 @@
 
 	<div class="lumi-grid lumi-grid--columns-3 lumi-grid--gap-md">
 		<StatCard
-			title="Alumnos activos"
+			title="Alumnos vigentes"
 			value={String(data.summary.activeStudents)}
 			icon="users"
 			color="primary"
-			subtitle="Padrón actual habilitado"
+			subtitle="Con matrícula activa por ciclo"
 		/>
 		<StatCard
 			title="Con historial"
@@ -147,9 +146,6 @@
 										<div class="lumi-hero-panel__copy">
 											<div class="lumi-hero-panel__name-row">
 												<h3 class="lumi-hero-panel__name">{student.full_name}</h3>
-												<Chip color={student.is_active ? 'success' : 'danger'} size="sm">
-													{student.is_active ? 'Activo' : 'Inactivo'}
-												</Chip>
 											</div>
 											<p class="lumi-hero-panel__code">{student.student_number}</p>
 										</div>

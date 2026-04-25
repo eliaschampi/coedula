@@ -13,12 +13,6 @@ export const ENROLLMENT_TURN_OPTIONS: SelectOption[] = [
 	{ value: 'turn_2', label: 'Turno 2' }
 ];
 
-export const ENROLLMENT_STATUS_OPTIONS: SelectOption[] = [
-	{ value: 'active', label: 'Activa' },
-	{ value: 'finalized', label: 'Finalizada' },
-	{ value: 'inactive', label: 'Inactiva' }
-];
-
 export const GROUP_CODE_OPTIONS: SelectOption[] = [
 	{ value: 'A', label: 'Grupo A' },
 	{ value: 'B', label: 'Grupo B' },

@@ -230,7 +230,7 @@
 		const timer = window.setTimeout(async () => {
 			try {
 				const response = await fetch(
-					`/api/students/search?q=${encodeURIComponent(studentSearchQuery)}`
+					`/api/students/search?context=payments&q=${encodeURIComponent(studentSearchQuery)}`
 				);
 				const payload = (await response.json()) as {
 					items?: StudentSearchItem[];
