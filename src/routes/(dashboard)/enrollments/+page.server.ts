@@ -3,8 +3,9 @@ import type { Actions, PageServerLoad } from './$types';
 import { readFormCheckbox, readFormField } from '$lib/utils/formData';
 import { isUuid } from '$lib/utils/validation';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
+import type { EnrollmentTurn } from '$lib/types/education';
 
-const VALID_TURNS = new Set(['turn_1', 'turn_2']);
+const VALID_TURNS = new Set<EnrollmentTurn>(['turn_1', 'turn_2', 'both']);
 const VALID_GROUPS = new Set(['A', 'B', 'C', 'D']);
 
 function parseMoney(value: string): number | null {
@@ -99,7 +100,7 @@ export const actions: Actions = {
 				return fail(400, { error: 'Debe seleccionar un grado válido dentro del ciclo' });
 			}
 
-			if (!VALID_TURNS.has(turn)) {
+			if (!VALID_TURNS.has(turn as EnrollmentTurn)) {
 				return fail(400, { error: 'Debe seleccionar un turno válido' });
 			}
 
@@ -113,7 +114,7 @@ export const actions: Actions = {
 					studentCode,
 					cycleDegreeCode,
 					payCost,
-					turn: turn as 'turn_1' | 'turn_2',
+					turn: turn as EnrollmentTurn,
 					isActive,
 					groupCode: groupCode as 'A' | 'B' | 'C' | 'D',
 					observation
@@ -168,7 +169,7 @@ export const actions: Actions = {
 				return fail(400, { error: 'Debe seleccionar un grado válido dentro del ciclo' });
 			}
 
-			if (!VALID_TURNS.has(turn)) {
+			if (!VALID_TURNS.has(turn as EnrollmentTurn)) {
 				return fail(400, { error: 'Debe seleccionar un turno válido' });
 			}
 
@@ -183,7 +184,7 @@ export const actions: Actions = {
 					studentCode,
 					cycleDegreeCode,
 					payCost,
-					turn: turn as 'turn_1' | 'turn_2',
+					turn: turn as EnrollmentTurn,
 					isActive,
 					groupCode: groupCode as 'A' | 'B' | 'C' | 'D',
 					observation

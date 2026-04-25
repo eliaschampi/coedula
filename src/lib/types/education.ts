@@ -2,7 +2,7 @@ import type { DriveFileType } from '$lib/utils/drive';
 
 export type DateValue = string | Date | null;
 
-export type EnrollmentTurn = 'turn_1' | 'turn_2';
+export type EnrollmentTurn = 'turn_1' | 'turn_2' | 'both';
 export type EnrollmentStatus = 'active' | 'finalized' | 'inactive';
 export type GroupCode = 'A' | 'B' | 'C' | 'D';
 

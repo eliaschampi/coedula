@@ -225,7 +225,7 @@ CREATE TABLE public.enrollments (
   CONSTRAINT enrollments_student_cycle_degree_uq UNIQUE (student_code, cycle_degree_code),
   CONSTRAINT enrollments_roll_code_check CHECK (roll_code ~ '^[0-9]{4}$'),
   CONSTRAINT enrollments_pay_cost_check CHECK (pay_cost >= 0),
-  CONSTRAINT enrollments_turn_check CHECK (turn IN ('turn_1', 'turn_2')),
+  CONSTRAINT enrollments_turn_check CHECK (turn IN ('turn_1', 'turn_2', 'both')),
   CONSTRAINT enrollments_group_code_check CHECK (group_code IN ('A', 'B', 'C', 'D'))
 );
 

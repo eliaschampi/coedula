@@ -174,6 +174,10 @@ async function ensureCycleSupportsEnrollmentTurn(
 	if (turn === 'turn_2' && !cycle.turn_2_attendance_time) {
 		throw new Error('El ciclo no tiene horario de asistencia configurado para el turno 2');
 	}
+
+	if (turn === 'both' && (!cycle.turn_1_attendance_time || !cycle.turn_2_attendance_time)) {
+		throw new Error('El ciclo debe tener ambos turnos configurados para asignar "Ambos"');
+	}
 }
 
 async function lockEnrollmentRollSequence(

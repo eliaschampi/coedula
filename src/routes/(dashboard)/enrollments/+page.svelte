@@ -81,7 +81,7 @@
 	let formCycleCode = $state<string | null>(null);
 	let formCycleDegreeCode = $state<string | null>(null);
 	let formPayCost = $state('');
-	let formTurn = $state<'turn_1' | 'turn_2'>('turn_1');
+	let formTurn = $state<'turn_1' | 'turn_2' | 'both'>('turn_1');
 	let formIsActive = $state(true);
 	let formGroupCode = $state<GroupCode>('A');
 	let formObservation = $state('');
@@ -121,8 +121,11 @@
 	const formTurnOptions = $derived(
 		[
 			selectedFormCycle?.turn_1_attendance_time ? { value: 'turn_1', label: 'Turno 1' } : null,
-			selectedFormCycle?.turn_2_attendance_time ? { value: 'turn_2', label: 'Turno 2' } : null
-		].filter(Boolean) as Array<{ value: 'turn_1' | 'turn_2'; label: string }>
+			selectedFormCycle?.turn_2_attendance_time ? { value: 'turn_2', label: 'Turno 2' } : null,
+			selectedFormCycle?.turn_1_attendance_time && selectedFormCycle?.turn_2_attendance_time
+				? { value: 'both', label: 'Ambos' }
+				: null
+		].filter(Boolean) as Array<{ value: 'turn_1' | 'turn_2' | 'both'; label: string }>
 	);
 
 	const selectedCycleLabel = $derived(
