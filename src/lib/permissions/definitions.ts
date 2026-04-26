@@ -233,6 +233,30 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 		description: 'Eliminar docentes sin dependencias activas'
 	},
 	{
+		key: 'teacher_attendance:read',
+		label: 'Ver asistencia docente',
+		category: 'Académico',
+		description: 'Consultar asistencias de docentes por sede y día'
+	},
+	{
+		key: 'teacher_attendance:create',
+		label: 'Registrar asistencia docente',
+		category: 'Académico',
+		description: 'Registrar asistencias de docentes manuales y por QR'
+	},
+	{
+		key: 'teacher_attendance:update',
+		label: 'Editar asistencia docente',
+		category: 'Académico',
+		description: 'Corregir hora y observaciones de asistencia docente'
+	},
+	{
+		key: 'teacher_attendance:delete',
+		label: 'Eliminar asistencia docente',
+		category: 'Académico',
+		description: 'Eliminar registros de asistencia docente cargados por error'
+	},
+	{
 		key: 'payments:read',
 		label: 'Ver pagos',
 		category: 'Finanzas',

@@ -71,6 +71,21 @@ export function normalizeAttendanceTurnFilter(
 	return VALID_ATTENDANCE_TURNS.has(normalized) ? normalized : null;
 }
 
+/**
+ * Regla de negocio única: al listar o completar faltas por "Turno 1" (o 2) en malla/aula,
+ * deben incluirse las matrículas `both` (asisten a ambos turnos; siguen al listado de cada
+ * toma de asistencia). No duplica filas: sigue 1 registro asistencia/día/matrícula.
+ */
+export function enrollmentTurnMatchesListFilter(
+	listFilter: 'turn_1' | 'turn_2',
+	enrollmentTurn: EnrollmentTurn
+): boolean {
+	if (listFilter === 'turn_1') {
+		return enrollmentTurn === 'turn_1' || enrollmentTurn === 'both';
+	}
+	return enrollmentTurn === 'turn_2' || enrollmentTurn === 'both';
+}
+
 export function summarizeAttendance(records: AttendanceSummaryRecord[]): AttendanceSummary {
 	return records.reduce<AttendanceSummary>(
 		(summary, record) => {

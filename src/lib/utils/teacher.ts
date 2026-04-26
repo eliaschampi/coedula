@@ -1,0 +1,143 @@
+import type { SelectOption } from '$lib/components';
+import type {
+	TeacherAttendanceState,
+	TeacherScheduleItem,
+	TeacherWeekday
+} from '$lib/types/teacher';
+
+const TEACHER_WEEKDAY_LABELS: Record<TeacherWeekday, string> = {
+	0: 'Domingo',
+	1: 'Lunes',
+	2: 'Martes',
+	3: 'Miércoles',
+	4: 'Jueves',
+	5: 'Viernes',
+	6: 'Sábado'
+};
+
+const TEACHER_WEEKDAY_SHORT_LABELS: Record<TeacherWeekday, string> = {
+	0: 'Dom',
+	1: 'Lun',
+	2: 'Mar',
+	3: 'Mié',
+	4: 'Jue',
+	5: 'Vie',
+	6: 'Sáb'
+};
+
+const VALID_TEACHER_WEEKDAYS = new Set<number>([0, 1, 2, 3, 4, 5, 6]);
+const TIME_HHMM_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+const TIME_HHMMSS_REGEX = /^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
+const TEACHER_NUMBER_DIGITS_REGEX = /^\d{4,10}$/;
+const TEACHER_NUMBER_FULL_REGEX = /^TCH-\d{4,10}$/i;
+
+export const TEACHER_WEEKDAY_OPTIONS: SelectOption[] = (
+	[1, 2, 3, 4, 5, 6, 0] as TeacherWeekday[]
+).map((value) => ({
+	value: String(value),
+	label: TEACHER_WEEKDAY_LABELS[value]
+}));
+
+export function formatTeacherWeekday(weekday: TeacherWeekday): string {
+	return TEACHER_WEEKDAY_LABELS[weekday];
+}
+
+export function formatTeacherWeekdayShort(weekday: TeacherWeekday): string {
+	return TEACHER_WEEKDAY_SHORT_LABELS[weekday];
+}
+
+export function isTeacherWeekday(value: number): value is TeacherWeekday {
+	return VALID_TEACHER_WEEKDAYS.has(value);
+}
+
+export function getTeacherWeekdayFromDate(value: string | Date): TeacherWeekday {
+	const date = value instanceof Date ? value : parseLocalIsoDate(value);
+	const day = date.getDay();
+	return isTeacherWeekday(day) ? day : 0;
+}
+
+export function formatTeacherEntryTime(value: string | null | undefined): string {
+	if (!value) return '—';
+	return value.slice(0, 5);
+}
+
+export function formatTeacherAttendanceState(state: TeacherAttendanceState): string {
+	return state === 'tarde' ? 'Tarde' : 'Presente';
+}
+
+export function getTeacherAttendanceStateColor(
+	state: TeacherAttendanceState
+): 'success' | 'warning' {
+	return state === 'tarde' ? 'warning' : 'success';
+}
+
+export function normalizeTeacherTimeInput(value: string | null | undefined): string | null {
+	const normalized = value?.trim() ?? '';
+	if (!normalized) return null;
+
+	if (TIME_HHMM_REGEX.test(normalized)) {
+		return `${normalized}:00`;
+	}
+
+	if (TIME_HHMMSS_REGEX.test(normalized)) {
+		return normalized;
+	}
+
+	return null;
+}
+
+export function parseTeacherToleranceMinutes(value: string | null | undefined): number | null {
+	const normalized = value?.trim() ?? '';
+	if (!normalized) return null;
+
+	const parsed = Number(normalized);
+	if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) return null;
+	if (parsed < 0 || parsed > 240) return null;
+
+	return parsed;
+}
+
+export function summarizeTeacherSchedules(schedules: TeacherScheduleItem[]): string {
+	if (schedules.length === 0) return 'Sin horario';
+
+	const grouped = new Map<TeacherWeekday, string[]>();
+	for (const schedule of schedules) {
+		const list = grouped.get(schedule.weekday) ?? [];
+		list.push(formatTeacherEntryTime(schedule.entry_time));
+		grouped.set(schedule.weekday, list);
+	}
+
+	const orderedWeekdays: TeacherWeekday[] = [1, 2, 3, 4, 5, 6, 0];
+	return orderedWeekdays
+		.filter((weekday) => grouped.has(weekday))
+		.map((weekday) => {
+			const times = (grouped.get(weekday) ?? []).slice().sort();
+			return `${formatTeacherWeekdayShort(weekday)}: ${times.join(', ')}`;
+		})
+		.join(' · ');
+}
+
+export function normalizeTeacherNumberInput(value: string | null | undefined): string | null {
+	const normalized = (value ?? '').trim().toUpperCase();
+	if (!normalized) return null;
+
+	if (TEACHER_NUMBER_FULL_REGEX.test(normalized)) {
+		return normalized.replace(/^TCH-/, 'TCH-');
+	}
+
+	if (TEACHER_NUMBER_DIGITS_REGEX.test(normalized)) {
+		return `TCH-${normalized.padStart(6, '0')}`;
+	}
+
+	return null;
+}
+
+function parseLocalIsoDate(value: string): Date {
+	const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (!match) {
+		const fallback = new Date(value);
+		return Number.isNaN(fallback.getTime()) ? new Date() : fallback;
+	}
+
+	return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}

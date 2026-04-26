@@ -36,9 +36,6 @@ CREATE INDEX cycle_degrees_degree_idx ON public.cycle_degrees (degree_code);
 CREATE UNIQUE INDEX students_dni_uq
   ON public.students (dni)
   WHERE dni IS NOT NULL AND btrim(dni) <> '';
-CREATE UNIQUE INDEX teachers_dni_uq
-  ON public.teachers (dni)
-  WHERE dni IS NOT NULL AND btrim(dni) <> '';
 CREATE INDEX students_full_name_idx ON public.students (last_name, first_name);
 CREATE INDEX students_created_at_idx ON public.students (created_at DESC);
 CREATE INDEX student_drive_links_student_idx ON public.student_drive_links (student_code, created_at DESC);
@@ -46,7 +43,13 @@ CREATE INDEX student_drive_links_file_idx ON public.student_drive_links (file_co
 CREATE INDEX student_drive_links_user_idx ON public.student_drive_links (linked_by_user_code);
 CREATE INDEX teachers_full_name_idx ON public.teachers (last_name, first_name);
 CREATE INDEX teachers_created_at_idx ON public.teachers (created_at DESC);
-CREATE INDEX teachers_is_active_idx ON public.teachers (is_active, created_at DESC);
+
+-- Teacher schedules & attendances
+CREATE INDEX teacher_schedules_branch_weekday_idx ON public.teacher_schedules (branch_code, weekday, entry_time);
+CREATE INDEX teacher_schedules_teacher_idx ON public.teacher_schedules (teacher_code, weekday, entry_time);
+CREATE INDEX teacher_attendances_branch_date_idx ON public.teacher_attendances (branch_code, attendance_date DESC);
+CREATE INDEX teacher_attendances_teacher_idx ON public.teacher_attendances (teacher_code, attendance_date DESC);
+CREATE INDEX teacher_attendances_schedule_idx ON public.teacher_attendances (schedule_code, attendance_date DESC);
 
 -- Enrollments
 CREATE INDEX enrollments_active_created_at_idx ON public.enrollments (is_active, created_at DESC);

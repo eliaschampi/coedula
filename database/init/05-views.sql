@@ -369,12 +369,32 @@ SELECT
   t.last_name,
   (t.first_name || ' ' || t.last_name) AS full_name,
   t.phone,
-  t.address,
-  t.dni,
-  t.birth_date,
-  t.observation,
-  t.photo_url,
-  t.is_active,
   t.created_at,
   t.updated_at
 FROM public.teachers t;
+
+CREATE OR REPLACE VIEW public.teacher_attendance_overview AS
+SELECT
+  ta.code AS attendance_code,
+  ta.attendance_date,
+  ta.state AS attendance_state,
+  ta.entry_time AS attendance_entry_time,
+  ta.observation AS attendance_observation,
+  ta.created_at AS attendance_created_at,
+  ta.updated_at AS attendance_updated_at,
+  ta.teacher_code,
+  t.teacher_number,
+  t.first_name,
+  t.last_name,
+  (t.first_name || ' ' || t.last_name) AS teacher_full_name,
+  t.phone AS teacher_phone,
+  ta.branch_code,
+  b.name AS branch_name,
+  ta.schedule_code,
+  ts.weekday AS schedule_weekday,
+  ts.entry_time AS schedule_entry_time,
+  ts.tolerance_minutes AS schedule_tolerance_minutes
+FROM public.teacher_attendances ta
+INNER JOIN public.teachers t ON t.code = ta.teacher_code
+INNER JOIN public.branches b ON b.code = ta.branch_code
+INNER JOIN public.teacher_schedules ts ON ts.code = ta.schedule_code;

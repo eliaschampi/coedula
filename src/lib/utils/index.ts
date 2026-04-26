@@ -52,6 +52,7 @@ export {
 	getAttendanceStateColor,
 	isTimedAttendanceState,
 	normalizeAttendanceTurnFilter,
+	enrollmentTurnMatchesListFilter,
 	summarizeAttendance
 } from './attendance';
 export {
@@ -68,3 +69,17 @@ export type { StudentFormSource, StudentFormState } from './studentForm';
 export { readFormCheckbox, readFormField, readFormFieldList } from './formData';
 export { getInitials } from './initialName';
 export { isUuid, areUuids } from './validation';
+export {
+	TEACHER_WEEKDAY_OPTIONS,
+	formatTeacherAttendanceState,
+	formatTeacherEntryTime,
+	formatTeacherWeekday,
+	formatTeacherWeekdayShort,
+	getTeacherAttendanceStateColor,
+	getTeacherWeekdayFromDate,
+	isTeacherWeekday,
+	normalizeTeacherNumberInput,
+	normalizeTeacherTimeInput,
+	parseTeacherToleranceMinutes,
+	summarizeTeacherSchedules
+} from './teacher';

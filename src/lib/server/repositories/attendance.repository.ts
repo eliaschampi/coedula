@@ -128,7 +128,19 @@ export class AttendanceRepository {
 				qb.where('eo.cycle_degree_code', '=', filters.cycleDegreeCode!)
 			)
 			.$if(Boolean(filters.groupCode), (qb) => qb.where('eo.group_code', '=', filters.groupCode!))
-			.$if(Boolean(filters.turn), (qb) => qb.where('eo.turn', '=', filters.turn!))
+			// Listado por toma: incluye matrícula `both` (ver enrollmentTurnMatchesListFilter).
+			.$if(Boolean(filters.turn), (qb) => {
+				const t = filters.turn!;
+				if (t === 'turn_1' || t === 'turn_2') {
+					return t === 'turn_1'
+						? qb.where('eo.turn', 'in', ['turn_1', 'both'])
+						: qb.where('eo.turn', 'in', ['turn_2', 'both']);
+				}
+				if (t === 'both') {
+					return qb.where('eo.turn', '=', 'both');
+				}
+				return qb;
+			})
 			.$if(Boolean(search), (qb) =>
 				qb.where((eb) =>
 					eb.or([
@@ -159,7 +171,18 @@ export class AttendanceRepository {
 			.where('student_code', '=', studentCode)
 			.where('attendance_date', '>=', sqlDate(fromDate))
 			.where('attendance_date', '<=', sqlDate(toDate))
-			.$if(Boolean(turn), (qb) => qb.where('turn', '=', turn!))
+			.$if(Boolean(turn), (qb) => {
+				const t = turn!;
+				if (t === 'turn_1' || t === 'turn_2') {
+					return t === 'turn_1'
+						? qb.where('turn', 'in', ['turn_1', 'both'])
+						: qb.where('turn', 'in', ['turn_2', 'both']);
+				}
+				if (t === 'both') {
+					return qb.where('turn', '=', 'both');
+				}
+				return qb;
+			})
 			.orderBy('attendance_date', 'desc')
 			.orderBy('attendance_created_at', 'desc')
 			.execute();
@@ -227,7 +250,18 @@ export class AttendanceRepository {
 					qb.where('eo.cycle_degree_code', '=', filters.cycleDegreeCode!)
 				)
 				.$if(Boolean(filters.groupCode), (qb) => qb.where('eo.group_code', '=', filters.groupCode!))
-				.$if(Boolean(filters.turn), (qb) => qb.where('eo.turn', '=', filters.turn!))
+				.$if(Boolean(filters.turn), (qb) => {
+					const t = filters.turn!;
+					if (t === 'turn_1' || t === 'turn_2') {
+						return t === 'turn_1'
+							? qb.where('eo.turn', 'in', ['turn_1', 'both'])
+							: qb.where('eo.turn', 'in', ['turn_2', 'both']);
+					}
+					if (t === 'both') {
+						return qb.where('eo.turn', '=', 'both');
+					}
+					return qb;
+				})
 				.execute();
 
 			if (missingRows.length === 0) {

@@ -13,7 +13,11 @@ import type { AttendanceOverviewItem } from '$lib/types/attendance';
 import type { EnrollmentOverview, EnrollmentTurn, StudentOverview } from '$lib/types/education';
 import { AttendanceRepository } from '$lib/server/repositories/attendance.repository';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
-import { formatAttendanceState, formatAttendanceTime } from '$lib/utils/attendance';
+import {
+	enrollmentTurnMatchesListFilter,
+	formatAttendanceState,
+	formatAttendanceTime
+} from '$lib/utils/attendance';
 import { formatEducationDate, formatGroupCode } from '$lib/utils/education';
 
 const LETTERHEAD_PATH = join(process.cwd(), 'static', 'membrete.png');
@@ -153,13 +157,28 @@ function getPreferredEnrollment(
 	enrollments: EnrollmentOverview[],
 	requestedTurn: EnrollmentTurn | null
 ): EnrollmentOverview | null {
-	return (
-		enrollments.find((item) => item.status === 'active' && item.turn === requestedTurn) ??
-		enrollments.find((item) => item.turn === requestedTurn) ??
-		enrollments.find((item) => item.status === 'active') ??
-		enrollments[0] ??
-		null
-	);
+	if (requestedTurn === 'turn_1' || requestedTurn === 'turn_2') {
+		return (
+			enrollments.find(
+				(item) =>
+					item.status === 'active' && enrollmentTurnMatchesListFilter(requestedTurn, item.turn)
+			) ??
+			enrollments.find((item) => enrollmentTurnMatchesListFilter(requestedTurn, item.turn)) ??
+			enrollments.find((item) => item.status === 'active') ??
+			enrollments[0] ??
+			null
+		);
+	}
+	if (requestedTurn === 'both') {
+		return (
+			enrollments.find((item) => item.status === 'active' && item.turn === 'both') ??
+			enrollments.find((item) => item.turn === 'both') ??
+			enrollments.find((item) => item.status === 'active') ??
+			enrollments[0] ??
+			null
+		);
+	}
+	return enrollments.find((item) => item.status === 'active') ?? enrollments[0] ?? null;
 }
 
 async function loadLetterheadPng(): Promise<Uint8Array | null> {
@@ -189,9 +208,21 @@ async function resolveReportContext(
 	const availableTurns = Array.from(
 		new Set(allRecords.map((record) => record.turn))
 	) as EnrollmentTurn[];
-	const selectedTurn =
-		filters.requestedTurn ?? availableTurns[0] ?? preferredEnrollment?.turn ?? 'turn_1';
-	const records = allRecords.filter((record) => record.turn === selectedTurn);
+	const requested = filters.requestedTurn;
+	const selectedTurn: EnrollmentTurn =
+		requested &&
+		availableTurns.some((t) =>
+			requested === 'turn_1' || requested === 'turn_2'
+				? enrollmentTurnMatchesListFilter(requested, t)
+				: t === requested
+		)
+			? requested
+			: (availableTurns[0] ?? preferredEnrollment?.turn ?? 'turn_1');
+	const records = allRecords.filter((record) =>
+		selectedTurn === 'turn_1' || selectedTurn === 'turn_2'
+			? enrollmentTurnMatchesListFilter(selectedTurn, record.turn)
+			: record.turn === selectedTurn
+	);
 	const referenceRecord = records[0] ?? null;
 
 	return {

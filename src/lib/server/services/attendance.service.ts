@@ -1,8 +1,10 @@
 import type { AttendanceState } from '$lib/types/attendance';
 import type { EnrollmentTurn } from '$lib/types/education';
 
+type CycleTurn = 'turn_1' | 'turn_2';
+
 interface AttendanceScheduleOption {
-	turn: 'turn_1' | 'turn_2';
+	turn: CycleTurn;
 	entryTime: string;
 	toleranceMinutes: number;
 }
@@ -17,9 +19,32 @@ export interface AttendanceScheduleConfig {
 
 export interface AutomaticAttendanceResolution {
 	entryTime: string;
-	expectedTurn: 'turn_1' | 'turn_2';
+	expectedTurn: CycleTurn;
 	state: Extract<AttendanceState, 'presente' | 'tarde'>;
 }
+
+/**
+ * Thrown when the current clock time is not inside the acceptance window
+ * for the selected turn (same rule as docente / QR: [entrada ± tolerancia]).
+ */
+export class AttendanceOutOfWindowError extends Error {
+	readonly expectedEntryTime: string;
+	readonly toleranceMinutes: number;
+
+	constructor(expectedEntryTime: string, toleranceMinutes: number) {
+		const human = expectedEntryTime.slice(0, 5);
+		super(`Fuera del horario permitido. Entrada programada: ${human} (±${toleranceMinutes} min).`);
+		this.name = 'AttendanceOutOfWindowError';
+		this.expectedEntryTime = expectedEntryTime;
+		this.toleranceMinutes = toleranceMinutes;
+	}
+}
+
+const TURNS_BY_ENROLLMENT: Record<EnrollmentTurn, ReadonlySet<CycleTurn>> = {
+	turn_1: new Set(['turn_1']),
+	turn_2: new Set(['turn_2']),
+	both: new Set(['turn_1', 'turn_2'])
+};
 
 function parseClockToMinutes(value: string): number {
 	const [hours, minutes] = value.split(':').map(Number);
@@ -35,25 +60,74 @@ function formatClockWithSeconds(date: Date): string {
 }
 
 function buildScheduleOptions(config: AttendanceScheduleConfig): AttendanceScheduleOption[] {
-	const options: AttendanceScheduleOption[] = [];
-
-	if (config.turn === 'turn_1' && config.turn1AttendanceTime) {
-		options.push({
+	const allowedTurns = TURNS_BY_ENROLLMENT[config.turn];
+	const candidates: AttendanceScheduleOption[] = [
+		{
 			turn: 'turn_1',
-			entryTime: config.turn1AttendanceTime,
+			entryTime: config.turn1AttendanceTime ?? '',
 			toleranceMinutes: config.turn1ToleranceMinutes
-		});
-	}
-
-	if (config.turn === 'turn_2' && config.turn2AttendanceTime) {
-		options.push({
+		},
+		{
 			turn: 'turn_2',
-			entryTime: config.turn2AttendanceTime,
+			entryTime: config.turn2AttendanceTime ?? '',
 			toleranceMinutes: config.turn2ToleranceMinutes
-		});
+		}
+	];
+
+	return candidates.filter(
+		(candidate) => allowedTurns.has(candidate.turn) && candidate.entryTime.length > 0
+	);
+}
+
+function isWithinAcceptanceWindow(
+	option: AttendanceScheduleOption,
+	currentMinutes: number
+): boolean {
+	const expected = parseClockToMinutes(option.entryTime);
+	return (
+		currentMinutes >= expected - option.toleranceMinutes &&
+		currentMinutes <= expected + option.toleranceMinutes
+	);
+}
+
+function compareByEarlierEntryTime(
+	left: AttendanceScheduleOption,
+	right: AttendanceScheduleOption
+): number {
+	return parseClockToMinutes(left.entryTime) - parseClockToMinutes(right.entryTime);
+}
+
+function pickClosestOption(
+	options: AttendanceScheduleOption[],
+	currentMinutes: number
+): AttendanceScheduleOption {
+	return options.reduce((closest, candidate) => {
+		const cDist = Math.abs(currentMinutes - parseClockToMinutes(candidate.entryTime));
+		const bDist = Math.abs(currentMinutes - parseClockToMinutes(closest.entryTime));
+		if (cDist < bDist) return candidate;
+		if (cDist > bDist) return closest;
+		return compareByEarlierEntryTime(candidate, closest) < 0 ? candidate : closest;
+	});
+}
+
+/**
+ * Picks a schedule row for this instant: prefer turns whose acceptance window
+ * contains `now` (e.g. matrícula "ambos" a las 7:05 → turno 1, no el turno 2 nocturno);
+ * if none, the chronologically closest slot is used to evaluate the window check (then fail).
+ * Mirrors docente: closest-within-window first, else closest for error messaging.
+ */
+function findRelevantScheduleOption(
+	options: AttendanceScheduleOption[],
+	now: Date
+): AttendanceScheduleOption {
+	const currentMinutes = now.getHours() * 60 + now.getMinutes();
+	const eligible = options.filter((o) => isWithinAcceptanceWindow(o, currentMinutes));
+
+	if (eligible.length > 0) {
+		return pickClosestOption(eligible, currentMinutes);
 	}
 
-	return options;
+	return pickClosestOption(options, currentMinutes);
 }
 
 export function resolveAutomaticAttendance(
@@ -67,21 +141,19 @@ export function resolveAutomaticAttendance(
 
 	const now = new Date();
 	const currentMinutes = now.getHours() * 60 + now.getMinutes();
-	const selectedOption = [...options].sort((left, right) => {
-		return (
-			Math.abs(currentMinutes - parseClockToMinutes(left.entryTime)) -
-			Math.abs(currentMinutes - parseClockToMinutes(right.entryTime))
-		);
-	})[0];
+	const selected = findRelevantScheduleOption(options, now);
 
-	const expectedMinutes = parseClockToMinutes(selectedOption.entryTime);
-	const lateFromMinutes = expectedMinutes + selectedOption.toleranceMinutes;
+	if (!isWithinAcceptanceWindow(selected, currentMinutes)) {
+		throw new AttendanceOutOfWindowError(selected.entryTime, selected.toleranceMinutes);
+	}
+
+	const expectedMinutes = parseClockToMinutes(selected.entryTime);
 	const state: Extract<AttendanceState, 'presente' | 'tarde'> =
-		currentMinutes > lateFromMinutes ? 'tarde' : 'presente';
+		currentMinutes > expectedMinutes ? 'tarde' : 'presente';
 
 	return {
 		entryTime: formatClockWithSeconds(now),
-		expectedTurn: selectedOption.turn,
+		expectedTurn: selected.turn,
 		state
 	};
 }

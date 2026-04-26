@@ -1,7 +1,11 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { isUuid } from '$lib/utils/validation';
-import { formatLocalDateValue, normalizeAttendanceTurnFilter } from '$lib/utils';
+import {
+	enrollmentTurnMatchesListFilter,
+	formatLocalDateValue,
+	normalizeAttendanceTurnFilter
+} from '$lib/utils';
 import type { EnrollmentTurn } from '$lib/types/education';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
 import { AttendanceRepository } from '$lib/server/repositories/attendance.repository';
@@ -50,11 +54,21 @@ export const load: PageServerLoad = async ({ params, locals, url, depends }) => 
 	const availableTurns = Array.from(
 		new Set(allRecords.map((record) => record.turn))
 	) as EnrollmentTurn[];
-	const selectedTurn =
-		requestedTurn && availableTurns.includes(requestedTurn)
+	const effectiveTurn =
+		requestedTurn &&
+		availableTurns.some((t) =>
+			requestedTurn === 'turn_1' || requestedTurn === 'turn_2'
+				? enrollmentTurnMatchesListFilter(requestedTurn, t)
+				: t === requestedTurn
+		)
 			? requestedTurn
 			: (availableTurns[0] ?? 'turn_1');
-	const records = allRecords.filter((record) => record.turn === selectedTurn);
+	const selectedTurn: EnrollmentTurn = effectiveTurn;
+	const records = allRecords.filter((record) =>
+		selectedTurn === 'turn_1' || selectedTurn === 'turn_2'
+			? enrollmentTurnMatchesListFilter(selectedTurn, record.turn)
+			: record.turn === selectedTurn
+	);
 
 	return {
 		title: `Asistencia · ${student.full_name}`,

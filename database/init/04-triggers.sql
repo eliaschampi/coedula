@@ -34,6 +34,14 @@ CREATE TRIGGER teachers_updated_at_tg
 BEFORE UPDATE ON public.teachers
 FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
 
+CREATE TRIGGER teacher_schedules_updated_at_tg
+BEFORE UPDATE ON public.teacher_schedules
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
+CREATE TRIGGER teacher_attendances_updated_at_tg
+BEFORE UPDATE ON public.teacher_attendances
+FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();
+
 CREATE TRIGGER enrollments_updated_at_tg
 BEFORE UPDATE ON public.enrollments
 FOR EACH ROW EXECUTE FUNCTION public.timestamp_updater();

@@ -84,6 +84,8 @@
 	const canReadStudents = $derived(can('students:read'));
 	const canReadEnrollments = $derived(can('enrollments:read'));
 	const canReadAttendance = $derived(can('attendance:read'));
+	const canReadTeachers = $derived(can('teachers:read'));
+	const canReadTeacherAttendance = $derived(can('teacher_attendance:read'));
 	const canReadCashbox = $derived(can('cashbox:read') || can('payments:read'));
 	const canReadDrive = $derived(can('drive:read'));
 </script>
@@ -233,6 +235,32 @@
 					<Icon icon="clipboard" size="20px" />
 				{/snippet}
 				Asistencia
+			</SidebarItem>
+		{/if}
+
+		{#if canReadTeachers}
+			<SidebarItem
+				href="/teachers"
+				active={page.url.pathname.startsWith('/teachers')}
+				collapsed={sidebarCollapsed}
+			>
+				{#snippet icon()}
+					<Icon icon="graduationCap" size="20px" />
+				{/snippet}
+				Docentes
+			</SidebarItem>
+		{/if}
+
+		{#if canReadTeacherAttendance}
+			<SidebarItem
+				href="/teacher-attendance"
+				active={page.url.pathname.startsWith('/teacher-attendance')}
+				collapsed={sidebarCollapsed}
+			>
+				{#snippet icon()}
+					<Icon icon="clipboardCheck" size="20px" />
+				{/snippet}
+				Asistencia docente
 			</SidebarItem>
 		{/if}
 

@@ -574,38 +574,71 @@ export interface Students {
 	updated_at: Generated<Timestamp>;
 }
 
+export interface TeacherAttendanceOverview {
+	attendance_code: string | null;
+	attendance_created_at: Timestamp | null;
+	attendance_date: Timestamp | null;
+	attendance_entry_time: string | null;
+	attendance_observation: string | null;
+	attendance_state: string | null;
+	attendance_updated_at: Timestamp | null;
+	branch_code: string | null;
+	branch_name: string | null;
+	first_name: string | null;
+	last_name: string | null;
+	schedule_code: string | null;
+	schedule_entry_time: string | null;
+	schedule_tolerance_minutes: number | null;
+	schedule_weekday: number | null;
+	teacher_code: string | null;
+	teacher_full_name: string | null;
+	teacher_number: string | null;
+	teacher_phone: string | null;
+}
+
+export interface TeacherAttendances {
+	attendance_date: Generated<Timestamp>;
+	branch_code: string;
+	code: Generated<string>;
+	created_at: Generated<Timestamp>;
+	entry_time: string;
+	observation: string | null;
+	schedule_code: string;
+	state: string;
+	teacher_code: string;
+	updated_at: Generated<Timestamp>;
+}
+
 export interface TeacherOverview {
-	address: string | null;
-	birth_date: Timestamp | null;
 	code: string | null;
 	created_at: Timestamp | null;
-	dni: string | null;
 	first_name: string | null;
 	full_name: string | null;
-	is_active: boolean | null;
 	last_name: string | null;
-	observation: string | null;
 	phone: string | null;
-	photo_url: string | null;
 	teacher_number: string | null;
 	updated_at: Timestamp | null;
 }
 
 export interface Teachers {
-	address: string | null;
-	birth_date: Timestamp | null;
 	code: Generated<string>;
 	created_at: Generated<Timestamp>;
-	dni: string | null;
 	first_name: string;
-	is_active: Generated<boolean>;
 	last_name: string;
-	observation: string | null;
-	password_hash: string;
 	phone: string | null;
-	photo_url: string | null;
 	teacher_number: Generated<string>;
 	updated_at: Generated<Timestamp>;
+}
+
+export interface TeacherSchedules {
+	branch_code: string;
+	code: Generated<string>;
+	created_at: Generated<Timestamp>;
+	entry_time: string;
+	teacher_code: string;
+	tolerance_minutes: Generated<number>;
+	updated_at: Generated<Timestamp>;
+	weekday: number;
 }
 
 export interface Users {
@@ -659,7 +692,10 @@ export interface DB {
 	student_drive_links: StudentDriveLinks;
 	student_overview: StudentOverview;
 	students: Students;
+	teacher_attendance_overview: TeacherAttendanceOverview;
+	teacher_attendances: TeacherAttendances;
 	teacher_overview: TeacherOverview;
+	teacher_schedules: TeacherSchedules;
 	teachers: Teachers;
 	users: Users;
 }

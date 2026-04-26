@@ -189,19 +189,50 @@ CREATE TABLE public.teachers (
   first_name VARCHAR(120) NOT NULL,
   last_name VARCHAR(150) NOT NULL,
   phone VARCHAR(40) NULL,
-  address TEXT NULL,
-  dni VARCHAR(20) NULL,
-  birth_date DATE NULL,
-  observation TEXT NULL,
-  photo_url TEXT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT teachers_pk PRIMARY KEY (code),
   CONSTRAINT teachers_teacher_number_uq UNIQUE (teacher_number),
   CONSTRAINT teachers_first_name_check CHECK (char_length(trim(first_name)) > 0),
   CONSTRAINT teachers_last_name_check CHECK (char_length(trim(last_name)) > 0)
+);
+
+-- Teacher schedules (recurring weekly entry slots per branch)
+CREATE TABLE public.teacher_schedules (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  teacher_code UUID NOT NULL,
+  branch_code UUID NOT NULL,
+  weekday SMALLINT NOT NULL,
+  entry_time TIME NOT NULL,
+  tolerance_minutes INTEGER NOT NULL DEFAULT 15,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT teacher_schedules_pk PRIMARY KEY (code),
+  CONSTRAINT teacher_schedules_teacher_fk FOREIGN KEY (teacher_code) REFERENCES public.teachers (code) ON DELETE CASCADE,
+  CONSTRAINT teacher_schedules_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
+  CONSTRAINT teacher_schedules_weekday_check CHECK (weekday BETWEEN 0 AND 6),
+  CONSTRAINT teacher_schedules_tolerance_check CHECK (tolerance_minutes BETWEEN 0 AND 240),
+  CONSTRAINT teacher_schedules_uq UNIQUE (teacher_code, branch_code, weekday, entry_time)
+);
+
+-- Teacher attendances (per-slot daily check-ins)
+CREATE TABLE public.teacher_attendances (
+  code UUID NOT NULL DEFAULT gen_random_uuid(),
+  teacher_code UUID NOT NULL,
+  branch_code UUID NOT NULL,
+  schedule_code UUID NOT NULL,
+  attendance_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  state VARCHAR(20) NOT NULL,
+  entry_time TIME NOT NULL,
+  observation TEXT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT teacher_attendances_pk PRIMARY KEY (code),
+  CONSTRAINT teacher_attendances_teacher_fk FOREIGN KEY (teacher_code) REFERENCES public.teachers (code) ON DELETE CASCADE,
+  CONSTRAINT teacher_attendances_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
+  CONSTRAINT teacher_attendances_schedule_fk FOREIGN KEY (schedule_code) REFERENCES public.teacher_schedules (code) ON DELETE RESTRICT,
+  CONSTRAINT teacher_attendances_state_check CHECK (state IN ('presente', 'tarde')),
+  CONSTRAINT teacher_attendances_schedule_date_uq UNIQUE (schedule_code, attendance_date)
 );
 
 -- Enrollments

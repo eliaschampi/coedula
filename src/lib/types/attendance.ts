@@ -33,12 +33,12 @@ export interface AttendanceOverviewItem {
 
 export interface AttendanceDailyRow {
 	attendance_code: string | null;
-	attendance_created_at: DateValue;
-	attendance_date: DateValue;
+	attendance_created_at: DateValue | null;
+	attendance_date: DateValue | null;
 	attendance_entry_time: string | null;
 	attendance_observation: string | null;
 	attendance_state: AttendanceState | null;
-	attendance_updated_at: DateValue;
+	attendance_updated_at: DateValue | null;
 	branch_code: string;
 	branch_name: string;
 	cycle_code: string;
