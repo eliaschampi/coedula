@@ -159,7 +159,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 			throw error(400, 'Estado de papelera inválido');
 		}
 
-		const hasParentOverride = Object.prototype.hasOwnProperty.call(updates, 'parent_code');
+		const hasParentOverride = Object.hasOwn(updates, 'parent_code');
 		const parentForRestoreCheck = hasParentOverride
 			? typeof updates.parent_code === 'string'
 				? updates.parent_code

@@ -52,8 +52,8 @@ body {
 /* Dashboard layout */
 .lumi-dashboard-layout {
 	display: grid;
-	height: 100vh;
 	height: 100dvh;
+	min-height: 100vh;
 	padding: var(--lumi-layout-shell-padding);
 	gap: var(--lumi-layout-shell-gap);
 	grid-template-areas:

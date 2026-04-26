@@ -1,7 +1,7 @@
 // omrProcessor/error.ts
 import type { OmrErrorCode, OmrErrorResult } from './types';
 import { matToBase64 } from './utils'; // Importar la función necesaria
-import * as cv from '@u4/opencv4nodejs'; // Para el tipo cv.Mat si matToBase64 lo requiere
+import type * as cv from '@u4/opencv4nodejs'; // Para el tipo cv.Mat si matToBase64 lo requiere
 
 // --- Clase de Error Personalizada ---
 export class OmrError extends Error {

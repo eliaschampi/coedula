@@ -75,9 +75,7 @@
 		const keysA = Object.keys(objA);
 
 		if (keysA.length !== Object.keys(objB).length) return false;
-		return keysA.every(
-			(key) => Object.prototype.hasOwnProperty.call(objB, key) && isEqual(objA[key], objB[key])
-		);
+		return keysA.every((key) => Object.hasOwn(objB, key) && isEqual(objA[key], objB[key]));
 	}
 
 	function toOptionKey(optionValue: OptionValue | null, index: number): string {

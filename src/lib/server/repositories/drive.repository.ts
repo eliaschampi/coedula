@@ -77,7 +77,7 @@ export class DriveRepository {
 			throw error(404, 'Archivo no encontrado');
 		}
 
-		await this.assertFileRecordAccess(user, file);
+		await DriveRepository.assertFileRecordAccess(user, file);
 		return file;
 	}
 
@@ -85,7 +85,7 @@ export class DriveRepository {
 		user: SessionUser | null,
 		file: ScopeAwareFile
 	): Promise<void> {
-		const scope = this.normalizeScope(file.scope);
+		const scope = DriveRepository.normalizeScope(file.scope);
 
 		if (scope === 'user_private') {
 			if (user?.is_super_admin) {

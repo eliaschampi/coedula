@@ -111,10 +111,16 @@ export async function getSession(db: Database, cookies: Cookies): Promise<Sessio
 			return null;
 		}
 
+		const expSeconds = payload.exp;
+		if (typeof expSeconds !== 'number' || !Number.isFinite(expSeconds) || expSeconds <= 0) {
+			destroySession(cookies);
+			return null;
+		}
+
 		return {
 			user,
 			token,
-			expiresAt: payload.exp! * 1000
+			expiresAt: expSeconds * 1000
 		};
 	} catch (error) {
 		console.error('Error getting session:', error);

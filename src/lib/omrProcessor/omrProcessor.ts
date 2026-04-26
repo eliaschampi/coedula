@@ -21,7 +21,8 @@ import { processCodeBlock, processAnswersBlock } from './steps/05_process_bubble
  * @param enableDebug Si es true, incluye imagen de depuración en resultados (éxito y error).
  * @returns Promise que resuelve a un OmrResult (OmrSuccessResult u OmrErrorResult).
  */
-export async function omrProcessorInternal( // Renombrada a Internal para evitar conflicto con exportación final
+export async function omrProcessorInternal(
+	// Renombrada a Internal para evitar conflicto con exportación final
 	imageBuffer: Buffer,
 	numberOfQuestions: number,
 	enableDebug: boolean = false,

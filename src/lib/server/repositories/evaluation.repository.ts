@@ -794,7 +794,7 @@ export class EvaluationRepository {
 				return false;
 			}
 
-			const hasQuestions = await this.hasQuestions(trx, input.evaluationCode!);
+			const hasQuestions = await EvaluationRepository.hasQuestions(trx, input.evaluationCode!);
 			if (hasQuestions) {
 				const existingSections = await loadSectionRows(trx, input.evaluationCode!);
 				if (!areSectionsEquivalent(input.sections, existingSections)) {

@@ -324,7 +324,7 @@ export class AttendanceRepository {
 			throw new Error('No encontramos una matrícula activa para ese DNI');
 		}
 
-		const existingAttendance = await this.findByEnrollmentAndDate(
+		const existingAttendance = await AttendanceRepository.findByEnrollmentAndDate(
 			db,
 			activeEnrollment.enrollment_code,
 			attendanceDate
@@ -366,7 +366,7 @@ export class AttendanceRepository {
 			turn2ToleranceMinutes: toNumber(activeEnrollment.turn_2_tolerance_minutes)
 		});
 
-		const inserted = await this.createAttendance(db, {
+		const inserted = await AttendanceRepository.createAttendance(db, {
 			enrollmentCode: activeEnrollment.enrollment_code,
 			attendanceDate,
 			state: automaticResolution.state,

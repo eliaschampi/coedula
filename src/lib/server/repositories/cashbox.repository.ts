@@ -557,7 +557,7 @@ export class CashboxRepository {
 			return null;
 		}
 
-		const items = await this.listPaymentItems(db, paymentCode);
+		const items = await CashboxRepository.listPaymentItems(db, paymentCode);
 
 		return {
 			...(payment as unknown as PaymentOverview),
@@ -942,7 +942,11 @@ export class CashboxRepository {
 				throw new Error('La caja del día ya está cerrada');
 			}
 
-			const summary = await this.getDailySummary(trx as unknown as Database, scope, businessDate);
+			const summary = await CashboxRepository.getDailySummary(
+				trx as unknown as Database,
+				scope,
+				businessDate
+			);
 			const closingAmount = normalizeNonNegativeAmount(
 				summary.current_amount,
 				'El monto de cierre calculado no es válido'

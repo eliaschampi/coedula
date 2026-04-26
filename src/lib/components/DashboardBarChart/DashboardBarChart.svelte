@@ -50,7 +50,7 @@
 
 	function ceilNice(value: number): number {
 		if (value <= 0) return 10;
-		const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
+		const magnitude = 10 ** Math.floor(Math.log10(value));
 		const normalized = value / magnitude;
 		const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
 		return nice * magnitude;

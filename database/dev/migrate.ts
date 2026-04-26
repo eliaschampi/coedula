@@ -370,15 +370,17 @@ async function showStatus(db: Database) {
 		console.log('✓ No migrations executed');
 	} else {
 		console.log('✓ Executed migrations:');
-		executedMigrations.forEach((migration) =>
-			console.log(`  ${migration.id} - ${migration.name} (batch ${migration.batch})`)
-		);
+		executedMigrations.forEach((migration) => {
+			console.log(`  ${migration.id} - ${migration.name} (batch ${migration.batch})`);
+		});
 	}
 
 	const pendingMigrations = migrationFiles.filter((m) => !executedIds.has(m.id));
 	if (pendingMigrations.length > 0) {
 		console.log('\n⏳ Pending migrations:');
-		pendingMigrations.forEach((migration) => console.log(`  ${migration.id} - ${migration.name}`));
+		pendingMigrations.forEach((migration) => {
+			console.log(`  ${migration.id} - ${migration.name}`);
+		});
 	} else if (migrationFiles.length > 0) {
 		console.log('\n✓ All migrations are up to date');
 	}
