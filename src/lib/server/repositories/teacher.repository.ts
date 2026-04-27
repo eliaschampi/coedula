@@ -26,6 +26,10 @@ interface CreateScheduleInput {
 	toleranceMinutes: number;
 }
 
+interface UpdateScheduleInput extends CreateScheduleInput {
+	scheduleCode: string;
+}
+
 function normalizeNullableText(value: string | null | undefined): string | null {
 	const normalized = value?.trim() ?? '';
 	return normalized.length > 0 ? normalized : null;
@@ -271,6 +275,23 @@ export class TeacherRepository {
 			})
 			.returning('code')
 			.executeTakeFirstOrThrow();
+	}
+
+	static async updateSchedule(db: Database, input: UpdateScheduleInput): Promise<boolean> {
+		const result = await db
+			.updateTable('teacher_schedules')
+			.set({
+				branch_code: input.branchCode,
+				weekday: input.weekday,
+				entry_time: input.entryTime,
+				tolerance_minutes: input.toleranceMinutes,
+				updated_at: new Date()
+			})
+			.where('code', '=', input.scheduleCode)
+			.where('teacher_code', '=', input.teacherCode)
+			.executeTakeFirst();
+
+		return Number(result.numUpdatedRows ?? 0) > 0;
 	}
 
 	static async deleteSchedule(db: Database, scheduleCode: string): Promise<boolean> {

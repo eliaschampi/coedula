@@ -81,5 +81,7 @@ export {
 	normalizeTeacherNumberInput,
 	normalizeTeacherTimeInput,
 	parseTeacherToleranceMinutes,
-	summarizeTeacherSchedules
+	summarizeTeacherSchedules,
+	type SummarizeTeacherSchedulesOptions,
+	type SummarizeTeacherSchedulesTablePreview
 } from './teacher';

@@ -59,6 +59,8 @@
 	let scheduleWeekday = $state<string>('1');
 	let scheduleEntryTime = $state('07:00');
 	let scheduleTolerance = $state('15');
+	/** When set, the shared schedule form updates this row (hidden `schedule_code` is sent). */
+	let scheduleEditingCode = $state<string | null>(null);
 
 	const branchOptions = $derived(
 		data.branches.map((branch) => ({ value: branch.code, label: branch.name }))
@@ -85,6 +87,15 @@
 			scheduleEntryTime = '07:00';
 			scheduleTolerance = '15';
 			scheduleError = '';
+			scheduleEditingCode = null;
+		}
+	});
+
+	$effect(() => {
+		if (!scheduleEditingCode || !scheduleTarget) return;
+		const exists = scheduleTarget.schedules.some((s) => s.code === scheduleEditingCode);
+		if (!exists) {
+			cancelScheduleEdit();
 		}
 	});
 
@@ -155,6 +166,11 @@
 		if (!canUpdate) return;
 		scheduleTargetCode = teacher.code;
 		scheduleError = '';
+		scheduleEditingCode = null;
+		scheduleWeekday = '1';
+		scheduleEntryTime = '07:00';
+		scheduleTolerance = '15';
+		scheduleBranchCode = data.branches[0]?.code ?? null;
 		showSchedulesModal = true;
 	}
 
@@ -167,6 +183,30 @@
 		const weekday = formatTeacherWeekdayShort(schedule.weekday as TeacherWeekday);
 		const time = formatTeacherEntryTime(schedule.entry_time);
 		return `${weekday} · ${time} · ${schedule.branch_name} (±${schedule.tolerance_minutes} min)`;
+	}
+
+	function schedulesTooltip(schedules: ScheduleItem[]): string {
+		if (schedules.length === 0) return '';
+		return schedules.map((s) => describeSchedule(s)).join(' · ');
+	}
+
+	function loadScheduleForEdit(schedule: ScheduleItem): void {
+		if (!canUpdate) return;
+		scheduleEditingCode = schedule.code;
+		scheduleBranchCode = schedule.branch_code;
+		scheduleWeekday = String(schedule.weekday);
+		scheduleEntryTime = formatTeacherEntryTime(schedule.entry_time);
+		scheduleTolerance = String(schedule.tolerance_minutes);
+		scheduleError = '';
+	}
+
+	function cancelScheduleEdit(): void {
+		scheduleEditingCode = null;
+		scheduleWeekday = '1';
+		scheduleEntryTime = '07:00';
+		scheduleTolerance = '15';
+		scheduleBranchCode = data.branches[0]?.code ?? null;
+		scheduleError = '';
 	}
 </script>
 
@@ -261,9 +301,12 @@
 									{teacher.phone || 'Sin teléfono'}
 								</span>
 							</td>
-							<td>
-								<span class="lumi-text--sm lumi-text--muted">
-									{summarizeTeacherSchedules(teacher.schedules)}
+							<td class="lumi-max-w--sm">
+								<span
+									class="lumi-block lumi-text--sm lumi-text--muted lumi-text-ellipsis lumi-max-w--full"
+									title={schedulesTooltip(teacher.schedules)}
+								>
+									{summarizeTeacherSchedules(teacher.schedules, { tablePreview: { maxItems: 3 } })}
 								</span>
 							</td>
 							<td>
@@ -437,27 +480,30 @@
 		{/if}
 
 		<div class="lumi-stack lumi-stack--md">
-			<Fieldset legend="Agregar horario">
+			<Fieldset legend={scheduleEditingCode ? 'Editar horario' : 'Nuevo horario'}>
 				<form
-					id="create-schedule-form"
+					id="schedule-form"
 					method="POST"
-					action="?/create_schedule"
+					action="?/save_schedule"
 					use:enhance={() => {
 						return async ({ result }) => {
 							if (result.type === 'success') {
-								showToast('Horario agregado exitosamente', 'success');
+								const wasEditing = scheduleEditingCode !== null;
+								showToast(wasEditing ? 'Horario actualizado' : 'Horario agregado', 'success');
 								await invalidate('teachers:load');
+								scheduleEditingCode = null;
 								scheduleEntryTime = '07:00';
 								scheduleTolerance = '15';
 								return;
 							}
 							if (result.type === 'failure') {
-								scheduleError = getActionError(result) ?? 'No se pudo agregar el horario';
+								scheduleError = getActionError(result) ?? 'No se pudo guardar el horario';
 							}
 						};
 					}}
 				>
 					<input type="hidden" name="teacher_code" value={scheduleTarget.code} />
+					<input type="hidden" name="schedule_code" value={scheduleEditingCode ?? ''} />
 					<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
 						<Select
 							bind:value={scheduleBranchCode}
@@ -489,15 +535,24 @@
 							required
 						/>
 					</div>
-					<div class="lumi-flex lumi-justify--end lumi-margin-top--sm">
+					<div
+						class="lumi-flex lumi-flex--gap-sm lumi-flex--wrap lumi-justify--between lumi-align-items--center lumi-margin-top--sm"
+					>
+						<div>
+							{#if scheduleEditingCode}
+								<Button type="border" size="sm" button="button" onclick={cancelScheduleEdit}>
+									Cancelar edición
+								</Button>
+							{/if}
+						</div>
 						<Button
 							type="filled"
 							color="primary"
-							icon="plus"
+							icon={scheduleEditingCode ? 'check' : 'plus'}
 							button="submit"
 							disabled={!scheduleBranchCode}
 						>
-							Agregar horario
+							{scheduleEditingCode ? 'Guardar cambios' : 'Agregar horario'}
 						</Button>
 					</div>
 				</form>
@@ -513,41 +568,64 @@
 				{:else}
 					<div class="lumi-stack lumi-stack--xs">
 						{#each scheduleTarget.schedules as schedule (schedule.code)}
-							<div class="teacher-schedule-row">
-								<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
-									<span class="lumi-font--medium">{describeSchedule(schedule)}</span>
-									<span class="lumi-text--xs lumi-text--muted">
-										ID: {schedule.code.slice(0, 8)}…
-									</span>
-								</div>
-								<form
-									method="POST"
-									action="?/delete_schedule"
-									use:enhance={() => {
-										return async ({ result }) => {
-											if (result.type === 'success') {
-												showToast('Horario eliminado', 'success');
-												await invalidate('teachers:load');
-												return;
-											}
-											if (result.type === 'failure') {
-												scheduleError = getActionError(result) ?? 'No se pudo eliminar el horario';
-												showToast(scheduleError, 'error');
-											}
-										};
-									}}
+							<div
+								class={[
+									'lumi-flex',
+									'lumi-flex--gap-md',
+									'lumi-justify--between',
+									'lumi-align-items--center',
+									'lumi-padding-y--sm',
+									'lumi-padding-x--md',
+									'lumi-border',
+									'lumi-radius--lg',
+									'lumi-bg--surface',
+									scheduleEditingCode === schedule.code && 'lumi-border--strong'
+								]
+									.filter(Boolean)
+									.join(' ')}
+							>
+								<span class="lumi-font--medium lumi-text--sm lumi-flex-item--grow"
+									>{describeSchedule(schedule)}</span
 								>
-									<input type="hidden" name="schedule_code" value={schedule.code} />
+								<div class="lumi-flex lumi-flex--gap-xs lumi-align-items--center">
 									<Button
 										type="flat"
-										color="danger"
 										size="sm"
-										icon="trash"
-										button="submit"
+										icon="edit"
 										disabled={!canUpdate}
-										aria-label="Eliminar horario"
+										aria-label="Cargar horario en el formulario"
+										onclick={() => loadScheduleForEdit(schedule)}
 									/>
-								</form>
+									<form
+										method="POST"
+										action="?/delete_schedule"
+										use:enhance={() => {
+											return async ({ result }) => {
+												if (result.type === 'success') {
+													showToast('Horario eliminado', 'success');
+													await invalidate('teachers:load');
+													return;
+												}
+												if (result.type === 'failure') {
+													scheduleError =
+														getActionError(result) ?? 'No se pudo eliminar el horario';
+													showToast(scheduleError, 'error');
+												}
+											};
+										}}
+									>
+										<input type="hidden" name="schedule_code" value={schedule.code} />
+										<Button
+											type="flat"
+											color="danger"
+											size="sm"
+											icon="trash"
+											button="submit"
+											disabled={!canUpdate}
+											aria-label="Eliminar horario"
+										/>
+									</form>
+								</div>
 							</div>
 						{/each}
 					</div>
@@ -560,16 +638,3 @@
 		<Button type="border" onclick={closeSchedulesModal}>Cerrar</Button>
 	{/snippet}
 </Dialog>
-
-<style>
-	.teacher-schedule-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--lumi-space-md);
-		padding: var(--lumi-space-sm) var(--lumi-space-md);
-		border: var(--lumi-border-width-thin) solid var(--lumi-color-border);
-		border-radius: var(--lumi-radius-lg);
-		background: var(--lumi-color-surface);
-	}
-</style>

@@ -146,13 +146,15 @@ export const actions: Actions = {
 		}
 	},
 
-	create_schedule: async ({ locals, request }) => {
+	/** Create or update a teacher schedule from one form (empty `schedule_code` ⇒ create). */
+	save_schedule: async ({ locals, request }) => {
 		if (!(await locals.can('teachers:update'))) {
 			return fail(403, { error: 'No tienes permisos para configurar horarios' });
 		}
 
 		try {
 			const formData = await request.formData();
+			const scheduleCodeRaw = readFormField(formData, 'schedule_code');
 			const teacherCode = readFormField(formData, 'teacher_code');
 			const branchCode = readFormField(formData, 'branch_code');
 			const weekdayValue = Number(readFormField(formData, 'weekday'));
@@ -179,13 +181,34 @@ export const actions: Actions = {
 				return fail(400, { error: 'La tolerancia debe ser un entero entre 0 y 240 minutos' });
 			}
 
-			await TeacherRepository.createSchedule(locals.db, {
+			const weekday = weekdayValue as TeacherWeekday;
+			const payload = {
 				teacherCode,
 				branchCode,
-				weekday: weekdayValue as TeacherWeekday,
+				weekday,
 				entryTime,
 				toleranceMinutes: tolerance
-			});
+			};
+
+			const updating = scheduleCodeRaw.length > 0;
+			if (updating) {
+				if (!isUuid(scheduleCodeRaw)) {
+					return fail(400, { error: 'El horario seleccionado no es válido' });
+				}
+
+				const updated = await TeacherRepository.updateSchedule(locals.db, {
+					scheduleCode: scheduleCodeRaw,
+					...payload
+				});
+
+				if (!updated) {
+					return fail(404, { error: 'Horario no encontrado' });
+				}
+
+				return { success: true, type: 'success' };
+			}
+
+			await TeacherRepository.createSchedule(locals.db, payload);
 
 			return { success: true, type: 'success' };
 		} catch (caught) {
@@ -196,7 +219,7 @@ export const actions: Actions = {
 				});
 			}
 
-			const message = caught instanceof Error ? caught.message : 'No se pudo crear el horario';
+			const message = caught instanceof Error ? caught.message : 'No se pudo guardar el horario';
 			return fail(400, { error: message });
 		}
 	},

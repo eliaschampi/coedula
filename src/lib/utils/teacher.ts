@@ -97,8 +97,45 @@ export function parseTeacherToleranceMinutes(value: string | null | undefined): 
 	return parsed;
 }
 
-export function summarizeTeacherSchedules(schedules: TeacherScheduleItem[]): string {
+const WEEKDAY_ORDER_MON_FIRST: TeacherWeekday[] = [1, 2, 3, 4, 5, 6, 0];
+
+function compareSchedulesMonFirst(a: TeacherScheduleItem, b: TeacherScheduleItem): number {
+	const dayA = WEEKDAY_ORDER_MON_FIRST.indexOf(a.weekday);
+	const dayB = WEEKDAY_ORDER_MON_FIRST.indexOf(b.weekday);
+	if (dayA !== dayB) return dayA - dayB;
+
+	const timeA = formatTeacherEntryTime(a.entry_time);
+	const timeB = formatTeacherEntryTime(b.entry_time);
+	if (timeA !== timeB) return timeA.localeCompare(timeB);
+
+	return a.branch_name.localeCompare(b.branch_name, 'es');
+}
+
+export interface SummarizeTeacherSchedulesTablePreview {
+	maxItems?: number;
+}
+
+export interface SummarizeTeacherSchedulesOptions {
+	tablePreview?: SummarizeTeacherSchedulesTablePreview;
+}
+
+export function summarizeTeacherSchedules(
+	schedules: TeacherScheduleItem[],
+	options?: SummarizeTeacherSchedulesOptions
+): string {
 	if (schedules.length === 0) return 'Sin horario';
+
+	if (options?.tablePreview) {
+		const maxItems = options.tablePreview.maxItems ?? 3;
+		const sorted = [...schedules].sort(compareSchedulesMonFirst);
+		const visible = sorted.slice(0, maxItems);
+		const parts = visible.map(
+			(s) => `${formatTeacherWeekdayShort(s.weekday)} ${formatTeacherEntryTime(s.entry_time)}`
+		);
+		const more = schedules.length - maxItems;
+		const head = parts.join(' · ');
+		return more > 0 ? `${head} · +${more} más` : head;
+	}
 
 	const grouped = new Map<TeacherWeekday, string[]>();
 	for (const schedule of schedules) {
@@ -107,9 +144,7 @@ export function summarizeTeacherSchedules(schedules: TeacherScheduleItem[]): str
 		grouped.set(schedule.weekday, list);
 	}
 
-	const orderedWeekdays: TeacherWeekday[] = [1, 2, 3, 4, 5, 6, 0];
-	return orderedWeekdays
-		.filter((weekday) => grouped.has(weekday))
+	return WEEKDAY_ORDER_MON_FIRST.filter((weekday) => grouped.has(weekday))
 		.map((weekday) => {
 			const times = (grouped.get(weekday) ?? []).slice().sort();
 			return `${formatTeacherWeekdayShort(weekday)}: ${times.join(', ')}`;
