@@ -3,7 +3,6 @@ import type { Database } from '$lib/database';
 import type {
 	TeacherAttendanceRow,
 	TeacherAttendanceState,
-	TeacherBranchOption,
 	TeacherScanResult,
 	TeacherWeekday
 } from '$lib/types/teacher';
@@ -60,17 +59,6 @@ function sqlDate(value: string) {
 }
 
 export class TeacherAttendanceRepository {
-	static async listAvailableBranches(db: Database): Promise<TeacherBranchOption[]> {
-		const rows = await db
-			.selectFrom('branches as b')
-			.select(['b.code', 'b.name'])
-			.where('b.state', '=', true)
-			.orderBy('b.name', 'asc')
-			.execute();
-
-		return rows;
-	}
-
 	static async listByFilters(
 		db: Database,
 		filters: ListTeacherAttendanceFilters

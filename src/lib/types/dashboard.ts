@@ -11,7 +11,6 @@ export interface DashboardSeriesPoint {
 export interface DashboardBranchOption {
 	code: string;
 	name: string;
-	users: string[];
 }
 
 export interface DashboardCycleOption {
@@ -73,7 +72,6 @@ export interface DashboardHomeData {
 	title: string;
 	generatedAt: string;
 	canViewDashboard: boolean;
-	branches: DashboardBranchOption[];
 	cycles: DashboardCycleOption[];
 	degrees: DashboardDegreeOption[];
 	groups: DashboardGroupOption[];

@@ -44,7 +44,6 @@
 	type PaymentRow = PageData['payments'][number];
 	type OutflowRow = PageData['outflows'][number];
 	type MonthlyRow = PageData['monthlySummary'][number];
-	type SelectValue = string | number | object | null;
 
 	interface StudentSearchItem {
 		code: string;
@@ -98,11 +97,10 @@
 	const outflowRows = $derived(data.outflows as unknown as TableRow[]);
 	const monthlyRows = $derived(data.monthlySummary as unknown as TableRow[]);
 	const canWriteCashbox = $derived(canCreateCashbox || canUpdateCashbox);
-	const branchOptions = $derived(
-		data.branches.map((branch) => ({ value: branch.code, label: branch.name }))
-	);
-	const selectedBranch = $derived(
-		data.branches.find((branch) => branch.code === data.selectedBranchCode) ?? null
+	const workspaceBranch = $derived(
+		data.user?.current_branch
+			? { code: data.user.current_branch, name: data.user.current_branch_name }
+			: null
 	);
 	const hasOpening = $derived(data.summary.cashbox_day_code !== null);
 	const isDayClosed = $derived(Boolean(data.summary.closed_at));
@@ -113,7 +111,6 @@
 	const canCreateOutflowToday = $derived(canCreateCashbox && canOperateSelectedDate);
 
 	let activeTab = $state<CashboxTabValue>('summary');
-	let selectedBranchCode = $state<string | null>(null);
 	let selectedDate = $state('');
 	let paymentFromDateFilter = $state('');
 	let paymentToDateFilter = $state('');
@@ -204,7 +201,6 @@
 
 	$effect(() => {
 		activeTab = data.selectedTab;
-		selectedBranchCode = data.selectedBranchCode;
 		selectedDate = data.selectedDate;
 		paymentFromDateFilter = data.paymentFromDate;
 		paymentToDateFilter = data.paymentToDate;
@@ -426,14 +422,6 @@
 		selectedOutflowForReturn = null;
 	}
 
-	function toSelection(value: SelectValue): string {
-		if (typeof value === 'string' || typeof value === 'number') {
-			return String(value);
-		}
-
-		return '';
-	}
-
 	function updateQuery(updates: Record<string, string | null>): void {
 		const params = new SvelteURLSearchParams(page.url.searchParams);
 
@@ -450,16 +438,6 @@
 		void goto(resolve(`${page.url.pathname}${search ? `?${search}` : ''}` as '/'), {
 			keepFocus: true,
 			noScroll: true
-		});
-	}
-
-	function selectBranch(value: SelectValue): void {
-		const branchCode = toSelection(value);
-		if (!branchCode || branchCode === data.selectedBranchCode) return;
-
-		updateQuery({
-			branch_code: branchCode,
-			tab: activeTab
 		});
 	}
 
@@ -630,12 +608,12 @@
 
 	{#if !canReadCashbox && !canReadPayments}
 		<Alert type="warning" closable>No tienes permisos para consultar el módulo de caja.</Alert>
-	{:else if data.branches.length === 0}
+	{:else if !data.user?.current_branch}
 		<Card spaced>
 			<EmptyState
 				icon="building"
 				title="Sin sede asignada"
-				description="Asigna una sede activa al usuario para operar la caja por sede y responsable."
+				description="Necesitas al menos una sede activa y un contexto de trabajo. Configúralo en sedes o en tu perfil."
 			/>
 		</Card>
 	{:else}
@@ -649,16 +627,7 @@
 				</div>
 
 				<div class="lumi-flex lumi-align-items--center lumi-flex--gap-sm">
-					{#if data.branches.length > 1}
-						<Select
-							value={selectedBranchCode}
-							options={branchOptions}
-							clearable={false}
-							onchange={selectBranch}
-						/>
-					{:else}
-						<Chip color="primary" size="sm">{selectedBranch?.name ?? 'Sede'}</Chip>
-					{/if}
+					<Chip color="primary" size="sm" icon="building2">{workspaceBranch?.name ?? 'Sede'}</Chip>
 				</div>
 			</div>
 		</Card>
@@ -667,7 +636,7 @@
 			{#if activeTab === 'summary'}
 				<Card
 					title="Corte diario"
-					subtitle={`${selectedBranch?.name ?? 'Sede'} · ${formatEducationDate(data.summary.business_date)}`}
+					subtitle={`${workspaceBranch?.name ?? 'Sede'} · ${formatEducationDate(data.summary.business_date)}`}
 				>
 					<div class="lumi-stack lumi-stack--lg">
 						<CashboxDateControl
@@ -1073,7 +1042,6 @@
 			</Alert>
 		{/if}
 
-		<input type="hidden" name="branch_code" value={data.selectedBranchCode ?? ''} />
 		<input type="hidden" name="student_code" value={paymentStudentCode} />
 		<input type="hidden" name="payer_full_name" value={manualPayerFullName} />
 		<input type="hidden" name="items_json" value={paymentItemsPayload} />
@@ -1302,7 +1270,6 @@
 			</Alert>
 		{/if}
 
-		<input type="hidden" name="branch_code" value={data.selectedBranchCode ?? ''} />
 		<input type="hidden" name="outflow_type" value={outflowType} />
 		<input type="hidden" name="amount" value={String(outflowAmount)} />
 
@@ -1406,7 +1373,6 @@
 			</Alert>
 		{/if}
 
-		<input type="hidden" name="branch_code" value={data.selectedBranchCode ?? ''} />
 		<input
 			type="hidden"
 			name="amount"
@@ -1479,7 +1445,6 @@
 		{#if selectedPayment}
 			<input type="hidden" name="code" value={selectedPayment.code} />
 		{/if}
-		<input type="hidden" name="branch_code" value={data.selectedBranchCode ?? ''} />
 
 		{#if deletePaymentErrorMessage}
 			<Alert type="danger" closable onclose={() => (deletePaymentErrorMessage = '')}>
@@ -1525,7 +1490,6 @@
 			</Alert>
 		{/if}
 
-		<input type="hidden" name="branch_code" value={data.selectedBranchCode ?? ''} />
 		{#if selectedOutflowForReturn}
 			<input type="hidden" name="outflow_code" value={selectedOutflowForReturn.code} />
 		{/if}
@@ -1604,7 +1568,6 @@
 		{#if selectedOutflow}
 			<input type="hidden" name="code" value={selectedOutflow.code} />
 		{/if}
-		<input type="hidden" name="branch_code" value={data.selectedBranchCode ?? ''} />
 
 		{#if deleteOutflowErrorMessage}
 			<Alert type="danger" closable onclose={() => (deleteOutflowErrorMessage = '')}>

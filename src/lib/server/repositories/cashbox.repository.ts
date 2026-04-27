@@ -1,7 +1,6 @@
 import { sql, type Kysely, type Transaction } from 'kysely';
 import type { DB, Database } from '$lib/database';
 import type {
-	CashboxBranchOption,
 	CashOutflowOverview,
 	CashOutflowType,
 	CashboxDailySummary,
@@ -112,11 +111,6 @@ function normalizeRequiredText(value: string | null | undefined, message: string
 	return normalized;
 }
 
-function normalizeUuid(value: string | null | undefined): string | null {
-	const normalized = value?.trim() ?? '';
-	return isUuid(normalized) ? normalized : null;
-}
-
 function normalizeDateValue(
 	value: string | null | undefined,
 	fallback = formatLocalDateValue()
@@ -196,14 +190,6 @@ function normalizeDateRange(
 		fromDate: normalizedFrom,
 		toDate: normalizedTo
 	};
-}
-
-function pickRequestedCode<T extends { code: string }>(
-	requestedCode: string | null | undefined,
-	options: T[]
-): string | null {
-	const normalized = normalizeUuid(requestedCode);
-	return options.find((option) => option.code === normalized)?.code ?? options[0]?.code ?? null;
 }
 
 async function findStudentSnapshot(
@@ -379,34 +365,6 @@ function emptyDailySummary(scope: CashboxScope, businessDate: string): CashboxDa
 
 export class CashboxRepository {
 	static normalizeDateRange = normalizeDateRange;
-
-	static async listAvailableBranches(
-		db: Database,
-		userCode: string | null | undefined,
-		isSuperAdmin: boolean
-	): Promise<CashboxBranchOption[]> {
-		if (!isSuperAdmin && !normalizeUuid(userCode)) {
-			return [];
-		}
-
-		let query = db
-			.selectFrom('branches as b')
-			.select(['b.code', 'b.name'])
-			.where('b.state', '=', true);
-
-		if (!isSuperAdmin) {
-			query = query.where(sql<boolean>`${userCode}::uuid = ANY(${sql.ref('b.users')})`);
-		}
-
-		return query.orderBy('b.name', 'asc').execute();
-	}
-
-	static pickRequestedBranchCode(
-		requestedBranchCode: string | null | undefined,
-		branches: CashboxBranchOption[]
-	): string | null {
-		return pickRequestedCode(requestedBranchCode, branches);
-	}
 
 	static async getDailySummary(
 		db: Database,

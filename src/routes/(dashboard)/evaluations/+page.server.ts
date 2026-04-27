@@ -1,8 +1,9 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { readFormField } from '$lib/utils/formData';
-import { isUuid } from '$lib/utils/validation';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
+import { getWorkspaceBranchUuid } from '$lib/server/user-branch.server';
+import { isUuid } from '$lib/utils/validation';
 import { EvaluationRepository } from '$lib/server/repositories/evaluation.repository';
 import type { EvaluationSectionFormItem } from '$lib/types/evaluation';
 
@@ -62,9 +63,14 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	const requestedGroupCode = (url.searchParams.get('group') ?? 'A').trim().toUpperCase();
 	const searchQuery = (url.searchParams.get('search') ?? '').trim();
 
+	const workspaceBranch = getWorkspaceBranchUuid(locals.user);
 	const [cycles, allCycleDegreeOptions, courses] = await Promise.all([
-		EducationRepository.listCycleOptions(locals.db),
-		EducationRepository.listCycleDegreeOptions(locals.db),
+		workspaceBranch
+			? EducationRepository.listCycleOptions(locals.db, { branchCode: workspaceBranch })
+			: Promise.resolve([]),
+		workspaceBranch
+			? EducationRepository.listCycleDegreeOptions(locals.db, { branchCode: workspaceBranch })
+			: Promise.resolve([]),
 		locals.db.selectFrom('courses').select(['code', 'name']).orderBy('name', 'asc').execute()
 	]);
 

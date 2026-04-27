@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { CashboxRepository } from '$lib/server/repositories/cashbox.repository';
+import { getWorkspaceBranchUuid } from '$lib/server/user-branch.server';
 import { readFormField } from '$lib/utils/formData';
 import { formatLocalDateValue } from '$lib/utils/attendance';
 import { isUuid } from '$lib/utils/validation';
@@ -97,8 +98,7 @@ function buildEmptySummary(
 }
 
 async function resolveCashboxScope(
-	locals: CashboxLocals,
-	requestedBranchCode: string | null | undefined
+	locals: CashboxLocals
 ): Promise<{ branchCode: string; cashierUserCode: string }> {
 	const cashierUserCode = (locals.user?.code ?? '').trim();
 
@@ -106,19 +106,9 @@ async function resolveCashboxScope(
 		throw new Error('No se pudo identificar al usuario actual');
 	}
 
-	const branches = await CashboxRepository.listAvailableBranches(
-		locals.db,
-		cashierUserCode,
-		Boolean(locals.user?.is_super_admin)
-	);
-
-	if (branches.length === 0) {
+	const branchCode = getWorkspaceBranchUuid(locals.user);
+	if (!branchCode) {
 		throw new Error('No tienes una sede asignada para operar caja');
-	}
-
-	const branchCode = (requestedBranchCode ?? '').trim();
-	if (!branchCode || !branches.some((branch) => branch.code === branchCode)) {
-		throw new Error('La sede seleccionada no es válida para tu usuario');
 	}
 
 	return { branchCode, cashierUserCode };
@@ -134,17 +124,7 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 
 	const currentUserCode = isUuid(locals.user?.code ?? '') ? (locals.user?.code ?? '') : null;
 	const currentUserName = buildCurrentUserName(locals.user);
-	const branches = currentUserCode
-		? await CashboxRepository.listAvailableBranches(
-				locals.db,
-				currentUserCode,
-				Boolean(locals.user?.is_super_admin)
-			)
-		: [];
-	const selectedBranchCode = CashboxRepository.pickRequestedBranchCode(
-		url.searchParams.get('branch_code'),
-		branches
-	);
+	const workspaceBranchCode = getWorkspaceBranchUuid(locals.user);
 	const selectedDate = (url.searchParams.get('date') ?? TODAY).trim() || TODAY;
 	const selectedTab = normalizeTab(url.searchParams.get('tab'));
 	const { fromDate: paymentFromDate, toDate: paymentToDate } = CashboxRepository.normalizeDateRange(
@@ -157,14 +137,12 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 		url.searchParams.get('outflows_to'),
 		selectedDate
 	);
-	const emptySummary = buildEmptySummary(selectedDate, selectedBranchCode, currentUserCode);
+	const emptySummary = buildEmptySummary(selectedDate, workspaceBranchCode, currentUserCode);
 
 	if (!canReadCashbox && !canReadPayments) {
 		return {
 			title: 'Caja',
 			today: TODAY,
-			branches,
-			selectedBranchCode,
 			currentUserName,
 			selectedDate,
 			selectedTab,
@@ -187,12 +165,10 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 		};
 	}
 
-	if (!selectedBranchCode || !currentUserCode) {
+	if (!workspaceBranchCode || !currentUserCode) {
 		return {
 			title: 'Caja',
 			today: TODAY,
-			branches,
-			selectedBranchCode,
 			currentUserName,
 			selectedDate,
 			selectedTab,
@@ -216,7 +192,7 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	}
 
 	const scope = {
-		branchCode: selectedBranchCode,
+		branchCode: workspaceBranchCode,
 		cashierUserCode: currentUserCode
 	};
 
@@ -252,8 +228,6 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	return {
 		title: 'Caja',
 		today: TODAY,
-		branches,
-		selectedBranchCode,
 		currentUserName,
 		selectedDate,
 		selectedTab,
@@ -279,7 +253,7 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
+			const scope = await resolveCashboxScope(locals);
 			const studentCode = readFormField(formData, 'student_code');
 			const payerFullName = readFormField(formData, 'payer_full_name');
 			const paymentDate = readFormField(formData, 'payment_date');
@@ -324,7 +298,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
+			const scope = await resolveCashboxScope(locals);
 			const updated = await CashboxRepository.voidPayment(
 				locals.db,
 				scope,
@@ -350,7 +324,7 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
+			const scope = await resolveCashboxScope(locals);
 			const outflowType = readFormField(formData, 'outflow_type');
 			const outflowDate = readFormField(formData, 'outflow_date');
 			const concept = readFormField(formData, 'concept');
@@ -388,7 +362,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
+			const scope = await resolveCashboxScope(locals);
 			const deleted = await CashboxRepository.deleteOutflow(
 				locals.db,
 				scope,
@@ -419,7 +393,7 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
+			const scope = await resolveCashboxScope(locals);
 			const outflowCode = readFormField(formData, 'outflow_code');
 			const returnDate = readFormField(formData, 'return_date');
 			const amount = readFormField(formData, 'amount');
@@ -459,7 +433,7 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
+			const scope = await resolveCashboxScope(locals);
 			const businessDate = readFormField(formData, 'business_date');
 			const amount = readFormField(formData, 'amount');
 			const notes = readFormField(formData, 'notes');
@@ -490,7 +464,7 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			const scope = await resolveCashboxScope(locals, readFormField(formData, 'branch_code'));
+			const scope = await resolveCashboxScope(locals);
 			const businessDate = readFormField(formData, 'business_date');
 			const amount = readFormField(formData, 'amount');
 			const notes = readFormField(formData, 'notes');

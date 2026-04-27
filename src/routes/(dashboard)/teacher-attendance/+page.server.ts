@@ -1,7 +1,8 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { isUuid } from '$lib/utils/validation';
 import { formatLocalDateValue } from '$lib/utils';
+import { getWorkspaceBranchUuid } from '$lib/server/user-branch.server';
+import { isUuid } from '$lib/utils/validation';
 import { getTeacherWeekdayFromDate } from '$lib/utils/teacher';
 import { TeacherAttendanceRepository } from '$lib/server/repositories/teacher-attendance.repository';
 import { TeacherRepository } from '$lib/server/repositories/teacher.repository';
@@ -26,7 +27,6 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 		return {
 			title: 'Asistencia docente',
 			rows: [],
-			branches: [],
 			teachers: [],
 			schedulesForDay: [],
 			selectedBranchCode: null,
@@ -35,12 +35,7 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 		};
 	}
 
-	const branches = await TeacherAttendanceRepository.listAvailableBranches(locals.db);
-	const requestedBranchCode = (url.searchParams.get('branch') ?? '').trim();
-	const selectedBranchCode =
-		branches.find((branch) => branch.code === requestedBranchCode)?.code ??
-		branches[0]?.code ??
-		null;
+	const selectedBranchCode = getWorkspaceBranchUuid(locals.user);
 	const selectedDate = normalizeDateFilter(url.searchParams.get('date'), today);
 	const weekday = getTeacherWeekdayFromDate(selectedDate);
 
@@ -60,7 +55,6 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	return {
 		title: 'Asistencia docente',
 		rows,
-		branches,
 		teachers,
 		schedulesForDay,
 		selectedBranchCode,

@@ -2,7 +2,6 @@ import { sql } from 'kysely';
 import type { Database } from '$lib/database';
 import type { GroupCode } from '$lib/types/education';
 import type {
-	DashboardBranchOption,
 	DashboardCourseOption,
 	DashboardCycleOption,
 	DashboardDegreeOption,
@@ -12,7 +11,8 @@ import type {
 	DashboardSeriesPoint,
 	DashboardStudentRankingItem
 } from '$lib/types/dashboard';
-import { isUuid } from '$lib/utils/validation';
+import { BranchAccessRepository } from '$lib/server/repositories/branch-access.repository';
+import { normalizeUuid } from '$lib/utils/validation';
 
 export type DashboardPermissionChecker = (permissionKey: string) => boolean | Promise<boolean>;
 
@@ -67,11 +67,6 @@ function toNumber(value: number | string | bigint | null | undefined): number {
 	return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function normalizeUuid(value: string | null | undefined): string | null {
-	const normalized = value?.trim() ?? '';
-	return normalized && isUuid(normalized) ? normalized : null;
-}
-
 function normalizeGroup(value: string | null | undefined): GroupCode | null {
 	const normalized = value?.trim().toUpperCase() ?? '';
 	return VALID_GROUP_CODES.has(normalized as GroupCode) ? (normalized as GroupCode) : null;
@@ -94,7 +89,6 @@ function emptyDashboard(canViewDashboard = false): DashboardHomeData {
 		title: DASHBOARD_TITLE,
 		generatedAt: new Date().toISOString(),
 		canViewDashboard,
-		branches: [],
 		cycles: [],
 		degrees: [],
 		groups: [...GROUP_OPTIONS],
@@ -115,33 +109,6 @@ function emptyDashboard(canViewDashboard = false): DashboardHomeData {
 
 async function hasPermission(can: DashboardPermissionChecker, key: string): Promise<boolean> {
 	return Boolean(await Promise.resolve(can(key)));
-}
-
-async function listUserBranches(
-	db: Database,
-	userCode: string | null | undefined,
-	isSuperAdmin: boolean
-): Promise<DashboardBranchOption[]> {
-	if (!isSuperAdmin && !normalizeUuid(userCode)) {
-		return [];
-	}
-
-	let query = db
-		.selectFrom('branches as b')
-		.select(['b.code', 'b.name', 'b.users'])
-		.where('b.state', '=', true);
-
-	if (!isSuperAdmin) {
-		query = query.where(sql<boolean>`${userCode}::uuid = ANY(${sql.ref('b.users')})`);
-	}
-
-	const rows = await query.orderBy('b.name', 'asc').execute();
-
-	return rows.map((row) => ({
-		code: row.code,
-		name: row.name,
-		users: row.users
-	}));
 }
 
 async function listCycles(
@@ -436,14 +403,6 @@ async function loadPerformanceTrend(
 	return loadCoursePerformanceTrend(db, cycleDegreeCode, groupCode, courseCode);
 }
 
-function pickRequestedCode<T extends { code: string }>(
-	requestedCode: string | null | undefined,
-	options: T[]
-): string | null {
-	const normalized = normalizeUuid(requestedCode);
-	return options.find((option) => option.code === normalized)?.code ?? options[0]?.code ?? null;
-}
-
 export class DashboardRepository {
 	static async loadHome(
 		db: Database,
@@ -456,12 +415,22 @@ export class DashboardRepository {
 			return emptyDashboard(false);
 		}
 
-		const branches = await listUserBranches(db, options.userCode, Boolean(options.isSuperAdmin));
-		const selectedBranchCode = pickRequestedCode(options.branchCode, branches);
+		const branches = await BranchAccessRepository.listForUser(
+			db,
+			options.userCode,
+			Boolean(options.isSuperAdmin)
+		);
+		const selectedBranchCode = BranchAccessRepository.pickAllowedBranch(
+			options.branchCode,
+			branches
+		);
 		const cycles = await listCycles(db, selectedBranchCode);
-		const selectedCycleCode = pickRequestedCode(options.cycleCode, cycles);
+		const selectedCycleCode = BranchAccessRepository.pickAllowedBranch(options.cycleCode, cycles);
 		const degrees = await listDegrees(db, selectedCycleCode);
-		const selectedCycleDegreeCode = pickRequestedCode(options.cycleDegreeCode, degrees);
+		const selectedCycleDegreeCode = BranchAccessRepository.pickAllowedBranch(
+			options.cycleDegreeCode,
+			degrees
+		);
 		const groups = await listGroups(db, selectedCycleDegreeCode);
 		const requestedGroup = normalizeGroup(options.groupCode);
 		const selectedGroupCode =
@@ -486,7 +455,6 @@ export class DashboardRepository {
 			title: DASHBOARD_TITLE,
 			generatedAt: new Date().toISOString(),
 			canViewDashboard: true,
-			branches,
 			cycles,
 			degrees,
 			groups,

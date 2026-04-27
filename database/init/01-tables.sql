@@ -59,6 +59,12 @@ CREATE TABLE public.branches (
   CONSTRAINT branches_name_check CHECK (char_length(trim(name)) > 0)
 );
 
+ALTER TABLE public.users
+  ADD COLUMN current_branch UUID NOT NULL;
+
+ALTER TABLE public.users
+  ADD CONSTRAINT users_current_branch_fk FOREIGN KEY (current_branch) REFERENCES public.branches (code) ON DELETE RESTRICT;
+
 -- Drive files
 CREATE TABLE public.drive_files (
   code UUID NOT NULL DEFAULT gen_random_uuid(),

@@ -3,6 +3,7 @@
 -- =====================================================
 
 CREATE INDEX users_email_idx ON public.users (email);
+CREATE INDEX users_current_branch_idx ON public.users (current_branch);
 CREATE INDEX permissions_user_code_idx ON public.permissions (user_code);
 CREATE INDEX permissions_entity_idx ON public.permissions (entity);
 CREATE INDEX auth_login_rate_limits_updated_at_idx ON public.auth_login_rate_limits (updated_at);

@@ -1,8 +1,9 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { readFormCheckbox, readFormField } from '$lib/utils/formData';
-import { isUuid } from '$lib/utils/validation';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
+import { getWorkspaceBranchUuid } from '$lib/server/user-branch.server';
+import { isUuid } from '$lib/utils/validation';
 import type { EnrollmentTurn } from '$lib/types/education';
 
 const VALID_TURNS = new Set<EnrollmentTurn>(['turn_1', 'turn_2', 'both']);
@@ -38,10 +39,13 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	const requestedGroupCode = (url.searchParams.get('group') ?? 'A').trim().toUpperCase();
 	const searchQuery = (url.searchParams.get('search') ?? '').trim();
 
-	const [cycles, allCycleDegreeOptions] = await Promise.all([
-		EducationRepository.listCycleOptions(locals.db),
-		EducationRepository.listCycleDegreeOptions(locals.db)
-	]);
+	const workspaceBranch = getWorkspaceBranchUuid(locals.user);
+	const [cycles, allCycleDegreeOptions] = workspaceBranch
+		? await Promise.all([
+				EducationRepository.listCycleOptions(locals.db, { branchCode: workspaceBranch }),
+				EducationRepository.listCycleDegreeOptions(locals.db, { branchCode: workspaceBranch })
+			])
+		: [[], []];
 
 	const selectedCycleCode =
 		cycles.find((cycle) => cycle.code === requestedCycleCode)?.code ?? cycles[0]?.code ?? null;

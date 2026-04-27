@@ -3,8 +3,10 @@ import type { Actions, PageServerLoad } from './$types';
 import type { Database } from '$lib/database';
 import { readFormCheckbox, readFormField, readFormFieldList } from '$lib/utils/formData';
 import { areUuids, isUuid } from '$lib/utils/validation';
-import { CashboxRepository } from '$lib/server/repositories/cashbox.repository';
+import { WORKSPACE } from '$lib/messages/workspace';
+import { BranchAccessRepository } from '$lib/server/repositories/branch-access.repository';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
+import { getWorkspaceBranchUuid, listWorkspaceBranchOptions } from '$lib/server/user-branch.server';
 
 function isValidDateInput(value: string): boolean {
 	if (!value) return false;
@@ -40,13 +42,13 @@ async function assertBranchAllowedForUser(
 	isSuperAdmin: boolean,
 	branchCode: string
 ): Promise<void> {
-	const allowed = await CashboxRepository.listAvailableBranches(db, userCode, isSuperAdmin);
+	const allowed = await BranchAccessRepository.listForUser(db, userCode, isSuperAdmin);
 	if (!allowed.some((b) => b.code === branchCode)) {
 		throw new Error('La sede seleccionada no es válida para tu usuario');
 	}
 }
 
-export const load: PageServerLoad = async ({ locals, depends, url }) => {
+export const load: PageServerLoad = async ({ locals, depends }) => {
 	depends('cycles:load');
 
 	if (!(await locals.can('cycles:read'))) {
@@ -54,28 +56,22 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 			title: 'Ciclos',
 			cycles: [],
 			branches: [],
-			selectedBranchCode: null,
 			degreeCatalog: [],
 			cycleDegreeMap: {}
 		};
 	}
 
-	const branches = await CashboxRepository.listAvailableBranches(
-		locals.db,
-		locals.user?.code,
-		Boolean(locals.user?.is_super_admin)
-	);
-	const selectedBranchCode = CashboxRepository.pickRequestedBranchCode(
-		url.searchParams.get('branch_code'),
-		branches
-	);
+	const branches = await listWorkspaceBranchOptions(locals.db, locals.user);
+	const selectedBranchCode = getWorkspaceBranchUuid(locals.user);
 
 	const [cycles, degreeCatalog, cycleDegreeOptions] = await Promise.all([
 		selectedBranchCode
 			? EducationRepository.listCycles(locals.db, selectedBranchCode)
 			: Promise.resolve([]),
 		EducationRepository.listDegreeCatalog(locals.db),
-		EducationRepository.listCycleDegreeOptions(locals.db)
+		selectedBranchCode
+			? EducationRepository.listCycleDegreeOptions(locals.db, { branchCode: selectedBranchCode })
+			: Promise.resolve([])
 	]);
 
 	const cycleCodes = new Set(cycles.map((c) => c.code));
@@ -90,7 +86,6 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 		title: 'Ciclos',
 		cycles,
 		branches,
-		selectedBranchCode,
 		degreeCatalog,
 		cycleDegreeMap
 	};
@@ -105,7 +100,7 @@ export const actions: Actions = {
 		try {
 			const formData = await request.formData();
 			const title = readFormField(formData, 'title');
-			const branchCode = readFormField(formData, 'branch_code');
+			const branchCode = getWorkspaceBranchUuid(locals.user) ?? '';
 			const modality = readFormField(formData, 'modality');
 			const startDate = readFormField(formData, 'start_date');
 			const endDate = readFormField(formData, 'end_date');
@@ -128,8 +123,8 @@ export const actions: Actions = {
 				return fail(400, { error: 'El nombre del ciclo es obligatorio' });
 			}
 
-			if (!branchCode || !isUuid(branchCode)) {
-				return fail(400, { error: 'Debe seleccionar una sede válida' });
+			if (!isUuid(branchCode)) {
+				return fail(400, { error: WORKSPACE.errors.noActiveBranch });
 			}
 
 			await assertBranchAllowedForUser(
@@ -202,7 +197,7 @@ export const actions: Actions = {
 			const formData = await request.formData();
 			const cycleCode = readFormField(formData, 'code');
 			const title = readFormField(formData, 'title');
-			const branchCode = readFormField(formData, 'branch_code');
+			const branchCode = getWorkspaceBranchUuid(locals.user) ?? '';
 			const modality = readFormField(formData, 'modality');
 			const startDate = readFormField(formData, 'start_date');
 			const endDate = readFormField(formData, 'end_date');
@@ -229,8 +224,8 @@ export const actions: Actions = {
 				return fail(400, { error: 'El nombre del ciclo es obligatorio' });
 			}
 
-			if (!branchCode || !isUuid(branchCode)) {
-				return fail(400, { error: 'Debe seleccionar una sede válida' });
+			if (!isUuid(branchCode)) {
+				return fail(400, { error: WORKSPACE.errors.noActiveBranch });
 			}
 
 			await assertBranchAllowedForUser(
@@ -239,6 +234,20 @@ export const actions: Actions = {
 				Boolean(locals.user?.is_super_admin),
 				branchCode
 			);
+
+			const existingCycle = await locals.db
+				.selectFrom('academic_cycles')
+				.select('branch_code')
+				.where('code', '=', cycleCode)
+				.executeTakeFirst();
+
+			if (!existingCycle) {
+				return fail(404, { error: 'El ciclo no fue encontrado' });
+			}
+
+			if (existingCycle.branch_code !== branchCode) {
+				return fail(400, { error: 'El ciclo no pertenece a tu sede activa' });
+			}
 
 			if (!modality) {
 				return fail(400, { error: 'La modalidad es obligatoria' });

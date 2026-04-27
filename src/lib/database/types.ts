@@ -644,6 +644,7 @@ export interface TeacherSchedules {
 export interface Users {
 	code: Generated<string>;
 	created_at: Generated<Timestamp>;
+	current_branch: string;
 	email: string;
 	is_super_admin: Generated<boolean>;
 	last_login: Timestamp | null;

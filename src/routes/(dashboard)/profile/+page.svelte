@@ -1,5 +1,16 @@
 <script lang="ts">
-	import { Button, Card, Chip, EmptyState, InfoItem, PageHeader, UserInfo } from '$lib/components';
+	import { enhance } from '$app/forms';
+	import {
+		Button,
+		Card,
+		Chip,
+		EmptyState,
+		InfoItem,
+		PageHeader,
+		Select,
+		UserInfo
+	} from '$lib/components';
+	import { WORKSPACE } from '$lib/messages/workspace';
 	import type { PageData } from './$types';
 
 	const { data }: { data: PageData } = $props();
@@ -41,11 +52,22 @@
 			dateStyle: 'long'
 		}).format(date);
 	}
+
+	let branchFormValue = $state<string | null>(null);
+
+	$effect(() => {
+		const u = data.user;
+		if (!u) {
+			branchFormValue = null;
+			return;
+		}
+		branchFormValue = u.current_branch ?? data.branchOptions[0]?.value ?? null;
+	});
 </script>
 
 <div class="profile-page lumi-stack lumi-stack--xl">
 	<PageHeader
-		title="Mi perfil"
+		title={WORKSPACE.profileTitle}
 		subtitle="Resumen simple de tu cuenta y accesos dentro de Coedula"
 		icon="userRound"
 	>
@@ -92,11 +114,48 @@
 				<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
 					<InfoItem icon="user" label="Nombres" value={user.name || 'Sin registro'} />
 					<InfoItem icon="userRound" label="Apellidos" value={user.last_name || 'Sin registro'} />
-					<InfoItem icon="mail" label="Correo" value={user.email || 'Sin correo'} />
-					<InfoItem icon="hash" label="Código de usuario" value={user.code || 'Sin código'} />
+					<div class="profile-page__span-2">
+						<InfoItem icon="mail" label="Correo" value={user.email || 'Sin correo'} />
+					</div>
 				</div>
 			</Card>
 		</div>
+
+		<Card
+			title="Sede de trabajo"
+			subtitle="Caja, ciclos, asistencia y el resto de módulos usan la sede que fijas aquí"
+			spaced
+		>
+			{#if data.branchOptions.length === 0}
+				<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+					Tu usuario no tiene sedes activas asignadas. Pide a un administrador que te añada al
+					arreglo de sedes o que active la sede correspondiente.
+				</p>
+			{:else}
+				{@const selectedBranch = branchFormValue ?? data.branchOptions[0]?.value ?? ''}
+				<form
+					class="lumi-stack lumi-stack--md"
+					method="POST"
+					action="?/updateCurrentBranch"
+					use:enhance
+				>
+					<input type="hidden" name="current_branch" value={selectedBranch} />
+					<Select
+						label="Sede activa"
+						value={selectedBranch}
+						options={data.branchOptions}
+						clearable={false}
+						onchange={(value) => {
+							branchFormValue =
+								typeof value === 'string' ? value : value == null ? null : String(value);
+						}}
+					/>
+					<div class="lumi-flex lumi-flex--wrap lumi-flex--gap-sm">
+						<Button type="filled" color="primary" icon="save" button="submit">Guardar sede</Button>
+					</div>
+				</form>
+			{/if}
+		</Card>
 
 		<Card title="Actividad de cuenta" subtitle="Fechas y nivel de acceso" spaced>
 			<div class="lumi-grid lumi-grid--columns-4 lumi-grid--gap-md">
@@ -160,5 +219,9 @@
 		.profile-page__grid {
 			grid-template-columns: minmax(0, 1fr);
 		}
+	}
+
+	.profile-page__span-2 {
+		grid-column: 1 / -1;
 	}
 </style>

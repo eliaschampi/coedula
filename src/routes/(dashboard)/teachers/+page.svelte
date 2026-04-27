@@ -59,16 +59,11 @@
 	let showSchedulesModal = $state(false);
 	let scheduleTargetCode = $state<string | null>(null);
 	let scheduleError = $state('');
-	let scheduleBranchCode = $state<string | null>(null);
 	let scheduleWeekday = $state<string>('1');
 	let scheduleEntryTime = $state('07:00');
 	let scheduleTolerance = $state('15');
 	/** When set, the shared schedule form updates this row (hidden `schedule_code` is sent). */
 	let scheduleEditingCode = $state<string | null>(null);
-
-	const branchOptions = $derived(
-		data.branches.map((branch) => ({ value: branch.code, label: branch.name }))
-	);
 
 	const teacherRows = $derived(data.teachers as unknown as TableRow[]);
 
@@ -78,15 +73,14 @@
 			: null
 	);
 
-	$effect(() => {
-		if (showSchedulesModal && scheduleBranchCode === null) {
-			scheduleBranchCode = data.branches[0]?.code ?? null;
-		}
+	const workspaceSchedules = $derived.by(() => {
+		const branch = data.user?.current_branch;
+		if (!scheduleTarget || !branch) return [];
+		return scheduleTarget.schedules.filter((s) => s.branch_code === branch);
 	});
 
 	$effect(() => {
 		if (!showSchedulesModal) {
-			scheduleBranchCode = null;
 			scheduleWeekday = '1';
 			scheduleEntryTime = '07:00';
 			scheduleTolerance = '15';
@@ -97,7 +91,7 @@
 
 	$effect(() => {
 		if (!scheduleEditingCode || !scheduleTarget) return;
-		const exists = scheduleTarget.schedules.some((s) => s.code === scheduleEditingCode);
+		const exists = workspaceSchedules.some((s) => s.code === scheduleEditingCode);
 		if (!exists) {
 			cancelScheduleEdit();
 		}
@@ -174,7 +168,6 @@
 		scheduleWeekday = '1';
 		scheduleEntryTime = '07:00';
 		scheduleTolerance = '30';
-		scheduleBranchCode = data.branches[0]?.code ?? null;
 		showSchedulesModal = true;
 	}
 
@@ -190,10 +183,10 @@
 	}
 
 	const scheduleListSummary = $derived(
-		scheduleTarget && scheduleTarget.schedules.length === 0
-			? 'Sin horarios configurados'
+		scheduleTarget && workspaceSchedules.length === 0
+			? 'Sin horarios en esta sede'
 			: scheduleTarget
-				? `${scheduleTarget.schedules.length} horario${scheduleTarget.schedules.length === 1 ? '' : 's'} configurado${scheduleTarget.schedules.length === 1 ? '' : 's'}`
+				? `${workspaceSchedules.length} horario${workspaceSchedules.length === 1 ? '' : 's'} en esta sede`
 				: ''
 	);
 
@@ -205,7 +198,6 @@
 	function loadScheduleForEdit(schedule: ScheduleItem): void {
 		if (!canUpdate) return;
 		scheduleEditingCode = schedule.code;
-		scheduleBranchCode = schedule.branch_code;
 		scheduleWeekday = String(schedule.weekday);
 		scheduleEntryTime = formatTeacherEntryTime(schedule.entry_time);
 		scheduleTolerance = String(schedule.tolerance_minutes);
@@ -217,7 +209,6 @@
 		scheduleWeekday = '1';
 		scheduleEntryTime = '07:00';
 		scheduleTolerance = '15';
-		scheduleBranchCode = data.branches[0]?.code ?? null;
 		scheduleError = '';
 	}
 </script>
@@ -517,13 +508,11 @@
 					<input type="hidden" name="teacher_code" value={scheduleTarget.code} />
 					<input type="hidden" name="schedule_code" value={scheduleEditingCode ?? ''} />
 					<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
-						<Select
-							bind:value={scheduleBranchCode}
-							name="branch_code"
-							label="Sede"
-							options={branchOptions}
-							placeholder="Seleccione una sede"
-							clearable={false}
+						<InfoItem
+							icon="building2"
+							label="Sede de trabajo"
+							value={data.user?.current_branch_name ?? 'Configura tu sede en Mi perfil'}
+							layout="vertical"
 						/>
 						<Select
 							bind:value={scheduleWeekday}
@@ -552,7 +541,13 @@
 					>
 						<div>
 							{#if scheduleEditingCode}
-								<Button type="ghost" color="warning" size="sm" button="button" onclick={cancelScheduleEdit}>
+								<Button
+									type="ghost"
+									color="warning"
+									size="sm"
+									button="button"
+									onclick={cancelScheduleEdit}
+								>
 									Cancelar edición
 								</Button>
 							{/if}
@@ -563,7 +558,7 @@
 							size="sm"
 							icon={scheduleEditingCode ? 'check' : 'plus'}
 							button="submit"
-							disabled={!scheduleBranchCode}
+							disabled={!data.user?.current_branch}
 						>
 							{scheduleEditingCode ? 'Guardar cambios' : 'Agregar horario'}
 						</Button>
@@ -571,17 +566,17 @@
 				</form>
 			</Fieldset>
 
-			<Fieldset legend={scheduleListSummary} >
+			<Fieldset legend={scheduleListSummary}>
 				<div class="lumi-stack lumi-stack--sm">
-					{#if scheduleTarget.schedules.length === 0}
+					{#if workspaceSchedules.length === 0}
 						<div class="lumi-text--center lumi-padding--xl lumi-text--muted">
-							Agrega los horarios semanales del docente por sede para habilitar el control de
-							asistencia.
+							No hay horarios definidos para tu sede activa. Agrégalos aquí para habilitar el
+							control de asistencia en esta sede.
 						</div>
 					{:else}
 						<List size="sm" class="teachers-schedules-modal__list">
-							<ListHeader title="Lista de horarios" icon="clock" />
-							{#each scheduleTarget.schedules as schedule (schedule.code)}
+							<ListHeader title="Horarios en esta sede" icon="clock" />
+							{#each workspaceSchedules as schedule (schedule.code)}
 								{@const wd = formatTeacherWeekdayShort(schedule.weekday as TeacherWeekday)}
 								{@const tm = formatTeacherEntryTime(schedule.entry_time)}
 								<ListItem

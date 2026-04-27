@@ -1,6 +1,7 @@
 import { randomInt } from 'crypto';
 import { sql, type Kysely, type Transaction } from 'kysely';
 import type { DB, Database } from '$lib/database';
+import { normalizeUuid } from '$lib/utils/validation';
 import type {
 	AcademicCycleOverview,
 	AcademicDegreeCatalogItem,
@@ -645,8 +646,16 @@ export class EducationRepository {
 		return rows as StudentOption[];
 	}
 
-	static async listCycleOptions(db: Database): Promise<CycleOption[]> {
-		const rows = await db
+	static async listCycleOptions(
+		db: Database,
+		filters?: { branchCode?: string | null }
+	): Promise<CycleOption[]> {
+		const branchCode = normalizeUuid(filters?.branchCode);
+		const labelSql = branchCode
+			? sql<string>`title || ' · ' || modality`.as('label')
+			: sql<string>`title || ' · ' || branch_name || ' · ' || modality`.as('label');
+
+		let query = db
 			.selectFrom('cycle_overview')
 			.select([
 				'code',
@@ -657,23 +666,31 @@ export class EducationRepository {
 				'end_date',
 				'turn_1_attendance_time',
 				'turn_2_attendance_time',
-				sql<string>`title || ' · ' || branch_name || ' · ' || modality`.as('label')
+				labelSql
 			])
 			.orderBy('start_date', 'desc')
-			.orderBy('title', 'asc')
-			.execute();
+			.orderBy('title', 'asc');
 
+		if (branchCode) {
+			query = query.where('branch_code', '=', branchCode);
+		}
+
+		const rows = await query.execute();
 		return rows as CycleOption[];
 	}
 
 	static async listCycleDegreeOptions(
 		db: Database,
-		cycleCode?: string | null
+		filters?: { cycleCode?: string | null; branchCode?: string | null }
 	): Promise<CycleDegreeOption[]> {
+		const cycleCode = normalizeUuid(filters?.cycleCode);
+		const branchCode = normalizeUuid(filters?.branchCode);
+
 		const rows = await db
 			.selectFrom('cycle_degree_overview')
 			.selectAll()
 			.$if(Boolean(cycleCode), (qb) => qb.where('cycle_code', '=', cycleCode!))
+			.$if(Boolean(branchCode), (qb) => qb.where('branch_code', '=', branchCode!))
 			.orderBy('start_date', 'desc')
 			.orderBy('degree_sort_order', 'asc')
 			.orderBy('degree_name', 'asc')

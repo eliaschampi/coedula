@@ -12,8 +12,9 @@ import {
 	normalizeTeacherTimeInput,
 	parseTeacherToleranceMinutes
 } from '$lib/utils/teacher';
+import { WORKSPACE } from '$lib/messages/workspace';
 import { TeacherRepository } from '$lib/server/repositories/teacher.repository';
-import { TeacherAttendanceRepository } from '$lib/server/repositories/teacher-attendance.repository';
+import { getWorkspaceBranchUuid, listWorkspaceBranchOptions } from '$lib/server/user-branch.server';
 import type { TeacherWeekday } from '$lib/types/teacher';
 
 export const load: PageServerLoad = async ({ locals, depends, url }) => {
@@ -23,21 +24,16 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 		return {
 			title: 'Docentes',
 			teachers: [],
-			branches: [],
 			searchQuery: ''
 		};
 	}
 
 	const searchQuery = (url.searchParams.get('search') ?? '').trim();
-	const [teachers, branches] = await Promise.all([
-		TeacherRepository.listDirectory(locals.db, searchQuery),
-		TeacherAttendanceRepository.listAvailableBranches(locals.db)
-	]);
+	const teachers = await TeacherRepository.listDirectory(locals.db, searchQuery);
 
 	return {
 		title: 'Docentes',
 		teachers,
-		branches,
 		searchQuery
 	};
 };
@@ -157,7 +153,7 @@ export const actions: Actions = {
 			const formData = await request.formData();
 			const scheduleCodeRaw = readFormField(formData, 'schedule_code');
 			const teacherCode = readFormField(formData, 'teacher_code');
-			const branchCode = readFormField(formData, 'branch_code');
+			const branchCode = getWorkspaceBranchUuid(locals.user) ?? '';
 			const weekdayValue = Number(readFormField(formData, 'weekday'));
 			const entryTime = normalizeTeacherTimeInput(readFormField(formData, 'entry_time'));
 			const tolerance = parseTeacherToleranceMinutes(readFormField(formData, 'tolerance_minutes'));
@@ -167,7 +163,12 @@ export const actions: Actions = {
 			}
 
 			if (!isUuid(branchCode)) {
-				return fail(400, { error: 'La sede seleccionada no es válida' });
+				return fail(400, { error: WORKSPACE.errors.noActiveBranchForSchedules });
+			}
+
+			const allowedBranches = await listWorkspaceBranchOptions(locals.db, locals.user);
+			if (!allowedBranches.some((b) => b.code === branchCode)) {
+				return fail(400, { error: 'Tu sede activa no coincide con tus sedes permitidas' });
 			}
 
 			if (!Number.isInteger(weekdayValue) || !isTeacherWeekday(weekdayValue)) {
@@ -195,6 +196,22 @@ export const actions: Actions = {
 			if (updating) {
 				if (!isUuid(scheduleCodeRaw)) {
 					return fail(400, { error: 'El horario seleccionado no es válido' });
+				}
+
+				const existingSchedule = await locals.db
+					.selectFrom('teacher_schedules')
+					.select(['teacher_code', 'branch_code'])
+					.where('code', '=', scheduleCodeRaw)
+					.executeTakeFirst();
+
+				if (
+					!existingSchedule ||
+					existingSchedule.teacher_code !== teacherCode ||
+					existingSchedule.branch_code !== branchCode
+				) {
+					return fail(400, {
+						error: 'El horario no existe o no pertenece a tu sede activa'
+					});
 				}
 
 				const updated = await TeacherRepository.updateSchedule(locals.db, {
@@ -235,6 +252,23 @@ export const actions: Actions = {
 
 			if (!isUuid(scheduleCode)) {
 				return fail(400, { error: 'El horario seleccionado no es válido' });
+			}
+
+			const workspaceBranch = getWorkspaceBranchUuid(locals.user) ?? '';
+			if (!isUuid(workspaceBranch)) {
+				return fail(400, { error: WORKSPACE.errors.noActiveBranch });
+			}
+
+			const scheduleRow = await locals.db
+				.selectFrom('teacher_schedules')
+				.select('branch_code')
+				.where('code', '=', scheduleCode)
+				.executeTakeFirst();
+
+			if (!scheduleRow || scheduleRow.branch_code !== workspaceBranch) {
+				return fail(400, {
+					error: 'No puedes eliminar un horario que no corresponde a tu sede activa'
+				});
 			}
 
 			const deleted = await TeacherRepository.deleteSchedule(locals.db, scheduleCode);

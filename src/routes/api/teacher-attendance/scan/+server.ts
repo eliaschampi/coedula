@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { WORKSPACE } from '$lib/messages/workspace';
 import { TeacherAttendanceRepository } from '$lib/server/repositories/teacher-attendance.repository';
-import { isUuid } from '$lib/utils/validation';
+import { getWorkspaceBranchUuid } from '$lib/server/user-branch.server';
 import { normalizeTeacherNumberInput } from '$lib/utils/teacher';
 import {
 	TeacherAttendanceOutOfWindowError,
@@ -18,11 +19,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	const payload = (await request.json().catch(() => ({}))) as {
 		teacher_number?: string;
-		branch_code?: string;
 	};
 
 	const teacherNumber = normalizeTeacherNumberInput(payload.teacher_number);
-	const branchCode = (payload.branch_code ?? '').trim();
+	const branchCode = getWorkspaceBranchUuid(locals.user);
 
 	if (!teacherNumber) {
 		return json(
@@ -31,8 +31,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		);
 	}
 
-	if (!isUuid(branchCode)) {
-		return json({ message: 'Debe seleccionar una sede válida' }, { status: 400 });
+	if (!branchCode) {
+		return json({ message: WORKSPACE.api.scanMissingBranch }, { status: 400 });
 	}
 
 	try {

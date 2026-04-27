@@ -2,6 +2,7 @@ import { sql } from 'kysely';
 import { fail } from '@sveltejs/kit';
 import { hashPassword } from '$lib/auth/password';
 import type { Database } from '$lib/database';
+import { BranchAccessRepository } from '$lib/server/repositories/branch-access.repository';
 import { readFormField } from '$lib/utils/formData';
 import { isUuid } from '$lib/utils/validation';
 import type { Actions, PageServerLoad } from './$types';
@@ -50,7 +51,7 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 	depends('users:load');
 
 	if (!(await locals.can('users:read'))) {
-		return { title: 'Usuarios', users: [] };
+		return { title: 'Usuarios', users: [], canCreateWithBranch: false };
 	}
 
 	const superUserColumn = await resolveSuperUserColumn(locals.db);
@@ -72,12 +73,20 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 			.orderBy('created_at', 'desc')
 			.execute();
 
+		const initialBranch = await locals.db
+			.selectFrom('branches as b')
+			.select('b.name')
+			.where('b.state', '=', true)
+			.orderBy('b.name', 'asc')
+			.executeTakeFirst();
+
 		return {
 			title: 'Usuarios',
-			users
+			users,
+			canCreateWithBranch: Boolean(initialBranch)
 		};
 	} catch {
-		return { title: 'Usuarios', users: [] };
+		return { title: 'Usuarios', users: [], canCreateWithBranch: false };
 	}
 };
 
@@ -109,6 +118,14 @@ export const actions: Actions = {
 		}
 
 		try {
+			const firstBranch = await BranchAccessRepository.getFirstActiveBranch(locals.db);
+			if (!firstBranch) {
+				return fail(400, {
+					error:
+						'Crea y activa al menos una sede antes de registrar usuarios. La sede asigna automáticamente su sede de trabajo.'
+				});
+			}
+
 			const existingUser = await locals.db
 				.selectFrom('users')
 				.select('code')
@@ -121,16 +138,21 @@ export const actions: Actions = {
 
 			const password_hash = await hashPassword(password);
 
-			await locals.db
-				.insertInto('users')
-				.values({
-					name,
-					last_name,
-					email,
-					password_hash,
-					photo_url
-				})
-				.execute();
+			await locals.db.transaction().execute(async (trx) => {
+				const row = await trx
+					.insertInto('users')
+					.values({
+						name,
+						last_name,
+						email,
+						password_hash,
+						photo_url,
+						current_branch: firstBranch.code
+					})
+					.returning('code')
+					.executeTakeFirstOrThrow();
+				await BranchAccessRepository.appendUserToMembers(trx, firstBranch.code, row.code);
+			});
 
 			return { success: true, type: 'success' };
 		} catch (error) {

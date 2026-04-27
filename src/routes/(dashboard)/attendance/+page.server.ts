@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { readFormField } from '$lib/utils/formData';
+import { getWorkspaceBranchUuid } from '$lib/server/user-branch.server';
 import { isUuid } from '$lib/utils/validation';
 import { formatLocalDateValue, normalizeAttendanceTurnFilter } from '$lib/utils';
 import type { CycleOption, EnrollmentTurn, GroupCode } from '$lib/types/education';
@@ -65,10 +66,13 @@ export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	const requestedDate = normalizeDateFilter(url.searchParams.get('date'), today);
 	const searchQuery = (url.searchParams.get('search') ?? '').trim();
 
-	const [cycles, allCycleDegreeOptions] = await Promise.all([
-		EducationRepository.listCycleOptions(locals.db),
-		EducationRepository.listCycleDegreeOptions(locals.db)
-	]);
+	const workspaceBranch = getWorkspaceBranchUuid(locals.user);
+	const [cycles, allCycleDegreeOptions] = workspaceBranch
+		? await Promise.all([
+				EducationRepository.listCycleOptions(locals.db, { branchCode: workspaceBranch }),
+				EducationRepository.listCycleDegreeOptions(locals.db, { branchCode: workspaceBranch })
+			])
+		: [[], []];
 
 	const selectedCycleCode =
 		cycles.find((cycle) => cycle.code === requestedCycleCode)?.code ?? cycles[0]?.code ?? null;

@@ -3,7 +3,8 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { Alert, Button, Card, Chip, Input, PageHeader, Select } from '$lib/components';
+	import { Alert, Button, Card, Chip, Input, PageHeader } from '$lib/components';
+	import { WORKSPACE } from '$lib/messages/workspace';
 	import { can } from '$lib/stores/permissions';
 	import {
 		formatTeacherAttendanceState,
@@ -29,9 +30,7 @@
 
 	const canCreate = $derived(can('teacher_attendance:create'));
 
-	const branchOptions = $derived(
-		data.branches.map((branch) => ({ value: branch.code, label: branch.name }))
-	);
+	const selectedBranchCode = $derived(data.selectedBranchCode);
 
 	let videoElement = $state<HTMLVideoElement | null>(null);
 	let mediaStream = $state<MediaStream | null>(null);
@@ -45,7 +44,6 @@
 	let result = $state<TeacherScanResult | null>(null);
 	let lastScannedValue = '';
 	let lastScannedAt = 0;
-	let selectedBranchCode: string | null = $derived(data.branches[0]?.code ?? null);
 
 	function barcodeDetectorConstructor(): BarcodeDetectorConstructor | null {
 		if (!browser) return null;
@@ -63,7 +61,7 @@
 		}
 
 		if (!selectedBranchCode) {
-			scanError = 'Debes seleccionar una sede antes de escanear';
+			scanError = WORKSPACE.client.scanNeedBranch;
 			return;
 		}
 
@@ -75,8 +73,7 @@
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					teacher_number: teacherNumber,
-					branch_code: selectedBranchCode
+					teacher_number: teacherNumber
 				})
 			});
 
@@ -199,21 +196,23 @@
 
 	{#if !canCreate}
 		<Alert type="warning" closable>No tienes permisos para registrar asistencia docente.</Alert>
-	{:else if data.branches.length === 0}
+	{:else if !data.user?.current_branch}
 		<Alert type="warning" closable={false}>
-			No hay sedes activas configuradas. Activa una sede para registrar asistencia docente.
+			No tienes una sede de trabajo activa. Configúrala en <strong>Mi perfil</strong> o pide acceso en
+			una sede.
 		</Alert>
 	{:else}
 		<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
 			<Card title="Captura" subtitle="Escaneo continuo con fallback manual" spaced>
 				<div class="lumi-stack lumi-stack--md">
-					<Select
-						bind:value={selectedBranchCode}
-						label="Sede"
-						options={branchOptions}
-						placeholder="Seleccione una sede"
-						clearable={false}
-					/>
+					<div class="lumi-flex lumi-flex--wrap lumi-align-items--center lumi-flex--gap-sm">
+						<Chip color="primary" size="sm" icon="building2">
+							{data.user?.current_branch_name ?? 'Sede'}
+						</Chip>
+						<span class="lumi-text--xs lumi-text--muted">
+							La sede se define en <strong>Mi perfil</strong>
+						</span>
+					</div>
 
 					{#if cameraError}
 						<Alert type="warning" closable>{cameraError}</Alert>

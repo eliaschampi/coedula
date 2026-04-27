@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { EducationRepository } from '$lib/server/repositories/education.repository';
+import { getWorkspaceBranchUuid } from '$lib/server/user-branch.server';
 import { EvaluationRepository } from '$lib/server/repositories/evaluation.repository';
 import type { GroupCode } from '$lib/types/education';
 
@@ -19,10 +20,13 @@ export const load: PageServerLoad = async ({ locals, url, depends }) => {
 	const requestedEvaluationCode = (url.searchParams.get('evaluation') ?? '').trim();
 	const searchQuery = (url.searchParams.get('search') ?? '').trim();
 
-	const [cycles, allCycleDegreeOptions] = await Promise.all([
-		EducationRepository.listCycleOptions(locals.db),
-		EducationRepository.listCycleDegreeOptions(locals.db)
-	]);
+	const workspaceBranch = getWorkspaceBranchUuid(locals.user);
+	const [cycles, allCycleDegreeOptions] = workspaceBranch
+		? await Promise.all([
+				EducationRepository.listCycleOptions(locals.db, { branchCode: workspaceBranch }),
+				EducationRepository.listCycleDegreeOptions(locals.db, { branchCode: workspaceBranch })
+			])
+		: [[], []];
 
 	const selectedCycleCode =
 		cycles.find((cycle) => cycle.code === requestedCycleCode)?.code ?? cycles[0]?.code ?? null;

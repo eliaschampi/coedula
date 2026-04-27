@@ -21,9 +21,6 @@
 
 	const { data }: { data: PageData } = $props();
 
-	const branchOptions = $derived<SelectOption[]>(
-		data.branches.map((branch) => ({ value: branch.code, label: branch.name }))
-	);
 	const cycleOptions = $derived<SelectOption[]>(
 		data.cycles.map((cycle) => ({ value: cycle.code, label: cycle.title }))
 	);
@@ -33,7 +30,9 @@
 	const groupOptions = $derived<SelectOption[]>(data.groups.map((group) => ({ ...group })));
 	const courseOptions = $derived<SelectOption[]>(data.courses.map((course) => ({ ...course })));
 	const selectedBranch = $derived(
-		data.branches.find((branch) => branch.code === data.selection.branchCode) ?? null
+		data.user?.current_branch
+			? { name: data.user.current_branch_name ?? 'Sede', code: data.user.current_branch }
+			: null
 	);
 	const selectedCycle = $derived(
 		data.cycles.find((cycle) => cycle.code === data.selection.cycleCode) ?? null
@@ -87,18 +86,6 @@
 		});
 	}
 
-	function selectBranch(value: SelectValue): void {
-		const branchCode = toSelection(value);
-		if (!branchCode || branchCode === data.selection.branchCode) return;
-
-		updateQuery({
-			branch_code: branchCode,
-			cycle_code: null,
-			cycle_degree_code: null,
-			course_code: null
-		});
-	}
-
 	function selectCycle(value: SelectValue): void {
 		const cycleCode = toSelection(value);
 		if (!cycleCode || cycleCode === data.selection.cycleCode) return;
@@ -143,18 +130,9 @@
 		icon="house"
 	>
 		{#snippet actions()}
-			<div class="dashboard-home__branch-select">
-				<Select
-					value={data.selection.branchCode}
-					options={branchOptions}
-					placeholder="Sede"
-					aria-label="Sede"
-					size="sm"
-					clearable={false}
-					disabled={!data.canViewDashboard || branchOptions.length === 0}
-					onchange={selectBranch}
-				/>
-			</div>
+			{#if data.canViewDashboard && selectedBranch}
+				<Chip color="primary" size="sm" icon="building2">{selectedBranch.name}</Chip>
+			{/if}
 		{/snippet}
 	</PageHeader>
 
@@ -166,12 +144,12 @@
 				description="Necesitas permiso de lectura del dashboard para consultar el rendimiento académico."
 			/>
 		</Card>
-	{:else if data.branches.length === 0}
+	{:else if !data.user?.current_branch}
 		<Card spaced>
 			<EmptyState
 				icon="building"
-				title="Sin sedes asignadas"
-				description="Cuando tu usuario esté asociado a una sede activa, el dashboard mostrará sus datos."
+				title="Sin sede de trabajo"
+				description="Configura tu sede en Mi perfil o pide que te asignen a una sede activa. El administrador de sedes también puede fijar tu sede al asignarte a una de ellas."
 			/>
 		</Card>
 	{:else}
@@ -343,7 +321,6 @@
 		min-width: 0;
 	}
 
-	.dashboard-home__branch-select,
 	.dashboard-home__course-select {
 		width: min(18rem, 100%);
 	}
@@ -493,7 +470,6 @@
 	}
 
 	@media (max-width: 760px) {
-		.dashboard-home__branch-select,
 		.dashboard-home__course-select {
 			width: 100%;
 		}

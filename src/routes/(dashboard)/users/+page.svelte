@@ -27,6 +27,7 @@
 
 	// Permissions
 	const canCreate = $derived(can('users:create'));
+	const canCreateWithBranch = $derived(!!data.canCreateWithBranch);
 	const canUpdate = $derived(can('users:update'));
 	const canDelete = $derived(can('users:delete'));
 	const canManagePermissions = $derived(can('users:manage_permissions'));
@@ -84,7 +85,7 @@
 	}
 
 	function openCreateModal() {
-		if (!canCreate) return;
+		if (!canCreate || !canCreateWithBranch) return;
 		isEditing = false;
 		formName = '';
 		formLastName = '';
@@ -151,7 +152,10 @@
 				color="primary"
 				icon="plus"
 				onclick={openCreateModal}
-				disabled={!canCreate}
+				disabled={!canCreate || !canCreateWithBranch}
+				aria-label={!canCreateWithBranch && canCreate
+					? 'Crea y activa al menos una sede antes de registrar usuarios'
+					: 'Nuevo usuario'}
 			>
 				Nuevo Usuario
 			</Button>

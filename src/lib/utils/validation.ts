@@ -7,3 +7,9 @@ export function isUuid(value: string): boolean {
 export function areUuids(values: string[]): boolean {
 	return values.every((value) => isUuid(value));
 }
+
+/** Cadena vacía o UUID inválido → `null` (útil en SQL/arrays de sedes). */
+export function normalizeUuid(value: string | null | undefined): string | null {
+	const normalized = value?.trim() ?? '';
+	return isUuid(normalized) ? normalized : null;
+}

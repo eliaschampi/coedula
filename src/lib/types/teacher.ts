@@ -31,11 +31,6 @@ export interface TeacherDirectoryItem extends TeacherOverviewItem {
 	schedules: TeacherScheduleItem[];
 }
 
-export interface TeacherBranchOption {
-	code: string;
-	name: string;
-}
-
 export interface TeacherOption {
 	code: string;
 	teacher_number: string;

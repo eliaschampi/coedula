@@ -48,8 +48,12 @@
 	const canUpdate = $derived(can('teacher_attendance:update'));
 	const canDelete = $derived(can('teacher_attendance:delete'));
 
-	let filterBranchCode: string | null = $derived(data.selectedBranchCode);
-	let filterDate: string = $derived(data.selectedDate);
+	// Editable copy of the URL-driven date; re-sync when `data` updates after navigation.
+	// eslint-disable-next-line svelte/prefer-writable-derived -- need mutable bind + URL sync
+	let filterDate = $state('');
+	$effect(() => {
+		filterDate = data.selectedDate;
+	});
 	let showMobileSidebar = $state(false);
 
 	let showFormModal = $state(false);
@@ -65,10 +69,6 @@
 	let showDeleteModal = $state(false);
 	let deleteTarget = $state<AttendanceRow | null>(null);
 	let deleteError = $state('');
-
-	const branchOptions = $derived(
-		data.branches.map((branch) => ({ value: branch.code, label: branch.name }))
-	);
 
 	const attendanceRows = $derived(data.rows as unknown as TableRow[]);
 
@@ -95,9 +95,7 @@
 	const filterDateWeekdayLabel = $derived(
 		formatTeacherWeekday(getTeacherWeekdayFromDate(filterDate || data.today))
 	);
-	const selectedBranchLabel = $derived(
-		data.branches.find((branch) => branch.code === filterBranchCode)?.name ?? 'Sin sede activa'
-	);
+	const selectedBranchLabel = $derived(data.user?.current_branch_name ?? 'Sin sede activa');
 	const selectedDateLabel = $derived(
 		filterDate === data.today ? 'Hoy' : formatEducationDate(filterDate)
 	);
@@ -133,12 +131,9 @@
 	}
 
 	function buildFilterUrl(): string {
-		const params = [
-			filterBranchCode ? `branch=${encodeURIComponent(filterBranchCode)}` : '',
-			filterDate ? `date=${encodeURIComponent(filterDate)}` : ''
-		].filter(Boolean);
-
-		return `/teacher-attendance${params.length > 0 ? `?${params.join('&')}` : ''}`;
+		return filterDate
+			? `/teacher-attendance?date=${encodeURIComponent(filterDate)}`
+			: '/teacher-attendance';
 	}
 
 	function applyFilters(): void {
@@ -240,7 +235,7 @@
 		<PageSidebar
 			bind:mobileOpen={showMobileSidebar}
 			variant="attendance"
-			mobileTitle="Sede y fecha"
+			mobileTitle="Fecha"
 			mobileAriaLabel="Cerrar filtros de asistencia docente"
 		>
 			{#snippet sidebar()}
@@ -258,13 +253,6 @@
 
 				<div class="lumi-page-sidebar__section">
 					<p class="lumi-page-sidebar__label">Filtros</p>
-					<Select
-						bind:value={filterBranchCode}
-						label="Sede"
-						options={branchOptions}
-						placeholder="Seleccione una sede"
-						clearable={false}
-					/>
 					<Input bind:value={filterDate} label="Fecha" type="date" />
 				</div>
 
@@ -305,7 +293,7 @@
 					{:else if !data.selectedBranchCode}
 						<EmptyState
 							title="Sin sede activa"
-							description="Selecciona una sede en el panel de filtros para visualizar la asistencia docente."
+							description="Configura tu sede de trabajo en Mi perfil para ver y registrar asistencia docente."
 							icon="building"
 						/>
 					{:else if data.rows.length === 0}

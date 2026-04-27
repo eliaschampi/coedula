@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
+	import { invalidate } from '$app/navigation';
 	import { enhance } from '$app/forms';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import {
 		Alert,
 		Button,
@@ -14,6 +11,7 @@
 		DropdownItem,
 		EmptyState,
 		Fieldset,
+		InfoItem,
 		Input,
 		List,
 		ListHeader,
@@ -51,7 +49,6 @@
 	let selectedCycle = $state<AcademicCycleOverview | null>(null);
 
 	let formTitle = $state('');
-	let formBranchCode = $state('');
 	let formModality = $state('regular');
 	let formStartDate = $state('');
 	let formEndDate = $state('');
@@ -65,15 +62,10 @@
 	let selectedDegreeCode = $state<string | null>(null);
 	let selectedDegreeCodes = $state<string[]>([]);
 
-	const branchOptions = $derived(
-		data.branches.map((branch) => ({
-			value: branch.code,
-			label: branch.name
-		}))
-	);
-
 	const selectedBranch = $derived(
-		data.branches.find((b) => b.code === data.selectedBranchCode) ?? null
+		data.user?.current_branch
+			? { code: data.user.current_branch, name: data.user.current_branch_name }
+			: null
 	);
 
 	const degreeOptions = $derived(
@@ -99,27 +91,8 @@
 		}
 	}
 
-	function coercedBranchCode(value: unknown): string {
-		if (typeof value === 'string') return value;
-		if (typeof value === 'number') return String(value);
-		return '';
-	}
-
-	function applyBranchFilter(value: unknown): void {
-		const code = coercedBranchCode(value);
-		if (!code || code === data.selectedBranchCode) return;
-		const q = new SvelteURLSearchParams(page.url.searchParams);
-		q.set('branch_code', code);
-		const search = q.toString();
-		void goto(resolve(`${page.url.pathname}${search ? `?${search}` : ''}` as '/'), {
-			keepFocus: true,
-			noScroll: true
-		});
-	}
-
 	function resetForm(): void {
 		formTitle = '';
-		formBranchCode = data.selectedBranchCode ?? data.branches[0]?.code ?? '';
 		formModality = 'regular';
 		formStartDate = '';
 		formEndDate = '';
@@ -148,7 +121,6 @@
 		isEditing = true;
 		selectedCycle = cycle;
 		formTitle = cycle.title;
-		formBranchCode = cycle.branch_code;
 		formModality = cycle.modality;
 		formStartDate = formatDateInputValue(cycle.start_date);
 		formEndDate = formatDateInputValue(cycle.end_date);
@@ -261,25 +233,13 @@
 			<Card>
 				<div class="lumi-section-toolbar">
 					<div class="lumi-section-toolbar__copy">
-						<h2 class="lumi-section-toolbar__title">Sede</h2>
+						<h2 class="lumi-section-toolbar__title">Sede de trabajo</h2>
 						<p class="lumi-section-toolbar__subtitle">
-							Solo se listan ciclos de la sede seleccionada.
+							Ciclos de tu sede activa. Para cambiarla, usa <strong>Mi perfil</strong>.
 						</p>
 					</div>
 					<div class="lumi-section-toolbar__actions lumi-align-items--end">
-						{#if data.branches.length > 1}
-							<div class="lumi-toolbar-field">
-								<Select
-									value={data.selectedBranchCode}
-									options={branchOptions}
-									label="Sede"
-									clearable={false}
-									onchange={applyBranchFilter}
-								/>
-							</div>
-						{:else}
-							<Chip color="primary" size="sm">{selectedBranch?.name ?? 'Sede'}</Chip>
-						{/if}
+						<Chip color="primary" size="sm" icon="building2">{selectedBranch?.name ?? 'Sede'}</Chip>
 					</div>
 				</div>
 			</Card>
@@ -288,7 +248,7 @@
 				<EmptyState
 					title="Sin ciclos en esta sede"
 					description="Aún no hay periodos para {selectedBranch?.name ??
-						'esta sede'}. Puedes crear uno o cambiar de sede si tienes varias asignadas."
+						'esta sede'}. Puedes crear uno desde esta pantalla o cambiar la sede activa en Mi perfil."
 					icon="bookOpen"
 				/>
 			{:else}
@@ -471,13 +431,7 @@
 						placeholder="Ej: Verano 2026"
 						required
 					/>
-					<Select
-						bind:value={formBranchCode}
-						name="branch_code"
-						label="Sede"
-						options={branchOptions}
-						placeholder="Seleccione una sede"
-					/>
+					<InfoItem icon="building2" label="Sede de trabajo" value={selectedBranch?.name ?? '—'} />
 					<Select
 						bind:value={formModality}
 						name="modality"

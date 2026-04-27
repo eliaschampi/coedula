@@ -1,22 +1,26 @@
 import type { Cookies } from '@sveltejs/kit';
+import { sql } from 'kysely';
 import { decodeTokenExpiration, generateToken, verifyToken } from './jwt';
+import { BranchAccessRepository } from '$lib/server/repositories/branch-access.repository';
 import type { Database } from '$lib/database';
 import type { Users } from '$lib/database/types';
 import type { Selectable } from 'kysely';
 
-const SESSION_USER_COLUMNS = [
-	'code',
-	'name',
-	'last_name',
-	'email',
-	'photo_url',
-	'is_super_admin',
-	'last_login',
-	'created_at',
-	'updated_at'
-] as const;
-
-export type SessionUser = Pick<Selectable<Users>, (typeof SESSION_USER_COLUMNS)[number]>;
+export type SessionUser = Pick<
+	Selectable<Users>,
+	| 'code'
+	| 'name'
+	| 'last_name'
+	| 'email'
+	| 'photo_url'
+	| 'is_super_admin'
+	| 'last_login'
+	| 'created_at'
+	| 'updated_at'
+	| 'current_branch'
+> & {
+	current_branch_name: string | null;
+};
 
 export interface Session {
 	user: SessionUser;
@@ -36,12 +40,52 @@ const cookieConfig = {
 
 async function getSessionUser(db: Database, userCode: string): Promise<SessionUser | null> {
 	const user = await db
-		.selectFrom('users')
-		.select(SESSION_USER_COLUMNS)
-		.where('code', '=', userCode)
+		.selectFrom('users as u')
+		.leftJoin('branches as b', 'b.code', 'u.current_branch')
+		.select([
+			'u.code',
+			'u.name',
+			'u.last_name',
+			'u.email',
+			'u.photo_url',
+			'u.is_super_admin',
+			'u.last_login',
+			'u.created_at',
+			'u.updated_at',
+			'u.current_branch',
+			sql<string | null>`b.name`.as('current_branch_name')
+		])
+		.where('u.code', '=', userCode)
 		.executeTakeFirst();
 
 	return user ?? null;
+}
+
+/**
+ * Alinea `current_branch` con las sedes permitidas (p. ej. tras reasignación en "Sedes").
+ */
+async function ensureUserCurrentBranch(db: Database, user: SessionUser): Promise<SessionUser> {
+	const branches = await BranchAccessRepository.listForUser(
+		db,
+		user.code,
+		Boolean(user.is_super_admin)
+	);
+	if (branches.length === 0) {
+		return user;
+	}
+
+	const pick = BranchAccessRepository.pickAllowedBranch(user.current_branch, branches);
+	if (pick == null || pick === user.current_branch) {
+		return user;
+	}
+
+	await db
+		.updateTable('users')
+		.set({ current_branch: pick, updated_at: new Date() })
+		.where('code', '=', user.code)
+		.execute();
+
+	return (await getSessionUser(db, user.code)) ?? user;
 }
 
 /**
@@ -54,12 +98,14 @@ export async function createSession(
 ): Promise<Session | null> {
 	try {
 		// Get user from database (safe shape, no password hash)
-		const user = await getSessionUser(db, userCode);
+		const raw = await getSessionUser(db, userCode);
 
-		if (!user) {
+		if (!raw) {
 			console.error('User not found:', userCode);
 			return null;
 		}
+
+		const user = await ensureUserCurrentBranch(db, raw);
 
 		// Generate JWT token
 		const token = generateToken({ userCode: user.code, email: user.email });
@@ -104,12 +150,14 @@ export async function getSession(db: Database, cookies: Cookies): Promise<Sessio
 		}
 
 		// Get fresh user data (safe shape, no password hash)
-		const user = await getSessionUser(db, payload.userCode);
+		const raw = await getSessionUser(db, payload.userCode);
 
-		if (!user) {
+		if (!raw) {
 			destroySession(cookies);
 			return null;
 		}
+
+		const user = await ensureUserCurrentBranch(db, raw);
 
 		const expSeconds = payload.exp;
 		if (typeof expSeconds !== 'number' || !Number.isFinite(expSeconds) || expSeconds <= 0) {

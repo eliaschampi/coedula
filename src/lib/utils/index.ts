@@ -68,7 +68,7 @@ export {
 export type { StudentFormSource, StudentFormState } from './studentForm';
 export { readFormCheckbox, readFormField, readFormFieldList } from './formData';
 export { getInitials } from './initialName';
-export { isUuid, areUuids } from './validation';
+export { isUuid, areUuids, normalizeUuid } from './validation';
 export { PG_FOREIGN_KEY_VIOLATION, PG_UNIQUE_VIOLATION, pgErrorCode } from './postgres';
 export {
 	TEACHER_WEEKDAY_OPTIONS,

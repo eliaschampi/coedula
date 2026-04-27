@@ -2,6 +2,8 @@ import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 import { readFormCheckbox, readFormField, readFormFieldList } from '$lib/utils/formData';
 import { areUuids, isUuid } from '$lib/utils/validation';
+import { BranchAccessRepository } from '$lib/server/repositories/branch-access.repository';
+import { reconcileUserCurrentBranch } from '$lib/server/user-branch.server';
 
 export const load: PageServerLoad = async ({ locals, depends }) => {
 	depends('branches:load');
@@ -95,6 +97,29 @@ export const actions: Actions = {
 		}
 
 		try {
+			const before = await locals.db
+				.selectFrom('branches')
+				.select('users')
+				.where('code', '=', branchCode)
+				.executeTakeFirst();
+			const beforeUsers = before?.users?.length ? [...before.users] : [];
+			const afterSet = new Set(selectedUsers);
+			const removedFromThisBranch = beforeUsers.filter((code) => !afterSet.has(code));
+
+			for (const userCode of removedFromThisBranch) {
+				const other = await BranchAccessRepository.countOtherActiveMemberships(
+					locals.db,
+					userCode,
+					branchCode
+				);
+				if (other < 1) {
+					return fail(400, {
+						error:
+							'No se puede quitar a un usuario de su única sede. Asigna otra sede a ese usuario antes, o quítalo del sistema.'
+					});
+				}
+			}
+
 			const result = await locals.db
 				.updateTable('branches')
 				.set({ name, state, users: selectedUsers })
@@ -103,6 +128,10 @@ export const actions: Actions = {
 
 			if (Number(result.numUpdatedRows ?? 0) === 0) {
 				return fail(404, { error: 'Sede no encontrada' });
+			}
+
+			for (const userCode of removedFromThisBranch) {
+				await reconcileUserCurrentBranch(locals.db, userCode);
 			}
 
 			return { success: true, type: 'success' };
