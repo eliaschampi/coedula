@@ -295,11 +295,17 @@ export class TeacherRepository {
 	}
 
 	static async deleteSchedule(db: Database, scheduleCode: string): Promise<boolean> {
-		const result = await db
-			.deleteFrom('teacher_schedules')
-			.where('code', '=', scheduleCode)
-			.executeTakeFirst();
+		return db.transaction().execute(async (trx) => {
+			await trx
+				.deleteFrom('teacher_attendances')
+				.where('schedule_code', '=', scheduleCode)
+				.execute();
+			const result = await trx
+				.deleteFrom('teacher_schedules')
+				.where('code', '=', scheduleCode)
+				.executeTakeFirst();
 
-		return Number(result.numDeletedRows ?? 0) > 0;
+			return Number(result.numDeletedRows ?? 0) > 0;
+		});
 	}
 }

@@ -1,7 +1,12 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { readFormField } from '$lib/utils/formData';
-import { isUuid } from '$lib/utils/validation';
+import {
+	PG_FOREIGN_KEY_VIOLATION,
+	PG_UNIQUE_VIOLATION,
+	pgErrorCode,
+	readFormField,
+	isUuid
+} from '$lib/utils';
 import {
 	isTeacherWeekday,
 	normalizeTeacherTimeInput,
@@ -10,8 +15,6 @@ import {
 import { TeacherRepository } from '$lib/server/repositories/teacher.repository';
 import { TeacherAttendanceRepository } from '$lib/server/repositories/teacher-attendance.repository';
 import type { TeacherWeekday } from '$lib/types/teacher';
-
-const DUPLICATE_KEY_CODE = '23505';
 
 export const load: PageServerLoad = async ({ locals, depends, url }) => {
 	depends('teachers:load');
@@ -135,14 +138,12 @@ export const actions: Actions = {
 
 			return { success: true, type: 'success' };
 		} catch (caught) {
-			const dbError = caught as { code?: string };
-			if (dbError.code === '23503') {
+			if (pgErrorCode(caught) === PG_FOREIGN_KEY_VIOLATION) {
 				return fail(400, {
 					error: 'No se puede eliminar el docente porque tiene asistencias asociadas'
 				});
 			}
-			const message = caught instanceof Error ? caught.message : 'No se pudo eliminar el docente';
-			return fail(400, { error: message });
+			return fail(400, { error: 'No se pudo eliminar el docente' });
 		}
 	},
 
@@ -212,8 +213,7 @@ export const actions: Actions = {
 
 			return { success: true, type: 'success' };
 		} catch (caught) {
-			const dbError = caught as { code?: string };
-			if (dbError.code === DUPLICATE_KEY_CODE) {
+			if (pgErrorCode(caught) === PG_UNIQUE_VIOLATION) {
 				return fail(400, {
 					error: 'Ya existe un horario con la misma hora para esta sede y día'
 				});
@@ -244,14 +244,13 @@ export const actions: Actions = {
 
 			return { success: true, type: 'success' };
 		} catch (caught) {
-			const dbError = caught as { code?: string };
-			if (dbError.code === '23503') {
+			if (pgErrorCode(caught) === PG_FOREIGN_KEY_VIOLATION) {
 				return fail(400, {
-					error: 'No se puede eliminar el horario porque tiene asistencias asociadas'
+					error:
+						'Este horario no se puede eliminar todavía porque hay datos vinculados. Si el problema continúa, contacta al administrador.'
 				});
 			}
-			const message = caught instanceof Error ? caught.message : 'No se pudo eliminar el horario';
-			return fail(400, { error: message });
+			return fail(400, { error: 'No se pudo eliminar el horario' });
 		}
 	}
 };

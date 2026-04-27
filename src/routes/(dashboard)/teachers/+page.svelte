@@ -11,7 +11,11 @@
 		DropdownItem,
 		EmptyState,
 		Fieldset,
+		InfoItem,
 		Input,
+		List,
+		ListHeader,
+		ListItem,
 		PageHeader,
 		Select,
 		Table,
@@ -169,7 +173,7 @@
 		scheduleEditingCode = null;
 		scheduleWeekday = '1';
 		scheduleEntryTime = '07:00';
-		scheduleTolerance = '15';
+		scheduleTolerance = '30';
 		scheduleBranchCode = data.branches[0]?.code ?? null;
 		showSchedulesModal = true;
 	}
@@ -184,6 +188,14 @@
 		const time = formatTeacherEntryTime(schedule.entry_time);
 		return `${weekday} · ${time} · ${schedule.branch_name} (±${schedule.tolerance_minutes} min)`;
 	}
+
+	const scheduleListSummary = $derived(
+		scheduleTarget && scheduleTarget.schedules.length === 0
+			? 'Sin horarios configurados'
+			: scheduleTarget
+				? `${scheduleTarget.schedules.length} horario${scheduleTarget.schedules.length === 1 ? '' : 's'} configurado${scheduleTarget.schedules.length === 1 ? '' : 's'}`
+				: ''
+	);
 
 	function schedulesTooltip(schedules: ScheduleItem[]): string {
 		if (schedules.length === 0) return '';
@@ -540,14 +552,15 @@
 					>
 						<div>
 							{#if scheduleEditingCode}
-								<Button type="border" size="sm" button="button" onclick={cancelScheduleEdit}>
+								<Button type="ghost" color="warning" size="sm" button="button" onclick={cancelScheduleEdit}>
 									Cancelar edición
 								</Button>
 							{/if}
 						</div>
 						<Button
-							type="filled"
+							type="flat"
 							color="primary"
+							size="sm"
 							icon={scheduleEditingCode ? 'check' : 'plus'}
 							button="submit"
 							disabled={!scheduleBranchCode}
@@ -558,36 +571,25 @@
 				</form>
 			</Fieldset>
 
-			<Fieldset legend="Horarios actuales">
-				{#if scheduleTarget.schedules.length === 0}
-					<EmptyState
-						title="Sin horarios configurados"
-						description="Agrega los horarios semanales del docente por sede para habilitar el control de asistencia."
-						icon="clock"
-					/>
-				{:else}
-					<div class="lumi-stack lumi-stack--xs">
-						{#each scheduleTarget.schedules as schedule (schedule.code)}
-							<div
-								class={[
-									'lumi-flex',
-									'lumi-flex--gap-md',
-									'lumi-justify--between',
-									'lumi-align-items--center',
-									'lumi-padding-y--sm',
-									'lumi-padding-x--md',
-									'lumi-border',
-									'lumi-radius--lg',
-									'lumi-bg--surface',
-									scheduleEditingCode === schedule.code && 'lumi-border--strong'
-								]
-									.filter(Boolean)
-									.join(' ')}
-							>
-								<span class="lumi-font--medium lumi-text--sm lumi-flex-item--grow"
-									>{describeSchedule(schedule)}</span
+			<Fieldset legend={scheduleListSummary} >
+				<div class="lumi-stack lumi-stack--sm">
+					{#if scheduleTarget.schedules.length === 0}
+						<div class="lumi-text--center lumi-padding--xl lumi-text--muted">
+							Agrega los horarios semanales del docente por sede para habilitar el control de
+							asistencia.
+						</div>
+					{:else}
+						<List size="sm" class="teachers-schedules-modal__list">
+							<ListHeader title="Lista de horarios" icon="clock" />
+							{#each scheduleTarget.schedules as schedule (schedule.code)}
+								{@const wd = formatTeacherWeekdayShort(schedule.weekday as TeacherWeekday)}
+								{@const tm = formatTeacherEntryTime(schedule.entry_time)}
+								<ListItem
+									title={`${wd} · ${tm} · ${schedule.branch_name}`}
+									subtitle={`Tolerancia ±${schedule.tolerance_minutes} min`}
+									icon="clock"
+									active={scheduleEditingCode === schedule.code}
 								>
-								<div class="lumi-flex lumi-flex--gap-xs lumi-align-items--center">
 									<Button
 										type="flat"
 										size="sm"
@@ -602,7 +604,7 @@
 										use:enhance={() => {
 											return async ({ result }) => {
 												if (result.type === 'success') {
-													showToast('Horario eliminado', 'success');
+													showToast('Horario y sus registros de asistencia eliminados', 'success');
 													await invalidate('teachers:load');
 													return;
 												}
@@ -625,11 +627,11 @@
 											aria-label="Eliminar horario"
 										/>
 									</form>
-								</div>
-							</div>
-						{/each}
-					</div>
-				{/if}
+								</ListItem>
+							{/each}
+						</List>
+					{/if}
+				</div>
 			</Fieldset>
 		</div>
 	{/if}
@@ -638,3 +640,9 @@
 		<Button type="border" onclick={closeSchedulesModal}>Cerrar</Button>
 	{/snippet}
 </Dialog>
+
+<style>
+	:global(.teachers-schedules-modal__list) {
+		max-height: calc(var(--lumi-space-6xl) + var(--lumi-space-5xl));
+	}
+</style>
