@@ -1,16 +1,7 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
 	import { enhance } from '$app/forms';
-	import {
-		Alert,
-		Button,
-		Card,
-		Dialog,
-		EmptyState,
-		Input,
-		PageHeader,
-		Table
-	} from '$lib/components';
+	import { Alert, Button, Dialog, EmptyState, InfoItem, Input, PageHeader } from '$lib/components';
 	import { can } from '$lib/stores/permissions';
 	import { showToast } from '$lib/stores/Toast';
 	import type { PageData } from './$types';
@@ -32,6 +23,15 @@
 	let selectedCourse = $state<CourseRow | null>(null);
 
 	let formName = $state('');
+	let courseFilter = $state('');
+
+	const normalizedCourseFilter = $derived(courseFilter.trim().toLowerCase());
+
+	const filteredCourses = $derived(
+		normalizedCourseFilter.length === 0
+			? data.courses
+			: data.courses.filter((c) => c.name.toLowerCase().includes(normalizedCourseFilter))
+	);
 
 	function getActionError(result: { data?: Record<string, unknown> }): string | null {
 		const error = result.data?.error;
@@ -101,62 +101,89 @@
 		{/snippet}
 	</PageHeader>
 
-	<Card>
-		{#if !canRead}
-			<Alert type="warning" closable>No tienes permisos para consultar cursos.</Alert>
-		{:else if data.courses.length === 0}
-			<EmptyState
-				title="Sin cursos registrados"
-				description="Crea el primer curso para empezar a organizar el catálogo académico."
-				icon="bookOpenCheck"
-			>
-				{#snippet actions()}
-					<Button
-						type="filled"
-						color="primary"
-						icon="plus"
-						onclick={openCreateModal}
-						disabled={!canCreate}
-					>
-						Crear curso
-					</Button>
-				{/snippet}
-			</EmptyState>
-		{:else}
-			<Table data={data.courses} search pagination hover itemsPerPage={10}>
-				{#snippet thead()}
-					<th>Nombre</th>
-					<th>Acciones</th>
-				{/snippet}
+	{#if !canRead}
+		<Alert type="warning" closable>No tienes permisos para consultar cursos.</Alert>
+	{:else if data.courses.length === 0}
+		<EmptyState
+			title="Sin cursos registrados"
+			description="Crea el primer curso para empezar a organizar el catálogo académico."
+			icon="bookOpenCheck"
+		>
+			{#snippet actions()}
+				<Button
+					type="filled"
+					color="primary"
+					icon="plus"
+					onclick={openCreateModal}
+					disabled={!canCreate}
+				>
+					Crear curso
+				</Button>
+			{/snippet}
+		</EmptyState>
+	{:else}
+		<div class="lumi-stack lumi-stack--md">
+			<div class="lumi-selected-panel" aria-label="Barra de búsqueda del catálogo">
+				<div class="lumi-selected-panel__identity">
+					<div class="lumi-toolbar-field lumi-width--full">
+						<Input
+							bind:value={courseFilter}
+							icon="search"
+							placeholder="Buscar por nombre…"
+							aria-label="Filtrar cursos por nombre"
+						/>
+					</div>
+				</div>
+				<p class="lumi-margin--none lumi-text--sm lumi-text--muted lumi-flex-item--shrink">
+					{filteredCourses.length} de {data.courses.length}
+				</p>
+			</div>
 
-				{#snippet row({ row })}
-					{@const course = row as unknown as CourseRow}
-					<td>
-						<span class="lumi-font--medium">{course.name}</span>
-					</td>
-					<td>
-						<div class="lumi-flex lumi-flex--gap-xs">
-							<Button
-								type="flat"
-								size="sm"
-								icon="edit"
-								onclick={() => openEditModal(course)}
-								disabled={!canUpdate}
-							/>
-							<Button
-								type="flat"
-								size="sm"
-								icon="trash"
-								color="danger"
-								onclick={() => openDeleteModal(course)}
-								disabled={!canDelete}
-							/>
+			{#if filteredCourses.length === 0}
+				<Alert type="info" closable={false}>No hay cursos que coincidan con tu búsqueda.</Alert>
+			{:else}
+				<div class="lumi-item-list" role="list" aria-label="Listado de cursos">
+					{#each filteredCourses as course (course.code)}
+						<div
+							class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-md lumi-flex--wrap"
+							role="listitem"
+						>
+							<InfoItem
+								class="lumi-flex-item--grow"
+								icon="bookOpenCheck"
+								iconColor="primary"
+								label="Curso"
+								layout="horizontal"
+							>
+								<span class="lumi-font--medium">{course.name}</span>
+							</InfoItem>
+							<div
+								class="lumi-flex lumi-align-items--center lumi-flex--gap-xs lumi-flex-item--shrink"
+							>
+								<Button
+									type="flat"
+									size="sm"
+									icon="edit"
+									onclick={() => openEditModal(course)}
+									disabled={!canUpdate}
+									aria-label={`Editar ${course.name}`}
+								/>
+								<Button
+									type="flat"
+									size="sm"
+									icon="trash"
+									color="danger"
+									onclick={() => openDeleteModal(course)}
+									disabled={!canDelete}
+									aria-label={`Eliminar ${course.name}`}
+								/>
+							</div>
 						</div>
-					</td>
-				{/snippet}
-			</Table>
-		{/if}
-	</Card>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{/if}
 </div>
 
 <Dialog bind:open={showModal} title={isEditing ? 'Editar curso' : 'Nuevo curso'} size="md">
