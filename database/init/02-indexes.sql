@@ -56,6 +56,9 @@ CREATE INDEX teacher_attendances_schedule_idx ON public.teacher_attendances (sch
 CREATE INDEX enrollments_active_created_at_idx ON public.enrollments (is_active, created_at DESC);
 CREATE INDEX enrollments_cycle_degree_idx ON public.enrollments (cycle_degree_code, is_active);
 CREATE INDEX enrollments_student_idx ON public.enrollments (student_code, created_at DESC);
+CREATE UNIQUE INDEX enrollments_one_active_per_student_uq
+  ON public.enrollments (student_code)
+  WHERE is_active = TRUE;
 CREATE UNIQUE INDEX enrollments_roll_code_cycle_group_uq
   ON public.enrollments (cycle_degree_code, group_code, roll_code);
 

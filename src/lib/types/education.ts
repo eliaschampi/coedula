@@ -91,6 +91,20 @@ export interface StudentOption {
 	label: string;
 }
 
+/** Row for student directory search (latest enrollment = max created_at). */
+export interface RegistroStudentTableRow {
+	code: string;
+	student_number: string;
+	full_name: string;
+	dni: string | null;
+	phone: string | null;
+	photo_url: string | null;
+	latest_cycle_title: string | null;
+	latest_branch_name: string | null;
+	latest_degree_name: string | null;
+	active_enrollment_code: string | null;
+}
+
 export interface CycleOption {
 	code: string;
 	title: string;

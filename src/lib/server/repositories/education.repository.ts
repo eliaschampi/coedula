@@ -1,6 +1,7 @@
 import { randomInt } from 'crypto';
 import { sql, type Kysely, type Transaction } from 'kysely';
-import type { DB, Database } from '$lib/database';
+import type { Database } from '$lib/database';
+import type { DB, StudentRegistroLookup } from '$lib/database/types';
 import { normalizeUuid } from '$lib/utils/validation';
 import type {
 	AcademicCycleOverview,
@@ -10,6 +11,7 @@ import type {
 	EnrollmentOverview,
 	EnrollmentTurn,
 	GroupCode,
+	RegistroStudentTableRow,
 	StudentDirectorySummary,
 	StudentOption,
 	StudentOverview
@@ -79,6 +81,35 @@ function dedupe(values: string[]): string[] {
 
 function buildStudentSearchPattern(query: string): string {
 	return `%${query.trim().replace(/\s+/g, ' ').replace(/[%_]/g, '').toLowerCase()}%`;
+}
+
+function mapStudentRegistroLookupToRow(
+	row: Pick<
+		StudentRegistroLookup,
+		| 'code'
+		| 'student_number'
+		| 'full_name'
+		| 'dni'
+		| 'phone'
+		| 'photo_url'
+		| 'latest_cycle_title'
+		| 'latest_branch_name'
+		| 'latest_degree_name'
+		| 'active_enrollment_code'
+	>
+): RegistroStudentTableRow {
+	return {
+		code: row.code ?? '',
+		student_number: row.student_number ?? '',
+		full_name: row.full_name ?? '',
+		dni: row.dni,
+		phone: row.phone,
+		photo_url: row.photo_url,
+		latest_cycle_title: row.latest_cycle_title,
+		latest_branch_name: row.latest_branch_name,
+		latest_degree_name: row.latest_degree_name,
+		active_enrollment_code: row.active_enrollment_code
+	};
 }
 
 function extractYear(value: string | Date): number {
@@ -151,6 +182,57 @@ async function getCycleDegreeOption(
 		.executeTakeFirst();
 
 	return (option as CycleDegreeOption | undefined) ?? null;
+}
+
+async function isCycleOpenOnCalendar(
+	db: DatabaseExecutor,
+	cycleDegreeCode: string
+): Promise<boolean> {
+	const row = await sql<{ ok: boolean }>`
+		SELECT (ac.end_date >= CURRENT_DATE) AS ok
+		FROM public.cycle_degrees cd
+		INNER JOIN public.academic_cycles ac ON ac.code = cd.cycle_code
+		WHERE cd.code = ${cycleDegreeCode}
+	`
+		.execute(db)
+		.then((r) => r.rows[0]);
+
+	return Boolean(row?.ok);
+}
+
+async function assertEnrollmentCycleAllowsUpsert(
+	db: DatabaseExecutor,
+	input: { enrollmentCode?: string; isActive: boolean },
+	cycleDegreeCode: string
+): Promise<void> {
+	const open = await isCycleOpenOnCalendar(db, cycleDegreeCode);
+	if (!input.enrollmentCode) {
+		if (!open) {
+			throw new Error('No se permite matricular en un ciclo académico ya finalizado');
+		}
+		return;
+	}
+	if (input.isActive && !open) {
+		throw new Error('No se puede dejar activa una matrícula en un ciclo ya finalizado');
+	}
+}
+
+async function deactivateOtherActiveEnrollmentsForStudent(
+	trx: DatabaseExecutor,
+	studentCode: string,
+	exceptEnrollmentCode?: string | null
+): Promise<void> {
+	let query = trx
+		.updateTable('enrollments')
+		.set({ is_active: false, updated_at: new Date() })
+		.where('student_code', '=', studentCode)
+		.where('is_active', '=', true);
+
+	if (exceptEnrollmentCode) {
+		query = query.where('code', '!=', exceptEnrollmentCode);
+	}
+
+	await query.execute();
 }
 
 async function ensureCycleSupportsEnrollmentTurn(
@@ -480,6 +562,90 @@ export class EducationRepository {
 		return rows as StudentOption[];
 	}
 
+	static async searchStudentsRegistroPaginated(
+		db: Database,
+		input: { query: string; limit: number; offset: number }
+	): Promise<{ rows: RegistroStudentTableRow[]; hasMore: boolean }> {
+		const normalized = input.query.trim();
+		if (normalized.length < 2) {
+			return { rows: [], hasMore: false };
+		}
+
+		const searchPattern = buildStudentSearchPattern(normalized);
+		const fetchLimit = input.limit + 1;
+
+		const raw = await db
+			.selectFrom('student_registro_lookup')
+			.select([
+				'code',
+				'student_number',
+				'full_name',
+				'dni',
+				'phone',
+				'photo_url',
+				'latest_cycle_title',
+				'latest_branch_name',
+				'latest_degree_name',
+				'active_enrollment_code'
+			])
+			.where((eb) =>
+				eb.or([
+					sql<boolean>`LOWER(full_name) LIKE ${searchPattern}`,
+					sql<boolean>`LOWER(student_number) LIKE ${searchPattern}`,
+					sql<boolean>`LOWER(COALESCE(dni, '')) LIKE ${searchPattern}`,
+					sql<boolean>`LOWER(COALESCE(phone, '')) LIKE ${searchPattern}`
+				])
+			)
+			.orderBy('student_updated_at', 'desc')
+			.orderBy('code', 'asc')
+			.limit(fetchLimit)
+			.offset(input.offset)
+			.execute();
+
+		const rows = raw.map(mapStudentRegistroLookupToRow);
+		const hasMore = rows.length > input.limit;
+		return {
+			rows: hasMore ? rows.slice(0, input.limit) : rows,
+			hasMore
+		};
+	}
+
+	/** Most recently created students (same columns as search; backed by `student_registro_lookup`). */
+	static async listRecentStudentsRegistroPaginated(
+		db: Database,
+		input: { limit: number; offset: number }
+	): Promise<{ rows: RegistroStudentTableRow[]; hasMore: boolean }> {
+		const safeLimit = Math.min(Math.max(input.limit, 1), 100);
+		const fetchLimit = safeLimit + 1;
+
+		const raw = await db
+			.selectFrom('student_registro_lookup')
+			.select([
+				'code',
+				'student_number',
+				'full_name',
+				'dni',
+				'phone',
+				'photo_url',
+				'latest_cycle_title',
+				'latest_branch_name',
+				'latest_degree_name',
+				'active_enrollment_code'
+			])
+			.orderBy('student_created_at', 'desc')
+			.orderBy('code', 'desc')
+			.limit(fetchLimit)
+			.offset(input.offset)
+			.execute();
+
+		const rows = raw.map(mapStudentRegistroLookupToRow);
+		const hasMore = rows.length > safeLimit;
+		return {
+			rows: hasMore ? rows.slice(0, safeLimit) : rows,
+			hasMore
+		};
+	}
+
 	static async getStudentDirectorySummary(db: Database): Promise<StudentDirectorySummary> {
 		const [activeStudents, studentsWithEnrollments, totalEnrollments] = await Promise.all([
 			db
@@ -746,6 +912,19 @@ export class EducationRepository {
 		return rows as EnrollmentOverview[];
 	}
 
+	static async findEnrollmentOverviewByCode(
+		db: Database,
+		enrollmentCode: string
+	): Promise<EnrollmentOverview | null> {
+		const row = await db
+			.selectFrom('enrollment_overview')
+			.selectAll()
+			.where('code', '=', enrollmentCode)
+			.executeTakeFirst();
+
+		return (row as EnrollmentOverview | undefined) ?? null;
+	}
+
 	static async createEnrollment(
 		db: Database,
 		input: EnrollmentUpsertInput
@@ -763,6 +942,15 @@ export class EducationRepository {
 		const year = extractYear(cycleDegree.start_date ?? new Date());
 
 		return db.transaction().execute(async (trx) => {
+			await assertEnrollmentCycleAllowsUpsert(
+				trx,
+				{ isActive: input.isActive },
+				input.cycleDegreeCode
+			);
+			if (input.isActive) {
+				await deactivateOtherActiveEnrollmentsForStudent(trx, input.studentCode, null);
+			}
+
 			await lockEnrollmentRollSequence(trx, input.cycleDegreeCode, input.groupCode, year);
 			const rollCode =
 				input.rollCode?.trim() ||
@@ -790,6 +978,8 @@ export class EducationRepository {
 			throw new Error('Matrícula inválida');
 		}
 
+		const enrollmentCode = input.enrollmentCode;
+
 		await ensureStudentExists(db, input.studentCode);
 		const cycleDegree = await getCycleDegreeOption(db, input.cycleDegreeCode);
 
@@ -801,22 +991,29 @@ export class EducationRepository {
 
 		const payCost = input.payCost != null ? input.payCost : toNumber(cycleDegree.base_cost);
 
-		const result = await db
-			.updateTable('enrollments')
-			.set({
-				student_code: input.studentCode,
-				cycle_degree_code: input.cycleDegreeCode,
-				pay_cost: payCost,
-				turn: input.turn,
-				is_active: input.isActive,
-				group_code: input.groupCode,
-				observation: input.observation,
-				updated_at: new Date()
-			})
-			.where('code', '=', input.enrollmentCode)
-			.executeTakeFirst();
+		return db.transaction().execute(async (trx) => {
+			await assertEnrollmentCycleAllowsUpsert(trx, input, input.cycleDegreeCode);
+			if (input.isActive) {
+				await deactivateOtherActiveEnrollmentsForStudent(trx, input.studentCode, enrollmentCode);
+			}
 
-		return Number(result.numUpdatedRows ?? 0) > 0;
+			const result = await trx
+				.updateTable('enrollments')
+				.set({
+					student_code: input.studentCode,
+					cycle_degree_code: input.cycleDegreeCode,
+					pay_cost: payCost,
+					turn: input.turn,
+					is_active: input.isActive,
+					group_code: input.groupCode,
+					observation: input.observation,
+					updated_at: new Date()
+				})
+				.where('code', '=', enrollmentCode)
+				.executeTakeFirst();
+
+			return Number(result.numUpdatedRows ?? 0) > 0;
+		});
 	}
 
 	static async deleteEnrollment(db: Database, enrollmentCode: string): Promise<boolean> {

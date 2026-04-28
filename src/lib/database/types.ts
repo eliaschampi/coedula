@@ -558,6 +558,21 @@ export interface StudentOverview {
 	updated_at: Timestamp | null;
 }
 
+export interface StudentRegistroLookup {
+	active_enrollment_code: string | null;
+	code: string | null;
+	dni: string | null;
+	full_name: string | null;
+	latest_branch_name: string | null;
+	latest_cycle_title: string | null;
+	latest_degree_name: string | null;
+	phone: string | null;
+	photo_url: string | null;
+	student_created_at: Timestamp | null;
+	student_number: string | null;
+	student_updated_at: Timestamp | null;
+}
+
 export interface Students {
 	address: string | null;
 	birth_date: Timestamp | null;
@@ -692,6 +707,7 @@ export interface DB {
 	permissions: Permissions;
 	student_drive_links: StudentDriveLinks;
 	student_overview: StudentOverview;
+	student_registro_lookup: StudentRegistroLookup;
 	students: Students;
 	teacher_attendance_overview: TeacherAttendanceOverview;
 	teacher_attendances: TeacherAttendances;

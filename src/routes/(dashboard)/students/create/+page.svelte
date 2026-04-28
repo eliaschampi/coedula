@@ -37,7 +37,7 @@
 		<Alert type="warning" closable>No tienes permisos para crear alumnos.</Alert>
 	{:else}
 		<Alert type="warning" closable={false}>
-			Busca primero en el directorio de alumnos para evitar registros duplicados.
+			En Alumnos usá «Buscar alumno» antes de crear una ficha para evitar duplicados.
 		</Alert>
 
 		<Card

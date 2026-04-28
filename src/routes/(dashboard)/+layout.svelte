@@ -81,8 +81,14 @@
 	const canReadCycles = $derived(can('cycles:read'));
 	const canReadCourses = $derived(can('courses:read'));
 	const canReadEvaluations = $derived(can('evaluations:read'));
-	const canReadStudents = $derived(can('students:read'));
-	const canReadEnrollments = $derived(can('enrollments:read'));
+	const canSeeStudentsHub = $derived(
+		can('students:read') ||
+			can('students:create') ||
+			can('enrollments:read') ||
+			can('enrollments:create') ||
+			can('enrollments:update') ||
+			can('enrollments:delete')
+	);
 	const canReadAttendance = $derived(can('attendance:read'));
 	const canReadTeachers = $derived(can('teachers:read'));
 	const canReadTeacherAttendance = $derived(can('teacher_attendance:read'));
@@ -186,29 +192,16 @@
 			</SidebarItem>
 		{/if}
 
-		{#if canReadStudents}
+		{#if canSeeStudentsHub}
 			<SidebarItem
 				href="/students"
 				active={page.url.pathname.startsWith('/students')}
 				collapsed={sidebarCollapsed}
 			>
 				{#snippet icon()}
-					<Icon icon="userPlus" size="20px" />
+					<Icon icon="userRound" size="20px" />
 				{/snippet}
 				Alumnos
-			</SidebarItem>
-		{/if}
-
-		{#if canReadEnrollments}
-			<SidebarItem
-				href="/enrollments"
-				active={page.url.pathname.startsWith('/enrollments')}
-				collapsed={sidebarCollapsed}
-			>
-				{#snippet icon()}
-					<Icon icon="userCheck" size="20px" />
-				{/snippet}
-				Matrículas
 			</SidebarItem>
 		{/if}
 

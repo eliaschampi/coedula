@@ -238,6 +238,37 @@ LEFT JOIN LATERAL (
   LIMIT 1
 ) AS current_enrollment ON TRUE;
 
+-- Unified row shape for Registro student search / recents (single source for API + repository)
+CREATE OR REPLACE VIEW public.student_registro_lookup AS
+SELECT
+  s.code,
+  s.student_number,
+  (s.first_name || ' ' || s.last_name) AS full_name,
+  s.dni,
+  s.phone,
+  s.photo_url,
+  s.created_at AS student_created_at,
+  s.updated_at AS student_updated_at,
+  latest.cycle_title AS latest_cycle_title,
+  latest.branch_name AS latest_branch_name,
+  latest.degree_name AS latest_degree_name,
+  act.code AS active_enrollment_code
+FROM public.students s
+LEFT JOIN LATERAL (
+  SELECT eo.cycle_title, eo.branch_name, eo.degree_name
+  FROM public.enrollment_overview eo
+  WHERE eo.student_code = s.code
+  ORDER BY eo.created_at DESC
+  LIMIT 1
+) latest ON TRUE
+LEFT JOIN LATERAL (
+  SELECT eo.code
+  FROM public.enrollment_overview eo
+  WHERE eo.student_code = s.code AND eo.status = 'active'
+  ORDER BY eo.created_at DESC
+  LIMIT 1
+) act ON TRUE;
+
 CREATE OR REPLACE VIEW public.payment_overview AS
 SELECT
   p.code,

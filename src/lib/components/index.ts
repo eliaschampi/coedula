@@ -97,6 +97,8 @@ export { StatusIndicator } from './StatusIndicator';
 export { StudentForm } from './StudentForm';
 export { StudentFormFields } from './StudentFormFields';
 export { StudentPhotoUploader } from './StudentPhotoUploader';
+export { StudentSearchModal } from './StudentSearchModal';
+export { EnrollmentWorkspaceForm } from './EnrollmentWorkspaceForm';
 export type { SwitchColor, SwitchProps, SwitchSize } from './Switch';
 export { Switch } from './Switch';
 export type { TableProps, TableRow, TdProps, ThProps, TrProps } from './Table';
