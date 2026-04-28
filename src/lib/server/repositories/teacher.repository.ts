@@ -263,6 +263,32 @@ export class TeacherRepository {
 		return rows as TeacherScheduleItem[];
 	}
 
+	static async findScheduleInBranch(
+		db: Database,
+		branchCode: string,
+		scheduleCode: string
+	): Promise<TeacherScheduleItem | null> {
+		const row = await db
+			.selectFrom('teacher_schedules as ts')
+			.innerJoin('branches as b', 'b.code', 'ts.branch_code')
+			.select([
+				'ts.code',
+				'ts.teacher_code',
+				'ts.branch_code',
+				'b.name as branch_name',
+				'ts.weekday',
+				'ts.entry_time',
+				'ts.tolerance_minutes',
+				'ts.created_at',
+				'ts.updated_at'
+			])
+			.where('ts.branch_code', '=', branchCode)
+			.where('ts.code', '=', scheduleCode)
+			.executeTakeFirst();
+
+		return (row as TeacherScheduleItem | undefined) ?? null;
+	}
+
 	static async createSchedule(db: Database, input: CreateScheduleInput): Promise<{ code: string }> {
 		return db
 			.insertInto('teacher_schedules')

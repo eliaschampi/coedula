@@ -4,6 +4,11 @@ import { formatLocalDateValue } from '$lib/utils';
 import { getWorkspaceBranchUuid } from '$lib/server/user-branch.server';
 import { isUuid } from '$lib/utils/validation';
 import { getTeacherWeekdayFromDate } from '$lib/utils/teacher';
+import {
+	describeTeacherAttendanceWindowViolation,
+	isTeacherAttendanceSlotWithinWindowAt,
+	toTeacherAttendanceScheduleSlot
+} from '$lib/utils/teacherAttendanceWindow';
 import { TeacherAttendanceRepository } from '$lib/server/repositories/teacher-attendance.repository';
 import { TeacherRepository } from '$lib/server/repositories/teacher.repository';
 import {
@@ -75,6 +80,33 @@ export const actions: Actions = {
 
 			if ('error' in payload) {
 				return fail(400, { error: payload.error });
+			}
+
+			const schedule = await TeacherRepository.findScheduleInBranch(
+				locals.db,
+				payload.branchCode,
+				payload.scheduleCode
+			);
+
+			if (!schedule) {
+				return fail(400, { error: 'El horario seleccionado no es válido para esta sede' });
+			}
+
+			if (schedule.teacher_code !== payload.teacherCode) {
+				return fail(400, { error: 'El horario no corresponde al docente seleccionado' });
+			}
+
+			const expectedWeekday = getTeacherWeekdayFromDate(payload.attendanceDate);
+			if (schedule.weekday !== expectedWeekday) {
+				return fail(400, { error: 'El horario no corresponde al día de la fecha elegida' });
+			}
+
+			const today = formatLocalDateValue();
+			if (payload.attendanceDate === today) {
+				const slot = toTeacherAttendanceScheduleSlot(schedule);
+				if (!isTeacherAttendanceSlotWithinWindowAt(slot, new Date())) {
+					return fail(400, { error: describeTeacherAttendanceWindowViolation(slot) });
+				}
 			}
 
 			await TeacherAttendanceRepository.create(locals.db, payload);

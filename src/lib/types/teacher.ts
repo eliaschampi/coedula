@@ -2,7 +2,7 @@ import type { DateValue } from './education';
 
 export type TeacherWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-export type TeacherAttendanceState = 'presente' | 'tarde';
+export type TeacherAttendanceState = 'presente' | 'tarde' | 'permiso' | 'falta' | 'justificado';
 
 export interface TeacherOverviewItem {
 	code: string;
@@ -56,29 +56,4 @@ export interface TeacherAttendanceRow {
 	schedule_weekday: TeacherWeekday;
 	schedule_entry_time: string;
 	schedule_tolerance_minutes: number;
-}
-
-export interface TeacherScanResult {
-	status: 'created' | 'already_registered';
-	message: string;
-	attendance: {
-		attendance_code: string;
-		attendance_date: string;
-		attendance_entry_time: string;
-		attendance_state: TeacherAttendanceState;
-	};
-	teacher: {
-		code: string;
-		full_name: string;
-		teacher_number: string;
-		phone: string | null;
-	};
-	schedule: {
-		code: string;
-		branch_code: string;
-		branch_name: string;
-		weekday: TeacherWeekday;
-		entry_time: string;
-		tolerance_minutes: number;
-	};
 }

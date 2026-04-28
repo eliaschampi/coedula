@@ -11,7 +11,6 @@
 		DropdownItem,
 		EmptyState,
 		Fieldset,
-		InfoItem,
 		Input,
 		List,
 		ListHeader,
@@ -508,12 +507,6 @@
 					<input type="hidden" name="teacher_code" value={scheduleTarget.code} />
 					<input type="hidden" name="schedule_code" value={scheduleEditingCode ?? ''} />
 					<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
-						<InfoItem
-							icon="building2"
-							label="Sede de trabajo"
-							value={data.user?.current_branch_name ?? 'Configura tu sede en Mi perfil'}
-							layout="vertical"
-						/>
 						<Select
 							bind:value={scheduleWeekday}
 							name="weekday"

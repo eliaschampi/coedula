@@ -3,7 +3,13 @@ import type { TeacherAttendanceState } from '$lib/types/teacher';
 import { isUuid } from '$lib/utils/validation';
 import { normalizeTeacherTimeInput } from '$lib/utils/teacher';
 
-const VALID_TEACHER_ATTENDANCE_STATES = new Set<TeacherAttendanceState>(['presente', 'tarde']);
+const VALID_TEACHER_ATTENDANCE_STATES = new Set<TeacherAttendanceState>([
+	'presente',
+	'tarde',
+	'permiso',
+	'falta',
+	'justificado'
+]);
 
 export interface TeacherAttendanceCreatePayload {
 	teacherCode: string;
@@ -62,7 +68,9 @@ export function readTeacherAttendanceCreatePayload(
 
 	const state = parseState(stateValue);
 	if (!state) {
-		return { error: 'Debe seleccionar un estado válido (presente o tarde)' };
+		return {
+			error: 'Debe seleccionar un estado válido.'
+		};
 	}
 
 	if (!entryTime) {
@@ -94,7 +102,9 @@ export function readTeacherAttendanceUpdatePayload(
 
 	const state = parseState(stateValue);
 	if (!state) {
-		return { error: 'Debe seleccionar un estado válido (presente o tarde)' };
+		return {
+			error: 'Debe seleccionar un estado válido (presente, tarde, permiso, falta o justificado)'
+		};
 	}
 
 	if (!entryTime) {

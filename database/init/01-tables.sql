@@ -237,7 +237,9 @@ CREATE TABLE public.teacher_attendances (
   CONSTRAINT teacher_attendances_teacher_fk FOREIGN KEY (teacher_code) REFERENCES public.teachers (code) ON DELETE CASCADE,
   CONSTRAINT teacher_attendances_branch_fk FOREIGN KEY (branch_code) REFERENCES public.branches (code) ON DELETE RESTRICT,
   CONSTRAINT teacher_attendances_schedule_fk FOREIGN KEY (schedule_code) REFERENCES public.teacher_schedules (code) ON DELETE RESTRICT,
-  CONSTRAINT teacher_attendances_state_check CHECK (state IN ('presente', 'tarde')),
+  CONSTRAINT teacher_attendances_state_check CHECK (
+		state IN ('presente', 'tarde', 'permiso', 'falta', 'justificado')
+	),
   CONSTRAINT teacher_attendances_schedule_date_uq UNIQUE (schedule_code, attendance_date)
 );
 

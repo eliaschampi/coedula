@@ -1,11 +1,11 @@
-import type { TeacherAttendanceState, TeacherWeekday } from '$lib/types/teacher';
+import type { TeacherAttendanceState } from '$lib/types/teacher';
+import {
+	isTeacherAttendanceSlotWithinWindowAtMinutes,
+	teacherEntryMinutesOfDay,
+	type TeacherAttendanceScheduleSlot
+} from '$lib/utils/teacherAttendanceWindow';
 
-export interface TeacherScheduleSlot {
-	code: string;
-	weekday: TeacherWeekday;
-	entryTime: string;
-	toleranceMinutes: number;
-}
+export type { TeacherAttendanceScheduleSlot as TeacherScheduleSlot } from '$lib/utils/teacherAttendanceWindow';
 
 export interface TeacherAutomaticAttendance {
 	scheduleCode: string;
@@ -37,11 +37,6 @@ export class TeacherAttendanceOutOfWindowError extends Error {
 	}
 }
 
-function parseClockToMinutes(value: string): number {
-	const [hours, minutes] = value.split(':').map(Number);
-	return hours * 60 + minutes;
-}
-
 function formatClockWithSeconds(date: Date): string {
 	const hours = String(date.getHours()).padStart(2, '0');
 	const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -49,20 +44,15 @@ function formatClockWithSeconds(date: Date): string {
 	return `${hours}:${minutes}:${seconds}`;
 }
 
-function getDistanceToSlot(slot: TeacherScheduleSlot, currentMinutes: number): number {
-	return Math.abs(currentMinutes - parseClockToMinutes(slot.entryTime));
+function getDistanceToSlot(slot: TeacherAttendanceScheduleSlot, currentMinutes: number): number {
+	return Math.abs(currentMinutes - teacherEntryMinutesOfDay(slot.entryTime));
 }
 
-function compareByEarlierEntryTime(left: TeacherScheduleSlot, right: TeacherScheduleSlot): number {
-	return parseClockToMinutes(left.entryTime) - parseClockToMinutes(right.entryTime);
-}
-
-function isWithinAcceptanceWindow(slot: TeacherScheduleSlot, currentMinutes: number): boolean {
-	const expectedMinutes = parseClockToMinutes(slot.entryTime);
-	const lowerBound = expectedMinutes - slot.toleranceMinutes;
-	const upperBound = expectedMinutes + slot.toleranceMinutes;
-
-	return currentMinutes >= lowerBound && currentMinutes <= upperBound;
+function compareByEarlierEntryTime(
+	left: TeacherAttendanceScheduleSlot,
+	right: TeacherAttendanceScheduleSlot
+): number {
+	return teacherEntryMinutesOfDay(left.entryTime) - teacherEntryMinutesOfDay(right.entryTime);
 }
 
 /**
@@ -70,9 +60,9 @@ function isWithinAcceptanceWindow(slot: TeacherScheduleSlot, currentMinutes: num
  * broken by preferring the earlier slot for stable, predictable results.
  */
 function pickClosestSlot(
-	slots: TeacherScheduleSlot[],
+	slots: TeacherAttendanceScheduleSlot[],
 	currentMinutes: number
-): TeacherScheduleSlot {
+): TeacherAttendanceScheduleSlot {
 	return slots.reduce((closest, candidate) => {
 		const closestDistance = getDistanceToSlot(closest, currentMinutes);
 		const candidateDistance = getDistanceToSlot(candidate, currentMinutes);
@@ -91,15 +81,17 @@ function pickClosestSlot(
  * The acceptance window is `[entry_time - tolerance, entry_time + tolerance]`.
  */
 export function findClosestTeacherSchedule(
-	slots: TeacherScheduleSlot[],
+	slots: TeacherAttendanceScheduleSlot[],
 	now: Date
-): TeacherScheduleSlot {
+): TeacherAttendanceScheduleSlot {
 	if (slots.length === 0) {
 		throw new TeacherScheduleNotFoundError();
 	}
 
 	const currentMinutes = now.getHours() * 60 + now.getMinutes();
-	const eligible = slots.filter((slot) => isWithinAcceptanceWindow(slot, currentMinutes));
+	const eligible = slots.filter((slot) =>
+		isTeacherAttendanceSlotWithinWindowAtMinutes(slot, currentMinutes)
+	);
 
 	if (eligible.length > 0) {
 		return pickClosestSlot(eligible, currentMinutes);
@@ -116,7 +108,7 @@ export function findClosestTeacherSchedule(
  *  no slot's acceptance window contains `now`.
  */
 export function resolveTeacherAutomaticAttendance(
-	slots: TeacherScheduleSlot[],
+	slots: TeacherAttendanceScheduleSlot[],
 	options: { now?: Date; enforceWindow?: boolean } = {}
 ): TeacherAutomaticAttendance {
 	if (slots.length === 0) {
@@ -128,11 +120,11 @@ export function resolveTeacherAutomaticAttendance(
 	const currentMinutes = now.getHours() * 60 + now.getMinutes();
 	const slot = findClosestTeacherSchedule(slots, now);
 
-	if (enforceWindow && !isWithinAcceptanceWindow(slot, currentMinutes)) {
+	if (enforceWindow && !isTeacherAttendanceSlotWithinWindowAtMinutes(slot, currentMinutes)) {
 		throw new TeacherAttendanceOutOfWindowError(slot.entryTime, slot.toleranceMinutes);
 	}
 
-	const expectedMinutes = parseClockToMinutes(slot.entryTime);
+	const expectedMinutes = teacherEntryMinutesOfDay(slot.entryTime);
 	const state: TeacherAttendanceState = currentMinutes > expectedMinutes ? 'tarde' : 'presente';
 
 	return {

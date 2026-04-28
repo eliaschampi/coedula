@@ -28,8 +28,6 @@ const TEACHER_WEEKDAY_SHORT_LABELS: Record<TeacherWeekday, string> = {
 const VALID_TEACHER_WEEKDAYS = new Set<number>([0, 1, 2, 3, 4, 5, 6]);
 const TIME_HHMM_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 const TIME_HHMMSS_REGEX = /^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
-const TEACHER_NUMBER_DIGITS_REGEX = /^\d{4,10}$/;
-const TEACHER_NUMBER_FULL_REGEX = /^TCH-\d{4,10}$/i;
 
 export const TEACHER_WEEKDAY_OPTIONS: SelectOption[] = (
 	[1, 2, 3, 4, 5, 6, 0] as TeacherWeekday[]
@@ -62,13 +60,54 @@ export function formatTeacherEntryTime(value: string | null | undefined): string
 }
 
 export function formatTeacherAttendanceState(state: TeacherAttendanceState): string {
-	return state === 'tarde' ? 'Tarde' : 'Presente';
+	switch (state) {
+		case 'tarde':
+			return 'Tarde';
+		case 'permiso':
+			return 'Permiso';
+		case 'falta':
+			return 'Falta';
+		case 'justificado':
+			return 'Justificado';
+		default:
+			return 'Presente';
+	}
 }
 
 export function getTeacherAttendanceStateColor(
 	state: TeacherAttendanceState
-): 'success' | 'warning' {
-	return state === 'tarde' ? 'warning' : 'success';
+): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' {
+	switch (state) {
+		case 'tarde':
+			return 'warning';
+		case 'permiso':
+			return 'info';
+		case 'falta':
+			return 'danger';
+		case 'justificado':
+			return 'secondary';
+		default:
+			return 'success';
+	}
+}
+
+function parseClockToMinutesHHmm(value: string): number {
+	const slice = value.trim().slice(0, 5);
+	const [hRaw, mRaw] = slice.split(':');
+	const h = Number(hRaw);
+	const m = Number(mRaw);
+	if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
+	return h * 60 + m;
+}
+
+/** Compares wall-clock HH:mm to schedule entry HH:mm (same day). */
+export function deriveTeacherAttendanceAutoState(
+	nowHhMm: string,
+	scheduleEntryHhMm: string
+): 'presente' | 'tarde' {
+	return parseClockToMinutesHHmm(nowHhMm) > parseClockToMinutesHHmm(scheduleEntryHhMm)
+		? 'tarde'
+		: 'presente';
 }
 
 export function normalizeTeacherTimeInput(value: string | null | undefined): string | null {
@@ -150,21 +189,6 @@ export function summarizeTeacherSchedules(
 			return `${formatTeacherWeekdayShort(weekday)}: ${times.join(', ')}`;
 		})
 		.join(' · ');
-}
-
-export function normalizeTeacherNumberInput(value: string | null | undefined): string | null {
-	const normalized = (value ?? '').trim().toUpperCase();
-	if (!normalized) return null;
-
-	if (TEACHER_NUMBER_FULL_REGEX.test(normalized)) {
-		return normalized.replace(/^TCH-/, 'TCH-');
-	}
-
-	if (TEACHER_NUMBER_DIGITS_REGEX.test(normalized)) {
-		return `TCH-${normalized.padStart(6, '0')}`;
-	}
-
-	return null;
 }
 
 function parseLocalIsoDate(value: string): Date {

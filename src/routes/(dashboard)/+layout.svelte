@@ -5,7 +5,7 @@
 	import Navbar from '$lib/components/Navbar/Navbar.svelte';
 	import Sidebar from '$lib/components/Sidebar/Sidebar.svelte';
 	import SidebarItem from '$lib/components/Sidebar/SidebarItem.svelte';
-	import { Icon, Divider, Button } from '$lib/components';
+	import { Icon, Divider, Button, Chip } from '$lib/components';
 	import Notification from '$lib/components/Notification/Notification.svelte';
 	import Avatar from '$lib/components/Avatar/Avatar.svelte';
 	import Dropdown from '$lib/components/Dropdown/Dropdown.svelte';
@@ -94,6 +94,10 @@
 	const canReadTeacherAttendance = $derived(can('teacher_attendance:read'));
 	const canReadCashbox = $derived(can('cashbox:read') || can('payments:read'));
 	const canReadDrive = $derived(can('drive:read'));
+
+	const navbarBranchLabel = $derived(
+		page.data.user?.current_branch_name?.trim() || 'Sin sede activa'
+	);
 </script>
 
 <svelte:head>
@@ -291,6 +295,15 @@
 		{/snippet}
 
 		{#snippet actions()}
+			<span
+				class="lumi-navbar-branch lumi-max-w--3xl lumi-flex-item--shrink"
+				title={navbarBranchLabel}
+			>
+				<Chip color="secondary" size="sm" icon="building2" class="lumi-navbar-branch__chip">
+					{navbarBranchLabel}
+				</Chip>
+			</span>
+
 			<Button
 				type="ghost"
 				size="sm"
@@ -405,6 +418,27 @@
 
 	.lumi-navbar-user-dropdown {
 		max-width: 220px;
+	}
+
+	.lumi-navbar-branch {
+		min-width: 0;
+	}
+
+	.lumi-navbar-branch :global(.lumi-navbar-branch__chip) {
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	.lumi-navbar-branch :global(.lumi-navbar-branch__chip .lumi-chip__text) {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	:global([data-theme='light'] .lumi-navbar-branch :global(.lumi-chip--secondary)) {
+		border-color: rgba(255, 255, 255, 0.35);
+		background: rgba(255, 255, 255, 0.12);
+		color: var(--lumi-color-text-inverse);
 	}
 
 	.lumi-toast-portal {

@@ -97,11 +97,6 @@
 	const outflowRows = $derived(data.outflows as unknown as TableRow[]);
 	const monthlyRows = $derived(data.monthlySummary as unknown as TableRow[]);
 	const canWriteCashbox = $derived(canCreateCashbox || canUpdateCashbox);
-	const workspaceBranch = $derived(
-		data.user?.current_branch
-			? { code: data.user.current_branch, name: data.user.current_branch_name }
-			: null
-	);
 	const hasOpening = $derived(data.summary.cashbox_day_code !== null);
 	const isDayClosed = $derived(Boolean(data.summary.closed_at));
 	const canOperateSelectedDate = $derived(hasOpening && !isDayClosed);
@@ -618,26 +613,17 @@
 		</Card>
 	{:else}
 		<Card>
-			<div class="lumi-flex lumi-justify--between lumi-align-items--center lumi-flex--gap-md">
-				<div class="lumi-flex lumi-align-items--center lumi-flex--gap-sm">
-					<Chip color="secondary" size="sm">{data.currentUserName}</Chip>
-					<Chip color={isDayClosed ? 'success' : hasOpening ? 'info' : 'warning'} size="sm">
-						{isDayClosed ? 'Caja cerrada' : hasOpening ? 'Caja abierta' : 'Sin apertura'}
-					</Chip>
-				</div>
-
-				<div class="lumi-flex lumi-align-items--center lumi-flex--gap-sm">
-					<Chip color="primary" size="sm" icon="building2">{workspaceBranch?.name ?? 'Sede'}</Chip>
-				</div>
+			<div class="lumi-flex lumi-align-items--center lumi-flex--gap-sm lumi-flex--wrap">
+				<Chip color="secondary" size="sm">{data.currentUserName}</Chip>
+				<Chip color={isDayClosed ? 'success' : hasOpening ? 'info' : 'warning'} size="sm">
+					{isDayClosed ? 'Caja cerrada' : hasOpening ? 'Caja abierta' : 'Sin apertura'}
+				</Chip>
 			</div>
 		</Card>
 
 		<Tabs bind:value={activeTab} tabs={availableTabs}>
 			{#if activeTab === 'summary'}
-				<Card
-					title="Corte diario"
-					subtitle={`${workspaceBranch?.name ?? 'Sede'} · ${formatEducationDate(data.summary.business_date)}`}
-				>
+				<Card title="Corte diario" subtitle={formatEducationDate(data.summary.business_date)}>
 					<div class="lumi-stack lumi-stack--lg">
 						<CashboxDateControl
 							bind:value={selectedDate}

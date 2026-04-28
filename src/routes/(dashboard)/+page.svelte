@@ -29,11 +29,6 @@
 	);
 	const groupOptions = $derived<SelectOption[]>(data.groups.map((group) => ({ ...group })));
 	const courseOptions = $derived<SelectOption[]>(data.courses.map((course) => ({ ...course })));
-	const selectedBranch = $derived(
-		data.user?.current_branch
-			? { name: data.user.current_branch_name ?? 'Sede', code: data.user.current_branch }
-			: null
-	);
 	const selectedCycle = $derived(
 		data.cycles.find((cycle) => cycle.code === data.selection.cycleCode) ?? null
 	);
@@ -128,13 +123,7 @@
 		subtitle="Lectura académica por sede, ciclo, grado y grupo"
 		size="xl"
 		icon="house"
-	>
-		{#snippet actions()}
-			{#if data.canViewDashboard && selectedBranch}
-				<Chip color="primary" size="sm" icon="building2">{selectedBranch.name}</Chip>
-			{/if}
-		{/snippet}
-	</PageHeader>
+	/>
 
 	{#if !data.canViewDashboard}
 		<Card spaced>
@@ -154,7 +143,6 @@
 		</Card>
 	{:else}
 		<div class="dashboard-home__context">
-			<Chip color="primary" size="sm">{selectedBranch?.name ?? 'Sede'}</Chip>
 			{#if selectedCycle}
 				<Chip color="info" size="sm">{selectedCycle.title}</Chip>
 			{/if}

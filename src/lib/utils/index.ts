@@ -12,6 +12,7 @@ export {
 	formatDateInputValue,
 	formatEducationCurrency,
 	formatEducationDate,
+	formatEducationDateTime,
 	formatEducationDateRange,
 	getEducationDateProgress,
 	formatEnrollmentStatus,
@@ -73,16 +74,24 @@ export { PG_FOREIGN_KEY_VIOLATION, PG_UNIQUE_VIOLATION, pgErrorCode } from './po
 export {
 	TEACHER_WEEKDAY_OPTIONS,
 	formatTeacherAttendanceState,
+	deriveTeacherAttendanceAutoState,
 	formatTeacherEntryTime,
 	formatTeacherWeekday,
 	formatTeacherWeekdayShort,
 	getTeacherAttendanceStateColor,
 	getTeacherWeekdayFromDate,
 	isTeacherWeekday,
-	normalizeTeacherNumberInput,
 	normalizeTeacherTimeInput,
 	parseTeacherToleranceMinutes,
 	summarizeTeacherSchedules,
 	type SummarizeTeacherSchedulesOptions,
 	type SummarizeTeacherSchedulesTablePreview
 } from './teacher';
+export {
+	describeTeacherAttendanceWindowViolation,
+	filterTeacherAttendanceSlotsWithinWindowAt,
+	isTeacherAttendanceSlotWithinWindowAt,
+	toTeacherAttendanceScheduleSlot,
+	type TeacherAttendanceScheduleSlot,
+	type TeacherScheduleWindowRow
+} from './teacherAttendanceWindow';

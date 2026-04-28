@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { goto, invalidate } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import {
@@ -8,13 +10,14 @@
 		Card,
 		Chip,
 		Dialog,
+		Divider,
 		Dropdown,
 		DropdownItem,
 		EmptyState,
 		Fieldset,
+		InfoItem,
 		Input,
 		PageHeader,
-		PageSidebar,
 		Select,
 		Table,
 		Textarea,
@@ -23,13 +26,19 @@
 	import { can } from '$lib/stores/permissions';
 	import { showToast } from '$lib/stores/Toast';
 	import {
+		deriveTeacherAttendanceAutoState,
 		formatEducationDate,
+		formatEducationDateTime,
 		formatTeacherAttendanceState,
 		formatTeacherEntryTime,
 		formatTeacherWeekday,
 		getTeacherAttendanceStateColor,
 		getTeacherWeekdayFromDate
 	} from '$lib/utils';
+	import {
+		isTeacherAttendanceSlotWithinWindowAt,
+		toTeacherAttendanceScheduleSlot
+	} from '$lib/utils/teacherAttendanceWindow';
 	import type { TeacherAttendanceState, TeacherWeekday } from '$lib/types/teacher';
 	import type { PageData } from './$types';
 
@@ -38,7 +47,10 @@
 
 	const STATE_OPTIONS = [
 		{ value: 'presente', label: 'Presente' },
-		{ value: 'tarde', label: 'Tarde' }
+		{ value: 'tarde', label: 'Tarde' },
+		{ value: 'permiso', label: 'Permiso' },
+		{ value: 'falta', label: 'Falta' },
+		{ value: 'justificado', label: 'Justificado' }
 	];
 
 	const { data }: { data: PageData } = $props();
@@ -54,7 +66,6 @@
 	$effect(() => {
 		filterDate = data.selectedDate;
 	});
-	let showMobileSidebar = $state(false);
 
 	let showFormModal = $state(false);
 	let modalMode = $state<'create' | 'edit'>('create');
@@ -63,8 +74,22 @@
 	let formTeacherCode = $state<string | null>(null);
 	let formScheduleCode = $state<string | null>(null);
 	let formState = $state<TeacherAttendanceState>('presente');
-	let formEntryTime = $state(currentTimeValue());
 	let formObservation = $state('');
+
+	let wallNowMs = $state(Date.now());
+
+	function formatNowHhMmSs(date: Date): string {
+		const hours = String(date.getHours()).padStart(2, '0');
+		const minutes = String(date.getMinutes()).padStart(2, '0');
+		const seconds = String(date.getSeconds()).padStart(2, '0');
+		return `${hours}:${minutes}:${seconds}`;
+	}
+
+	function currentTimeValue(): string {
+		return formatNowHhMmSs(new Date(wallNowMs)).slice(0, 5);
+	}
+
+	let formEntryTime = $state(currentTimeValue());
 
 	let showDeleteModal = $state(false);
 	let deleteTarget = $state<AttendanceRow | null>(null);
@@ -72,12 +97,9 @@
 
 	const attendanceRows = $derived(data.rows as unknown as TableRow[]);
 
-	const teacherOptions = $derived(
-		data.teachers.map((teacher) => ({
-			value: teacher.code,
-			label: `${teacher.full_name} · ${teacher.teacher_number}`
-		}))
-	);
+	const registeredScheduleCodes = $derived(new Set(data.rows.map((row) => row.schedule_code)));
+
+	const isAttendanceDateToday = $derived(data.selectedDate === data.today);
 
 	const teachersByCode = $derived(new Map(data.teachers.map((teacher) => [teacher.code, teacher])));
 
@@ -85,8 +107,41 @@
 		data.schedulesForDay.filter((schedule) => schedule.teacher_code === formTeacherCode)
 	);
 
+	const unregisteredSchedulesForSelectedTeacher = $derived(
+		schedulesForSelectedTeacher.filter((schedule) => !registeredScheduleCodes.has(schedule.code))
+	);
+
+	/** Schedules still without attendance for the selected day, with today's window rule applied once. */
+	const pendingSchedulesEligibleForCreate = $derived.by(() => {
+		const pending = data.schedulesForDay.filter(
+			(schedule) => !registeredScheduleCodes.has(schedule.code)
+		);
+		if (!isAttendanceDateToday) return pending;
+		const now = new Date(wallNowMs);
+		return pending.filter((schedule) =>
+			isTeacherAttendanceSlotWithinWindowAt(toTeacherAttendanceScheduleSlot(schedule), now)
+		);
+	});
+
+	const teacherOptionsForCreate = $derived(
+		data.teachers
+			.filter((teacher) =>
+				pendingSchedulesEligibleForCreate.some((s) => s.teacher_code === teacher.code)
+			)
+			.map((teacher) => ({
+				value: teacher.code,
+				label: `${teacher.full_name} · ${teacher.teacher_number}`
+			}))
+	);
+
+	const schedulesForCreateForm = $derived(
+		pendingSchedulesEligibleForCreate.filter(
+			(schedule) => schedule.teacher_code === formTeacherCode
+		)
+	);
+
 	const scheduleOptionsForForm = $derived(
-		schedulesForSelectedTeacher.map((schedule) => ({
+		schedulesForCreateForm.map((schedule) => ({
 			value: schedule.code,
 			label: `${formatTeacherEntryTime(schedule.entry_time)} · ±${schedule.tolerance_minutes} min`
 		}))
@@ -95,28 +150,50 @@
 	const filterDateWeekdayLabel = $derived(
 		formatTeacherWeekday(getTeacherWeekdayFromDate(filterDate || data.today))
 	);
-	const selectedBranchLabel = $derived(data.user?.current_branch_name ?? 'Sin sede activa');
 	const selectedDateLabel = $derived(
 		filterDate === data.today ? 'Hoy' : formatEducationDate(filterDate)
 	);
 
+	const liveClockHhMmSs = $derived(formatNowHhMmSs(new Date(wallNowMs)));
+
+	const createDerivedAttendanceState = $derived.by((): TeacherAttendanceState => {
+		if (modalMode !== 'create' || !formScheduleCode) return 'presente';
+		const schedule = data.schedulesForDay.find((s) => s.code === formScheduleCode);
+		if (!schedule) return 'presente';
+		return deriveTeacherAttendanceAutoState(
+			liveClockHhMmSs.slice(0, 5),
+			formatTeacherEntryTime(schedule.entry_time)
+		);
+	});
+
 	$effect(() => {
-		if (formTeacherCode && schedulesForSelectedTeacher.length === 1) {
-			formScheduleCode = schedulesForSelectedTeacher[0].code;
+		if (!browser || !canRead) {
+			wallNowMs = Date.now();
+			return;
+		}
+		const needsLiveClock =
+			data.selectedDate === data.today || (showFormModal && modalMode === 'create');
+		if (!needsLiveClock) {
+			wallNowMs = Date.now();
+			return;
+		}
+		const id = setInterval(() => {
+			wallNowMs = Date.now();
+		}, 1000);
+		return () => clearInterval(id);
+	});
+
+	$effect(() => {
+		if (modalMode !== 'create') return;
+		if (formTeacherCode && schedulesForCreateForm.length === 1) {
+			formScheduleCode = schedulesForCreateForm[0].code;
 		} else if (
 			formScheduleCode &&
-			!schedulesForSelectedTeacher.some((schedule) => schedule.code === formScheduleCode)
+			!schedulesForCreateForm.some((schedule) => schedule.code === formScheduleCode)
 		) {
 			formScheduleCode = null;
 		}
 	});
-
-	function currentTimeValue(): string {
-		const now = new Date();
-		const hours = String(now.getHours()).padStart(2, '0');
-		const minutes = String(now.getMinutes()).padStart(2, '0');
-		return `${hours}:${minutes}`;
-	}
 
 	function getActionError(result: { data?: Record<string, unknown> }): string | null {
 		const error = result.data?.error;
@@ -136,14 +213,11 @@
 			: '/teacher-attendance';
 	}
 
-	function applyFilters(): void {
-		showMobileSidebar = false;
-		void goto(resolve(buildFilterUrl() as '/'));
-	}
-
-	function clearFilters(): void {
-		showMobileSidebar = false;
-		void goto(resolve('/teacher-attendance' as '/'));
+	function syncDateToUrl(): void {
+		const target = buildFilterUrl();
+		const current = `${page.url.pathname}${page.url.search}`;
+		if (current === target) return;
+		void goto(resolve(target as '/'));
 	}
 
 	function resetFormState(): void {
@@ -154,6 +228,7 @@
 		formState = 'presente';
 		formEntryTime = currentTimeValue();
 		formObservation = '';
+		wallNowMs = Date.now();
 	}
 
 	function openCreateModal(): void {
@@ -199,205 +274,170 @@
 	}
 </script>
 
-<div class="lumi-stack lumi-stack--md">
+<div class="lumi-stack lumi-stack--lg">
 	<PageHeader
 		title="Asistencia docente"
-		subtitle="Control diario de asistencia docente con registro manual y escaneo QR"
+		subtitle="Consulta por fecha y registra o edita la asistencia desde el mismo flujo"
 		icon="clipboard"
 	>
 		{#snippet actions()}
-			<div
-				class="lumi-flex lumi-flex--gap-sm lumi-align-items--center lumi-page-sidebar__header-actions"
+			<Button
+				type="gradient"
+				color="primary"
+				icon="plus"
+				onclick={openCreateModal}
+				disabled={!canCreate}
 			>
-				<Button
-					type="ghost"
-					size="sm"
-					icon="slidersHorizontal"
-					class="lumi-page-sidebar__mobile-trigger"
-					onclick={() => (showMobileSidebar = true)}
-					aria-label="Abrir filtros de asistencia docente"
-				/>
-				<Button
-					type="flat"
-					color="secondary"
-					onclick={() => void goto(resolve('/teacher-attendance/scan' as '/'))}
-				>
-					Escanear
-				</Button>
-				<Button type="gradient" color="primary" onclick={openCreateModal} disabled={!canCreate}>
-					Registrar
-				</Button>
-			</div>
+				Registrar
+			</Button>
 		{/snippet}
 	</PageHeader>
 
-	<div class="lumi-layout--two-columns lumi-page-sidebar-layout">
-		<PageSidebar
-			bind:mobileOpen={showMobileSidebar}
-			variant="attendance"
-			mobileTitle="Fecha"
-			mobileAriaLabel="Cerrar filtros de asistencia docente"
-		>
-			{#snippet sidebar()}
-				<div class="lumi-page-sidebar__section">
-					<div
-						class="lumi-filter-summary lumi-filter-summary--compact lumi-filter-summary--warning"
-					>
-						<p class="lumi-filter-summary__eyebrow">Filtros del día</p>
-						<h2 class="lumi-filter-summary__title">{selectedBranchLabel}</h2>
-						<p class="lumi-filter-summary__subtitle">
-							{filterDateWeekdayLabel} · {selectedDateLabel}
-						</p>
+	<Card>
+		{#if !canRead}
+			<Alert type="warning" closable>
+				No tienes permisos para consultar la asistencia docente.
+			</Alert>
+		{:else if !data.selectedBranchCode}
+			<EmptyState
+				title="Sin sede activa"
+				description="Configura tu sede de trabajo en Mi perfil para ver y registrar asistencia docente."
+				icon="building"
+			/>
+		{:else}
+			<div class="lumi-stack lumi-stack--md">
+				<div class="lumi-flex lumi-flex--gap-sm lumi-align-items--end">
+					<div class="lumi-flex-item--grow">
+						<Input
+							bind:value={filterDate}
+							label="Fecha"
+							type="date"
+							icon="calendar"
+							oninput={syncDateToUrl}
+						/>
 					</div>
 				</div>
 
-				<div class="lumi-page-sidebar__section">
-					<p class="lumi-page-sidebar__label">Filtros</p>
-					<Input bind:value={filterDate} label="Fecha" type="date" />
-				</div>
-
-				<div class="lumi-page-sidebar__section lumi-stack lumi-stack--xs">
-					<Button type="gradient" color="primary" icon="search" onclick={applyFilters}>
-						Aplicar filtros
-					</Button>
-					<Button type="border" onclick={clearFilters}>Limpiar</Button>
-				</div>
-			{/snippet}
-		</PageSidebar>
-
-		<section class="lumi-layout--content-right">
-			<Card spaced>
-				<div class="lumi-stack lumi-stack--md">
-					<div class="lumi-filter-summary lumi-filter-summary--warning">
-						<div class="lumi-filter-summary__copy">
-							<p class="lumi-filter-summary__eyebrow">Resumen operativo</p>
-							<h2 class="lumi-filter-summary__title">{selectedBranchLabel}</h2>
-							<p class="lumi-filter-summary__subtitle">
-								Registros de asistencia para {filterDateWeekdayLabel.toLowerCase()},
-								{selectedDateLabel.toLowerCase()}.
-							</p>
-						</div>
-						<div class="lumi-filter-summary__meta">
-							<Chip color="primary" size="sm" icon="calendar">{selectedDateLabel}</Chip>
-							<Chip color="info" size="sm">{filterDateWeekdayLabel}</Chip>
-							<Chip color="secondary" size="sm" icon="users">
-								{data.rows.length} registros
-							</Chip>
-						</div>
-					</div>
-
-					{#if !canRead}
-						<Alert type="warning" closable>
-							No tienes permisos para consultar la asistencia docente.
-						</Alert>
-					{:else if !data.selectedBranchCode}
-						<EmptyState
-							title="Sin sede activa"
-							description="Configura tu sede de trabajo en Mi perfil para ver y registrar asistencia docente."
-							icon="building"
-						/>
-					{:else if data.rows.length === 0}
-						<EmptyState
-							title="Sin registros para esta vista"
-							description="Aún no hay asistencias docentes registradas para la sede y fecha seleccionada."
-							icon="clipboard"
-						/>
-					{:else}
-						<Table data={attendanceRows} pagination hover itemsPerPage={20}>
-							{#snippet thead()}
-								<th class="lumi-min-w--xl">Docente</th>
-								<th>Horario</th>
-								<th>Ingreso</th>
-								<th>Estado</th>
-								<th>Observación</th>
-								<th>Registrado</th>
-								<th>Acciones</th>
-							{/snippet}
-
-							{#snippet row({ row })}
-								{@const attendanceRow = row as unknown as AttendanceRow}
-								<td class="lumi-min-w--xl">
-									<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
-										<span class="lumi-font--medium">{attendanceRow.teacher_full_name}</span>
-										<span class="lumi-text--xs lumi-text--muted">
-											{attendanceRow.teacher_number} · {attendanceRow.teacher_phone ||
-												'Sin teléfono'}
-										</span>
-									</div>
-								</td>
-								<td>
-									<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
-										<span class="lumi-font--medium">{describeSchedule(attendanceRow)}</span>
-										<span class="lumi-text--xs lumi-text--muted">
-											Tolerancia ±{attendanceRow.schedule_tolerance_minutes} min
-										</span>
-									</div>
-								</td>
-								<td>
-									<span class="lumi-font--medium">
-										{formatTeacherEntryTime(attendanceRow.attendance_entry_time)}
-									</span>
-								</td>
-								<td>
-									<Chip
-										color={getTeacherAttendanceStateColor(attendanceRow.attendance_state)}
-										size="sm"
-									>
-										{formatTeacherAttendanceState(attendanceRow.attendance_state)}
-									</Chip>
-								</td>
-								<td>
-									<span class="lumi-text--sm lumi-text--muted">
-										{attendanceRow.attendance_observation || 'Sin observación'}
-									</span>
-								</td>
-								<td>
-									<span class="lumi-text--sm lumi-text--muted">
-										{attendanceRow.attendance_created_at
-											? formatEducationDate(attendanceRow.attendance_created_at)
-											: '—'}
-									</span>
-								</td>
-								<td>
-									<Dropdown
-										position="bottom-end"
-										aria-label={`Acciones para ${attendanceRow.teacher_full_name}`}
-									>
-										{#snippet triggerContent()}
-											<Button
-												type="flat"
-												size="sm"
-												icon="moreVertical"
-												aria-label={`Abrir acciones para ${attendanceRow.teacher_full_name}`}
-											/>
-										{/snippet}
-
-										{#snippet content()}
-											<DropdownItem
-												icon="edit"
-												disabled={!canUpdate}
-												onclick={() => openEditModal(attendanceRow)}
-											>
-												Editar registro
-											</DropdownItem>
-											<DropdownItem
-												icon="trash"
-												color="danger"
-												disabled={!canDelete}
-												onclick={() => openDeleteModal(attendanceRow)}
-											>
-												Eliminar registro
-											</DropdownItem>
-										{/snippet}
-									</Dropdown>
-								</td>
-							{/snippet}
-						</Table>
+				<p class="lumi-margin--none lumi-text--sm lumi-text--muted">
+					{filterDateWeekdayLabel} · {selectedDateLabel} · {data.rows.length}
+					{data.rows.length === 1 ? 'registro' : 'registros'}
+					{#if isAttendanceDateToday}
+						· Registro manual hoy: solo horarios dentro de ventana entrada ± tolerancia
 					{/if}
-				</div>
-			</Card>
-		</section>
-	</div>
+				</p>
+
+				{#if data.rows.length === 0}
+					<EmptyState
+						title="Sin registros para esta vista"
+						description="Aún no hay asistencias docentes registradas para la sede y fecha seleccionada. Puedes registrar una desde el botón Registrar."
+						icon="clipboard"
+					>
+						{#snippet actions()}
+							<Button
+								type="filled"
+								color="primary"
+								icon="plus"
+								onclick={openCreateModal}
+								disabled={!canCreate}
+							>
+								Registrar asistencia
+							</Button>
+						{/snippet}
+					</EmptyState>
+				{:else}
+					<Table data={attendanceRows} pagination hover itemsPerPage={20}>
+						{#snippet thead()}
+							<th class="lumi-min-w--xl">Docente</th>
+							<th>Horario</th>
+							<th>Ingreso</th>
+							<th>Estado</th>
+							<th>Observación</th>
+							<th>Registrado</th>
+							<th>Acciones</th>
+						{/snippet}
+
+						{#snippet row({ row })}
+							{@const attendanceRow = row as unknown as AttendanceRow}
+							<td class="lumi-min-w--xl">
+								<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
+									<span class="lumi-font--medium">{attendanceRow.teacher_full_name}</span>
+									<span class="lumi-text--xs lumi-text--muted">
+										{attendanceRow.teacher_number} · {attendanceRow.teacher_phone || 'Sin teléfono'}
+									</span>
+								</div>
+							</td>
+							<td>
+								<div class="lumi-flex lumi-flex--column lumi-flex--gap-2xs">
+									<span class="lumi-font--medium">{describeSchedule(attendanceRow)}</span>
+									<span class="lumi-text--xs lumi-text--muted">
+										Tolerancia ±{attendanceRow.schedule_tolerance_minutes} min
+									</span>
+								</div>
+							</td>
+							<td>
+								<span class="lumi-font--medium">
+									{formatTeacherEntryTime(attendanceRow.attendance_entry_time)}
+								</span>
+							</td>
+							<td>
+								<Chip
+									color={getTeacherAttendanceStateColor(attendanceRow.attendance_state)}
+									size="sm"
+								>
+									{formatTeacherAttendanceState(attendanceRow.attendance_state)}
+								</Chip>
+							</td>
+							<td>
+								<span class="lumi-text--sm lumi-text--muted">
+									{attendanceRow.attendance_observation || 'Sin observación'}
+								</span>
+							</td>
+							<td>
+								<span class="lumi-text--sm lumi-text--muted">
+									{attendanceRow.attendance_created_at
+										? formatEducationDateTime(attendanceRow.attendance_created_at)
+										: '—'}
+								</span>
+							</td>
+							<td>
+								<Dropdown
+									position="bottom-end"
+									aria-label={`Acciones para ${attendanceRow.teacher_full_name}`}
+								>
+									{#snippet triggerContent()}
+										<Button
+											type="flat"
+											size="sm"
+											icon="moreVertical"
+											aria-label={`Abrir acciones para ${attendanceRow.teacher_full_name}`}
+										/>
+									{/snippet}
+
+									{#snippet content()}
+										<DropdownItem
+											icon="edit"
+											disabled={!canUpdate}
+											onclick={() => openEditModal(attendanceRow)}
+										>
+											Editar registro
+										</DropdownItem>
+										<DropdownItem
+											icon="trash"
+											color="danger"
+											disabled={!canDelete}
+											onclick={() => openDeleteModal(attendanceRow)}
+										>
+											Eliminar registro
+										</DropdownItem>
+									{/snippet}
+								</Dropdown>
+							</td>
+						{/snippet}
+					</Table>
+				{/if}
+			</div>
+		{/if}
+	</Card>
 </div>
 
 <Dialog
@@ -413,14 +453,20 @@
 		use:enhance={() => {
 			return async ({ result }) => {
 				if (result.type === 'success') {
+					const wasEdit = modalMode === 'edit';
 					showToast(
-						modalMode === 'edit'
+						wasEdit
 							? 'Asistencia actualizada exitosamente'
-							: 'Asistencia registrada exitosamente',
+							: 'Asistencia registrada. Puedes continuar con el siguiente docente.',
 						'success'
 					);
 					await invalidate('teacher_attendance:load');
-					closeFormModal();
+					if (wasEdit) {
+						closeFormModal();
+					} else {
+						formError = '';
+						resetFormState();
+					}
 					return;
 				}
 				if (result.type === 'failure') {
@@ -436,6 +482,8 @@
 			<input type="hidden" name="schedule_code" value={formScheduleCode ?? ''} />
 			<input type="hidden" name="teacher_code" value={formTeacherCode ?? ''} />
 			<input type="hidden" name="attendance_date" value={data.selectedDate} />
+			<input type="hidden" name="entry_time" value={liveClockHhMmSs.slice(0, 5)} />
+			<input type="hidden" name="state" value={createDerivedAttendanceState} />
 		{/if}
 
 		{#if formError}
@@ -444,32 +492,70 @@
 
 		<div class="lumi-stack lumi-stack--md">
 			{#if modalMode === 'create'}
+				<InfoItem
+					icon="calendar"
+					iconColor="primary"
+					label="Día de registro"
+					layout="horizontal"
+					class="lumi-width--full"
+				>
+					<span class="lumi-font--medium">{filterDateWeekdayLabel} · {selectedDateLabel}</span>
+				</InfoItem>
+				<Divider spaced={false} />
+			{/if}
+
+			{#if modalMode === 'create'}
 				<Fieldset legend="Docente y horario">
-					<div class="lumi-stack lumi-stack--sm">
-						<Select
-							bind:value={formTeacherCode}
-							label="Docente"
-							options={teacherOptions}
-							placeholder="Buscar docente"
-							autocomplete
-							clearable={false}
-						/>
-						{#if formTeacherCode && schedulesForSelectedTeacher.length === 0}
+					<div class="lumi-stack lumi-stack--md">
+						{#if isAttendanceDateToday}
+							<p class="lumi-margin--none lumi-text--xs lumi-text--muted">
+								En la fecha de hoy solo se listan horarios cuya hora actual cae dentro de entrada ±
+								tolerancia.
+							</p>
+						{/if}
+						{#if teacherOptionsForCreate.length === 0}
 							<Alert type="warning" closable={false}>
-								Este docente no tiene horarios configurados en la sede {selectedBranchLabel} para
-								{filterDateWeekdayLabel.toLowerCase()}.
+								No quedan horarios pendientes de registro para esta fecha en tu sede activa (o, si
+								es hoy, ninguno en ventana de tolerancia).
 							</Alert>
 						{:else}
 							<Select
-								bind:value={formScheduleCode}
-								label="Horario"
-								options={scheduleOptionsForForm}
-								placeholder={formTeacherCode
-									? 'Seleccione un horario'
-									: 'Seleccione primero un docente'}
-								disabled={!formTeacherCode || scheduleOptionsForForm.length === 0}
+								bind:value={formTeacherCode}
+								label="Docente"
+								options={teacherOptionsForCreate}
+								placeholder="Buscar docente"
+								autocomplete
 								clearable={false}
 							/>
+							{#if formTeacherCode && schedulesForSelectedTeacher.length === 0}
+								<Alert type="warning" closable={false}>
+									Este docente no tiene horarios configurados para
+									{filterDateWeekdayLabel.toLowerCase()} en tu sede activa.
+								</Alert>
+							{:else if formTeacherCode && schedulesForCreateForm.length === 0}
+								{#if isAttendanceDateToday && unregisteredSchedulesForSelectedTeacher.length > 0}
+									<Alert type="warning" closable={false}>
+										Fuera de la ventana de registro: la hora actual no está dentro de entrada ±
+										tolerancia de los horarios pendientes de este docente. Espera la próxima ventana
+										o elige otra fecha en el filtro para correcciones.
+									</Alert>
+								{:else}
+									<Alert type="info" closable={false}>
+										Este docente ya tiene asistencia registrada para todos sus horarios de este día.
+									</Alert>
+								{/if}
+							{:else}
+								<Select
+									bind:value={formScheduleCode}
+									label="Horario"
+									options={scheduleOptionsForForm}
+									placeholder={formTeacherCode
+										? 'Seleccione un horario'
+										: 'Seleccione primero un docente'}
+									disabled={!formTeacherCode || scheduleOptionsForForm.length === 0}
+									clearable={false}
+								/>
+							{/if}
 						{/if}
 					</div>
 				</Fieldset>
@@ -485,46 +571,93 @@
 				</Fieldset>
 			{/if}
 
-			<Fieldset legend="Registro">
-				<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
-					<Select
-						bind:value={formState}
-						name="state"
-						label="Estado"
-						options={STATE_OPTIONS}
-						clearable={false}
-					/>
-					<Input
-						bind:value={formEntryTime}
-						name="entry_time"
-						type="time"
-						label="Hora de ingreso"
-						required
-					/>
-				</div>
+			<Fieldset legend="Estado e ingreso">
+				{#if modalMode === 'create'}
+					<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
+						<InfoItem
+							icon="clock"
+							iconColor="primary"
+							label="Hora de registro"
+							layout="horizontal"
+							class="lumi-width--full"
+						>
+							<span class="lumi-font--medium">{liveClockHhMmSs}</span>
+						</InfoItem>
+						<InfoItem
+							icon="clipboardCheck"
+							iconColor="primary"
+							label="Estado"
+							layout="horizontal"
+							class="lumi-width--full"
+						>
+							{#if formScheduleCode}
+								<Chip
+									color={getTeacherAttendanceStateColor(createDerivedAttendanceState)}
+									size="sm"
+								>
+									{formatTeacherAttendanceState(createDerivedAttendanceState)}
+								</Chip>
+							{:else}
+								<span class="lumi-text--sm lumi-text--muted">Selecciona un horario</span>
+							{/if}
+						</InfoItem>
+					</div>
+					<p class="lumi-margin--none lumi-text--xs lumi-text--muted">
+						Valores de solo lectura: se fijan al enviar según el reloj y el horario de ingreso
+						seleccionado (presente o tarde).
+					</p>
+				{:else}
+					<div class="lumi-grid lumi-grid--columns-2 lumi-grid--gap-md">
+						<Select
+							bind:value={formState}
+							name="state"
+							label="Estado"
+							options={STATE_OPTIONS}
+							clearable={false}
+						/>
+						<Input
+							bind:value={formEntryTime}
+							name="entry_time"
+							type="time"
+							label="Hora de ingreso"
+							required
+						/>
+					</div>
+				{/if}
 			</Fieldset>
 
-			<Textarea
-				bind:value={formObservation}
-				name="observation"
-				label="Observaciones"
-				placeholder="Notas breves del registro"
-				rows={4}
-			/>
+			<Fieldset legend="Observaciones (opcional)">
+				<Textarea
+					bind:value={formObservation}
+					name="observation"
+					label=""
+					aria-label="Observaciones opcionales del registro"
+					placeholder="Observación breve (opcional)"
+					rows={3}
+				/>
+			</Fieldset>
 		</div>
 	</form>
 
 	{#snippet footer()}
 		<Button type="border" onclick={closeFormModal}>Cancelar</Button>
-		<Button
-			type="filled"
-			color="primary"
-			onclick={() => submitForm('teacher-attendance-form')}
-			disabled={modalMode === 'create' &&
-				(!formTeacherCode || !formScheduleCode || !data.selectedBranchCode)}
+		<span
+			title={modalMode === 'create' &&
+			(!formTeacherCode || !formScheduleCode || !data.selectedBranchCode)
+				? 'Selecciona docente y horario'
+				: undefined}
 		>
-			{modalMode === 'edit' ? 'Guardar cambios' : 'Registrar'}
-		</Button>
+			<Button
+				type="filled"
+				color="primary"
+				icon={modalMode === 'create' ? 'check' : undefined}
+				onclick={() => submitForm('teacher-attendance-form')}
+				disabled={modalMode === 'create' &&
+					(!formTeacherCode || !formScheduleCode || !data.selectedBranchCode)}
+			>
+				{modalMode === 'edit' ? 'Guardar cambios' : 'Registrar'}
+			</Button>
+		</span>
 	{/snippet}
 </Dialog>
 

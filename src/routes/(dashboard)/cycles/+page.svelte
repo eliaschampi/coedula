@@ -5,13 +5,11 @@
 		Alert,
 		Button,
 		Card,
-		Chip,
 		Dialog,
 		Dropdown,
 		DropdownItem,
 		EmptyState,
 		Fieldset,
-		InfoItem,
 		Input,
 		List,
 		ListHeader,
@@ -61,12 +59,6 @@
 	let formIsActive = $state(true);
 	let selectedDegreeCode = $state<string | null>(null);
 	let selectedDegreeCodes = $state<string[]>([]);
-
-	const selectedBranch = $derived(
-		data.user?.current_branch
-			? { code: data.user.current_branch, name: data.user.current_branch_name }
-			: null
-	);
 
 	const degreeOptions = $derived(
 		data.degreeCatalog.map((degree) => ({
@@ -231,24 +223,19 @@
 	{:else}
 		<div class="lumi-stack lumi-stack--md">
 			<Card>
-				<div class="lumi-section-toolbar">
-					<div class="lumi-section-toolbar__copy">
-						<h2 class="lumi-section-toolbar__title">Sede de trabajo</h2>
-						<p class="lumi-section-toolbar__subtitle">
-							Ciclos de tu sede activa. Para cambiarla, usa <strong>Mi perfil</strong>.
-						</p>
-					</div>
-					<div class="lumi-section-toolbar__actions lumi-align-items--end">
-						<Chip color="primary" size="sm" icon="building2">{selectedBranch?.name ?? 'Sede'}</Chip>
-					</div>
+				<div class="lumi-section-toolbar__copy lumi-padding--sm">
+					<h2 class="lumi-section-toolbar__title">Sede de trabajo</h2>
+					<p class="lumi-section-toolbar__subtitle">
+						Los ciclos usan la sede activa (barra superior). Para cambiarla, usa
+						<strong>Mi perfil</strong>.
+					</p>
 				</div>
 			</Card>
 
 			{#if data.cycles.length === 0}
 				<EmptyState
 					title="Sin ciclos en esta sede"
-					description="Aún no hay periodos para {selectedBranch?.name ??
-						'esta sede'}. Puedes crear uno desde esta pantalla o cambiar la sede activa en Mi perfil."
+					description="Aún no hay periodos en tu sede activa. Puedes crear uno desde esta pantalla o cambiar la sede en Mi perfil."
 					icon="bookOpen"
 				/>
 			{:else}
@@ -431,7 +418,6 @@
 						placeholder="Ej: Verano 2026"
 						required
 					/>
-					<InfoItem icon="building2" label="Sede de trabajo" value={selectedBranch?.name ?? '—'} />
 					<Select
 						bind:value={formModality}
 						name="modality"
